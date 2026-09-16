@@ -45,7 +45,7 @@ p.dms.versions     { delete, get, getCurrent, list, new, revert }
 
 ## Lineage
 
-DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** and its free-form filesystem surface consolidated with the records system (`.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete): one `file` entity (`dms_file` carries folder/path + class/triage/lifecycle), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module over `status` — no `document`/`item-`/`tag`/`view`/`drive` leftovers. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*`/`dms_file_view` tables no longer exist. Saved file views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "dms:file"`).
+DMS is the sole document-management module. The `@aspen-os/drive` package was **removed** and its free-form filesystem surface consolidated with the records system (`.working-docs/sow/dms-consolidation.md`, Phases 1–7 complete): one `file` entity (`dms_file` carries folder/path + class/triage/lifecycle), one label mechanism (`dms_label` + `dms_entity_label`), one sharing group (`p.dms.shares`), one trash module over `status` — no `document`/`item-`/`tag`/`view`/`drive` leftovers. The `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*`/`dms_file_view` tables no longer exist. Saved file views persist as workspace filter views (`p.workspace.filterViews`, `domain: "dms:file"`).
 
 ## Language
 

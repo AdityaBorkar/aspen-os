@@ -1,6 +1,6 @@
 # Masters Domain Model
 
-> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, bank accounts, integration connections, entities, payment methods, labels, org branches — plus tenant-wide units of measure (alias + version history) and tenant settings KV. 12 tables, all tenant schemas (`master_` prefix except `org_branch`). Contacts absorbed DMS address book; may be global (owner-less). Settings absorbed workspace `workspace_setting` surface + organization profile (`org.*` tenant-wide keys). Filter views live in `@aspen-os/workspace` (not here).
+> Package: `@aspen-os/masters`. Polymorphic tenant master data — contacts, addresses, integration connections, entities, payment methods (inline bank details, no `bank_account` table), labels, org branches — plus tenant-wide units of measure (alias + version history) and tenant settings KV. 12 tables, all tenant schemas (`master_` prefix except `org_branch`). Contacts absorbed DMS address book; may be global (owner-less). Settings absorbed workspace `workspace_setting` surface + organization profile (`org.*` tenant-wide keys). Filter views live in `@aspen-os/workspace` (not here).
 
 ## Entity-Relationship Diagram
 
@@ -11,19 +11,19 @@
 │  Polymorphic scope: (entityType, entityId)                                  │
 │  entityType ∈ { organization, branch, connection, contact, entity }         │
 │                                                                             │
-│  ┌────────────────┐     ┌────────────────┐     ┌─────────────────────┐      │
-│  │  MasterContact │     │  MasterAddress │     │  MasterBankAccount  │      │
-│  │  id            │     │  id            │     │  id                 │      │
-│  │  name (+first/ │     │  label         │     │  accountHolderName  │      │
-│  │    last split) │     │  line1, line2  │     │  accountNumber      │      │
-│  │  email, phone  │     │  city, state   │     │  bankName, branch   │      │
-│  │  title, company│     │  postalCode    │     │  routingNumber      │      │
-│  │  type          │     │  country       │     │  swiftCode          │      │
-│  │  linkedUserId  │     │  isPrimary     │     │  currency           │      │
-│  │  createdBy     │     │  entityType    │     │  isActive/isPrimary │      │
-│  │  isRemoved +   │     │  entityId      │     │  entityType/entityId│      │
-│  │    reason/at   │     │  metadata      │     │  metadata           │      │
-│  │  entityType?   │     └────────────────┘     └─────────────────────┘      │
+│  ┌────────────────┐     ┌────────────────┐                                  │
+│  │  MasterContact │     │  MasterAddress │                                  │
+│  │  id            │     │  id            │                                  │
+│  │  name (+first/ │     │  label         │                                  │
+│  │    last split) │     │  line1, line2  │                                  │
+│  │  email, phone  │     │  city, state   │                                  │
+│  │  title, company│     │  postalCode    │                                  │
+│  │  type          │     │  country       │                                  │
+│  │  linkedUserId  │     │  isPrimary     │                                  │
+│  │  createdBy     │     │  entityType    │                                  │
+│  │  isRemoved +   │     │  entityId      │                                  │
+│  │    reason/at   │     │  metadata      │                                  │
+│  │  entityType?   │     └────────────────┘                                  │
 │  │  entityId?     │                                                        │
 │  │  metadata      │                                                        │
 │  └────────────────┘                                                        │
@@ -60,16 +60,14 @@
 │  │    (entityType,     │     │  isSystem (governed), isIndivisible    │     │
 │  │     entityId,       │     │  isActive, metadata                    │     │
 │  │     direction))     │     │  NO entityType/entityId (tenant-wide)  │     │
-│  │  bankAccountId (FK) │     │  aliases → master_uom_alias (uniq)     │     │
-│  │  cardBrand/last4/   │     │  versions → master_uom_version         │     │
+│  │  cardBrand/last4/   │     │  aliases → master_uom_alias (uniq)     │     │
+│  │    expiry (masked)  │     │  versions → master_uom_version         │     │
 │  │    expiry (masked)  │     └────────────────────────────────────────┘     │
 │  │  upiId, chequeSeries│  ┌─────────────────────┐  ┌──────────────────┐      │
-│  │  details, metadata  │  │ MasterLabel + join  │  │ OrgBranch +      │      │
-│  │  entityType/entityId│  │ label (scope-keyed) │  │ Setting (org.* / │      │
-│  └─────────────────────┘  │ entity_label (uniq) │  │  per-user keys)  │      │
-│                           └─────────────────────┘  └──────────────────┘      │
-│                           MasterPaymentMethod.bankAccountId →                 │
-│                             MasterBankAccount (logical)                       │
+│  │  bank inline fields │  │ MasterLabel + join  │  │ OrgBranch +      │      │
+│  │  (holder/acct/bank) │  │ label (scope-keyed) │  │ Setting (org.* / │      │
+│  │  entityType/entityId│  │ entity_label (uniq) │  │  per-user keys)  │      │
+│  └─────────────────────┘  └─────────────────────┘  └──────────────────┘      │
 │                           MasterUnitOfMeasure.baseUnitId →                    │
 │                             MasterUnitOfMeasure (self, same category)         │
 │                           MasterEntity.organizationId → organization          │
@@ -93,14 +91,6 @@
 **Invariants**: `country` is an ISO 3166-1 alpha-2 code; primary address is unique per `(entityType, entityId)`.
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `setPrimary(id)`, `list(entityType, entityId, filters?)`.
-
-### Bank Account (Aggregate Root)
-
-**Identity**: `id` (text, UUID, generated by the `uuidv7` column type)
-
-**Invariants**: primary and active flags are scoped per `(entityType, entityId)`.
-
-**Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `setPrimary(id)`, `activate(id)` / `deactivate(id)`, `list(entityType, entityId, filters?)`.
 
 ### Connection (Aggregate Root)
 
@@ -126,7 +116,7 @@
 - `type` is an `ENTITY_TYPE` value (`customer`/`vendor`/`partner`/`hospital`/`clinic`/`laboratory`/`pharmacy`/`insurer`/`regulator`/`bank`/`staffing_agency`/`training_institute`/`government`/`other`).
 - `status` is an `ENTITY_STATUS` value (`active`/`inactive`/`archived`) with transitions `active` ↔ `inactive`, and both → `archived` (terminal).
 - `code`, when set, is unique per tenant.
-- A tenant-level **owner**: it becomes a `master_entity_type` value (`entity`) so existing masters (contact/address/bank_account/payment_method) can scope to it. The optional `organizationId` links it to an `organization` profile row.
+- A tenant-level **owner**: it becomes a `master_entity_type` value (`entity`) so existing masters (contact/address/payment_method) can scope to it. The optional `organizationId` links it to an `organization` profile row.
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `setStatus(id, status)`, `list(filters?)`.
 
@@ -137,10 +127,9 @@
 **Invariants**:
 
 - `type` is a `PAYMENT_METHOD_TYPE` value (`bank_account`/`card`/`upi`/`imps`/`cheque`); `direction` is `inbound`/`outbound`/`both`; `status` is `active`/`inactive`/`archived`.
-- **Type-specific fields**: `card` requires `cardBrand`/`cardLast4`/`cardExpiryMonth`/`cardExpiryYear`; `upi` requires `upiId`; `bank_account`/`imps`/`cheque` require `bankAccountId`.
+- **Type-specific inline fields**: `card` carries `cardBrand`/`cardLast4`/`cardExpiryMonth`/`cardExpiryYear`; `upi` carries `upiId`; bank-backed methods carry `accountHolderName`/`accountNumber`/`bankName`/`branchName`/`accountType`/`chequeSeries` inline — there is no `master_bank_account` table.
 - **Masked card data only** — brand/last-4/expiry; no PAN, no CVV, no full card numbers (secrets policy applies to payment credentials too).
 - **One primary per `(entityType, entityId, direction)`** — `setPrimary` unsets overlapping scopes (a `both` method claims both inbound and outbound).
-- `bankAccountId` is a logical FK to `master_bank_account` (no DB constraint).
 
 **Lifecycle commands**: `create(input)`, `update(id, patch)`, `delete(id)`, `setPrimary(id)`, `activate(id)` / `deactivate(id)`, `list(entityType, entityId, filters?)`.
 
@@ -207,10 +196,6 @@
 | `masters.address_created`                           | `{ address: { id, country, label }, entityId, entityType }`            | Address created                                         |
 | `masters.address_updated`                           | `{ address: { id }, changes, entityId, entityType }`                   | Address updated                                         |
 | `masters.address_removed`                           | `{ addressId, entityId, entityType }`                                  | Address removed                                         |
-| `masters.bank_account_created`                      | `{ bankAccount: { id, bankName, currency }, entityId, entityType }`    | Bank account created                                    |
-| `masters.bank_account_updated`                      | `{ bankAccount: { id }, changes, entityId, entityType }`               | Bank account updated                                    |
-| `masters.bank_account_activated`                    | `{ bankAccountId }`                                                    | Bank account activated                                  |
-| `masters.bank_account_deactivated`                  | `{ bankAccountId }`                                                    | Bank account deactivated                                |
 | `masters.connection_created`                        | `{ connection: { id, name, type }, entityId, entityType }`             | Connection created                                      |
 | `masters.connection_updated`                        | `{ connection: { id, name }, changes, entityId, entityType }`          | Connection updated                                      |
 | `masters.connection_status_changed`                 | `{ connectionId, fromStatus, toStatus }`                               | Connection status changed                               |
@@ -243,7 +228,6 @@
 | Contact         | Remove contact         | `p.masters.contacts.remove()` (soft, reason; revokes DMS shares)   |
 | Contact         | Set primary            | `p.masters.contacts.setPrimary()`                                  |
 | Address         | Create address         | `p.masters.addresses.create()`                                     |
-| Bank Account    | Create account         | `p.masters.bankAccounts.create()`                                  |
 | Connection      | Create connection      | `p.masters.connections.create()`                                   |
 | Connection      | Test endpoint          | `p.masters.connections.test()`                                     |
 | Connection      | Rotate credential      | `p.masters.connections.rotateCredential()`                         |
@@ -268,7 +252,6 @@
 | --------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------- |
 | Contact         | List contacts         | `p.masters.contacts.list(entityType?, entityId?, filters?)` (omit scope for global search; removed hidden by default) |
 | Address         | List addresses        | `p.masters.addresses.list(entityType, entityId, filters?)`                                                            |
-| Bank Account    | List accounts         | `p.masters.bankAccounts.list(entityType, entityId, filters?)`                                                         |
 | Connection      | List connections      | `p.masters.connections.list(entityType, entityId, filters?)`                                                          |
 | Entity          | List entities         | `p.masters.entities.list(filters?)`                                                                                   |
 | Payment Method  | List payment methods  | `p.masters.paymentMethods.list(entityType, entityId, filters?)`                                                       |
@@ -281,7 +264,7 @@
 ## Invariants & Business Rules
 
 1. **Polymorphic scoping** — polymorphic rows carry `entityType` (`master_entity_type`) + `entityId`; all list queries filter on the pair. Exception: contacts may be global (both null — the DMS address-book entries) and `contacts.list` accepts an omitted scope for tenant-wide search. `unitOfMeasure` is tenant-wide (no pair).
-2. **One primary per scope** — `setPrimary` (contacts/addresses/bankAccounts) unsets the existing primary within the `(entityType, entityId)` scope; payment methods scope additionally by `direction` (a `both` method claims both scopes).
+2. **One primary per scope** — `setPrimary` (payment methods) unsets the existing primary within the `(entityType, entityId, direction)` scope (a `both` method claims both scopes).
 3. **No plaintext credentials** — `master_connection.credentialRef` points at an encrypted kvStore secret; `rotateCredential` replaces the secret and bumps the ref.
 4. **Uppercase country codes** — `master_address.country` is stored as ISO 3166-1 alpha-2 uppercase.
 5. **Entity status transitions** — `active` ↔ `inactive`, and both → `archived` (terminal).

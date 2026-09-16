@@ -4,29 +4,33 @@
 
 ## Relationship Type
 
-Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#db` field (older pattern) with a getter for `tenants`, but `$prepareRuntime()` / `$cleanup()` are empty (newer pattern). `$dependencies: ["organization"]`.
+Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#db` field (older pattern) with a getter for `tenants`, but `$prepareRuntime()` / `$cleanup()` are empty (newer pattern). `$dependencies = []`.
 
 ## Structure (`packages/management/`)
 
 - `ManagementPlane.create(config)` — factory returning a Module instance; `$config: ManagementPlaneConfig = undefined` (known WIP gap — the provisioning workflow expects a richer config with `tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`)
 - `$name = "management"` (matches the `@aspen-os/management` package name, renamed from `management-plane`; proxy accessor `p.management`)
 - `$initialize({ db, auth, pubsub })` — stores `db` only; `auth` and `pubsub` accepted but unused
-- 3 workflow groups: `tenants` (getter — throws if `#db` is null), `serviceProviders`, `users` (readonly)
+- 5 workflow groups: `tenants` (getter — throws if `#db` is null), `tenantMembers`, `serviceProviders`, `organizations`, `users` (readonly)
 - 3 workflow-step files: `fetch-tenant`, `fetch-sp`, `fetch-user`
-- 3 owned database tables (pushed via `$prepareInfra()` `control_plane_schemas`): `service_provider`, `service_provider_user`, `tenant`
-- No shadow tables — `tenant_schemas` is empty (the `organization`/`user` better-auth mirrors are imported but not pushed to tenant DBs)
-- 17 domain events: 8 tenant + 4 service_provider + 5 platform_user
-- 3 ACL resources: `platformUser`, `serviceProvider`, `tenant`
+- 4 owned database tables (pushed via `$prepareInfra()` `control_plane_schemas`): `tenant`, `service_provider`, `service_provider_user`, `managedOrganization`
+- 2 shadow re-exports (imported from platform, not pushed): `organization`, `user` — `tenant_schemas` is empty
+- 22 domain events: 8 tenant + 4 service_provider + 5 platform_user + 2 organization + 3 tenant_member
+- 4 ACL resources: `organization`, `platformUser`, `serviceProvider`, `tenant`
 - Audit entries written via the platform's `ctx.audit.write(...)` inline in each workflow (NOT via a shared `logAuditStep`) — the management plane does not own a separate `audit_log` table
 - Has a build step (build script + `build` field in package.json)
 
 ## Exposed on the platform instance
 
 ```
-p.management.tenants           { activate, assignServiceProvider, churn, get, list, onboard,
-                                 reactivate, suspend, unassignServiceProvider, update }
+p.management.tenants           { activate, assignServiceProvider, churn, get, getBySlug,
+                                 getFullBySlug, list, listBranding, listByUser, onboard,
+                                 reactivate, resolveDatabase, suspend,
+                                 unassignServiceProvider, update }
+p.management.tenantMembers     { create, get, list, remove, update }
 p.management.serviceProviders  { activate, create, deactivate, get, listAssignedTenants,
                                  listUsers, list, update }
+p.management.organizations     { create, get, list, update }
 p.management.users             { assignRole, assignToServiceProvider, create, delete, get,
                                  list, update }
 ```
@@ -35,13 +39,13 @@ p.management.users             { assignRole, assignToServiceProvider, create, de
 
 - **Tenant**: a SaaS customer account at the platform layer, implemented as a better-auth **Organization** (the Tenant IS the better-auth `organization` row in the control-plane DB) with a companion `tenant` table for domain fields (status, plan, SP assignment, database connection params). Does NOT hold rich profile fields — those live on the aspen-os Organization companion.
 - **Tenant Status**: `onboarding` → `active` → `suspended` ↔ `active` → `churned`. Coarse by design — internal install/training/handoff sub-steps are not tracked.
-- **Organization (aspen-os module)**: the rich-profile companion entity, 1:1 with a Tenant (shares the better-auth org ID), living in the per-tenant database. Renamed conceptually to "Organization Profile" in this context to avoid collision. `name`/`slug`/`logo` are duplicated between the better-auth org row and this table — the provisioning workflow seeds both.
+- **Organization (management read model)**: control-plane read projection over tenants (`p.management.organizations`), 1:1 with a Tenant by shared ID. Rich company-profile fields live in Masters settings (`org.*`) + the tenant companion row — not a separate profile table. `name`/`slug`/`logo` on the better-auth org row; the provisioning workflow seeds both.
 - **Service Provider**: an implementation/integration partner doing physical-world onboarding work. At most one active SP per Tenant (1:1 active assignment); an SP may serve many Tenants. Lives in the control-plane DB; not a Tenant subtype, not a reuse of `Connection`.
 - **Platform Admin**: a user with `user.role = 'platform_admin'` and zero `member` rows. Works only against the control-plane DB; uses better-auth admin-impersonation (`signInAsUser`) to inspect tenant data.
 - **Service Provider User**: a user with `user.role = 'sp_user'` and a `service_provider_user` join row (1:1 user→SP). Scope is the SP they belong to, not a tenant.
 - **Platform User**: a user managed by this module — platform admins and SP users. Created/updated/deleted via the `users` workflow, which delegates to `AuthUnit.user`.
 - **Report**: a read-only view over the control-plane DB — tenant usage, provisioning & lifecycle, audit & activity, and SP performance. Never crosses into per-tenant DBs.
-- **Provisioning**: the `tenant.onboard` workflow — (1) create the better-auth Organization via `ctx.auth.service.api.createOrganization()`, (2) `dbUnit.provisionTenant(tenantId, dbOptions)` (isolated: `CREATE DATABASE` + `pushSchema()` against the new tenant DB; shared: no-op), (3) `dbUnit.seedTenantDb()` (isolated only) seeds the aspen-os Organization profile row, (4) record connection params + status in the `tenant` table, (5) audit entry, (6) publish `tenant.provisioned`. Sets status to `onboarding`.
+- **Provisioning**: the `tenant.onboard` workflow — (1) create the better-auth Organization via `ctx.auth.service.api.createOrganization()`, (2) `dbUnit.provisionTenant(tenantId, dbOptions)` (isolated: `CREATE DATABASE` + `pushSchema()` against the new tenant DB; shared: no-op), (3) `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in the `tenant` table, (5) audit entry, (6) publish `tenant.provisioned`. Sets status to `onboarding`.
 
 ## Roles
 
@@ -50,4 +54,4 @@ p.management.users             { assignRole, assignToServiceProvider, create, de
 ## Language
 
 - Tenant, Tenant Status, Tenant ID, Tenant Resolver, Service Provider, Platform User, Platform Admin, Service Provider User, Audit Log, Provisioning, Control Plane, Tenant Database, Report
-- Avoid: Organization (for Tenant — collides with the aspen-os Organization module entity), Integrator/Vendor/Partner (for Service Provider), Super Admin (for Platform Admin), Dashboard/Analytics (for Report)
+- Avoid: Organization (for Tenant — there is no `@aspen-os/organization` package; org surface is `masters.orgBranches` + `management.organizations`), Integrator/Vendor/Partner (for Service Provider), Super Admin (for Platform Admin), Dashboard/Analytics (for Report)

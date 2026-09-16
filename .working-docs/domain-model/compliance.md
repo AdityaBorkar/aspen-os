@@ -23,7 +23,7 @@
 │  │  renewedFrom(self FK)│  │          │                             │
 │  │  expiryDate          │  │          │                             │
 │  │  dueDate             │  │          │                             │
-│  │  reminderDays[]      │  │          │                             │
+│  │  expiryPolicyDays[]  │  │          │                             │
 │  │  escalationDays[]    │  │          │                             │
 │  │  renewalFrequency    │  │          │                             │
 │  │  assignedReviewer    │  │          │                             │
@@ -121,7 +121,7 @@
 
 ### Audit Entry (Entity — append-only, via platform AuditUnit)
 
-**Identity**: `id` (text, PK, `uuidv7("id")` — generated at insert)
+**Identity**: `id` (text, PK, `uuidv7().primaryKey()` — generated at insert)
 
 **Note**: Compliance audit entries are written to the platform's `audit_log` table via `ctx.audit.write(...)` and queried via `ctx.audit.query(...)`. The `audit` workflow group (`p.compliance.audit`) provides `getAuditTrail`, `list`, and `export` by querying the platform audit log.
 
@@ -193,7 +193,7 @@
 
 16. **Verification status derivation** — status is derived from dates + renewal state by `StatusDerivation`, not set directly (except by explicit `updateStatus`).
 17. **Renewal chain integrity** — renewing archives the old document and creates a new one linked via `renewedFrom`.
-18. **Reminder thresholds** — `reminderDays` array (default [90, 60, 30, 7]) controls when expiry notifications fire.
+18. **Expiry policy thresholds** — `expiryPolicyDays` array (default [90, 60, 30, 7]) controls when expiry notifications fire; calendar bridge materializes `calendar_reminder` rows (no compliance-owned reminder engine).
 19. **Escalation thresholds** — `escalationDays` array (default [1, 7, 30]) controls when escalations fire.
 20. **Obligation auto-generation** — active obligations with `autoGenerate=true` produce documents on their frequency schedule.
 21. **Idempotent document generation** — `ObligationGenerator` uses idempotency keys to prevent duplicate documents.

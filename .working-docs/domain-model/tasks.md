@@ -1,6 +1,6 @@
 # Tasks Domain Model
 
-> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, and automation rules. 15 tables — 6 control-plane (global config) + 9 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task.due_date_changed`. Saved views now live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "tasks:task"`).
+> Package: `@aspen-os/tasks`. Projects, tasks, statuses, comments, links, time entries, and automation rules. 14 tables — 5 control-plane (global config) + 9 tenant (operational). Task reminders now live in `@aspen-os/calendar` (`targetType = task`), driven by `task.due_date_changed`. Cross-domain saved views live in `@aspen-os/workspace` as `Filter View` (`p.workspace.filterViews`, `domain: "tasks:task"`).
 
 ## Entity-Relationship Diagram
 

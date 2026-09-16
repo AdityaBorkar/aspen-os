@@ -150,9 +150,9 @@ AuthUnit     ← RpcUnit
 
 **Lifecycle**: uses a single control-plane pg-boss started **lazily on first use** (`ensureStarted()` memoizes a started-promise; reset on failure so it can retry). `$prepareInfra()` is a no-op — runtime connections are deferred to first use because `$prepareInfra()` runs at deploy time, not server start. It does **not** reuse DatabaseUnit's pool; pg-boss manages its own connection lifecycle.
 
-**Health probe**: `getQueueSize(topic)` lazily starts the boss and runs a live SQL COUNT round-trip; it works on unregistered topics and has no side effects, so `BasePlatform.healthCheck()` uses it (on `__platform_health_check`) to prove pub/sub connectivity.
+**Health probe**: `getQueueSize(topic)` lazily starts the boss and runs a live SQL COUNT round-trip; it works on unregistered topics and has no side effects. There is no `BasePlatform.healthCheck()` — liveness is the RPC `health.check` procedure plus `getUnsubscribedProducedTopics()`.
 
-**Produce tracking**: `publish`/`publishBatch` record produced topics in a `producedTopics` map. `getUnsubscribedProducedTopics()` filters to those with no registered subscriber. pg-boss silently drops publishes to topics with no queue row (`send()` returns no job id) — the health check surfaces these as `unsubscribedTopics` on the `HealthReport`. On a no-id result `publish()` warns but does not throw.
+**Produce tracking**: `publish`/`publishBatch` record produced topics in a `producedTopics` map. `getUnsubscribedProducedTopics()` filters to those with no registered subscriber. pg-boss silently drops publishes to topics with no queue row (`send()` returns no job id) — consumers surface these as wiring bugs. On a no-id result `publish()` warns but does not throw.
 
 ## Storage ↔ S3 (Partner)
 

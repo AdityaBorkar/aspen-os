@@ -87,7 +87,7 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ 9 wf groups       │  │ Tasks         │  │ DMS Module    │   │
 │  │ 12 tables         │  │ Module        │  │ 16 wf groups  │   │
 │  │ 32 events         │  │ 9 wf groups   │  │ 12 tables     │   │
-│  │ 9 ACL res.        │  │ 15 tables     │  │ 27 events     │   │
+│  │ 9 ACL res.        │  │ 14 tables     │  │ 27 events     │   │
 │  │ units: kvStore    │  │ 11 events     │  │ 9 ACL res.    │   │
 │  │ (connections)     │  │ units: none   │  │ units:        │   │
 │  └───────────────────┘  │               │  │ db, pubsub,   │   │
@@ -97,7 +97,7 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ 1 wf group    │  │ Module        │  │ Module            │   │
 │  │ 1 table       │  │ 4 wf groups   │  │ 8 wf groups       │   │
 │  │ 3 events      │  │ 4 tables      │  │ 8 tables          │   │
-│  │ 1 ACL res.    │  │ 14 events     │  │ 28 events         │   │
+│  │ 1 ACL res.    │  │ 14 events     │  │ 30 events         │   │
 │  │ units: none   │  │ 4 ACL res.    │  │ 9 ACL res.        │   │
 │  └───────────────┘  │ units:        │  │ units:            │   │
 │                     │ db, pubsub    │  │ db, pubsub        │   │
@@ -105,10 +105,10 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  ┌───────────────────────────┐  ┌───────────────────────────┐   │
 │  │ Management Plane          │  │ Comms Module              │   │
 │  │ Module                    │  │ 7 workflow groups         │   │
-│  │ 3 workflow groups         │  │ 1 control-plane + 6       │   │
-│  │ 3 owned + 0 shadow tables │  │ tenant tables (7 total)   │   │
-│  │ 17 events                 │  │ 21 events, 7 ACL res.     │   │
-│  │ deps: organization        │  │ deps: none                │   │
+│  │ 5 workflow groups         │  │ 1 control-plane + 6       │   │
+│  │ 4 owned + 2 shadow tables │  │ tenant tables (7 total)   │   │
+│  │ 22 events                 │  │ 21 events, 7 ACL res.     │   │
+│  │ deps: none                │  │ deps: none                │   │
 │  │ units: db, auth, pubsub   │  │ units: db, kvStore,       │   │
 │  └───────────────────────────┘  │ pubsub, auth              │   │
 │                                 └───────────────────────────┘   │
@@ -155,22 +155,13 @@ This:
 2. Wires pubsub↔auth (`setAuth`)
 3. Validates module `$dependencies`
 4. Calls `mod.$initialize(units)` on each module
-5. Returns proxy-wrapped platform instance allowing `p.organization` syntax
+5. Returns proxy-wrapped platform instance allowing `p.masters` syntax
 
 ### AsyncLocalStorage Context
 
-`run()` provides request-scoped context. Signature varies by platform class:
+`run()` provides request-scoped context. Uniform signature on all three server classes — `run(tenantId, fn)` (`"$global"` = control plane):
 
 ```typescript
-// SingleTenantPlatform — no tenantId
-await p.run(async () => {
-  const { audit, auth, db, pubsub } = getContext();
-  // db: NodePgDatabase (drizzle instance)
-  // pubsub: PubSubUnit (full unit, not just publish)
-  // audit: AuditUnit (platform audit log)
-});
-
-// SharedTenantPlatform / IsolatedTenantPlatform — tenantId required
 await p.run(tenantId, async () => {
   const { audit, auth, db, pubsub, tenantId } = getContext();
 });
@@ -187,10 +178,10 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - Compliance: 23 events
 - Tasks: 11 events (incl. `task.due_date_changed`)
 - Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar.reminder_due`)
-- Workspace: 28 events (13 draft + 4 view + 6 dashboard + 4 widget + 2 pin + 2 watch + 1 schedule)
+- Workspace: 30 events (13 draft + 6 dashboard + 4 widget + 4 filter_view + 2 pin + 1 schedule)
 - DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
-- Management Plane: 17 events (8 tenant + 4 service_provider + 5 platform_user)
+- Management Plane: 22 events (8 tenant + 4 service_provider + 5 platform_user + 2 organization + 3 tenant_member)
 - Healthcare: 47 events (single `HealthcareEntityEvent` payload across 19 groups — patient 3, practitioner 2, facility 2, service 3, appointment 2, encounter 3, allopathy/dental/ayush/rehab/psych/resident 2 each, pharmacy/diagnostics/billing/nursing 3 each, records 4, operations 2, branch 2)
 - HR: 58 events (10 event groups across employee, attendance, leave, lifecycle, overtime, position, setup, shift, access, announcement)
 
@@ -205,8 +196,9 @@ Compliance module's `EventBridge` service actively subscribes to other modules' 
 | `hr.employee_onboarded`                         | HR                                    | Creates background check + ID verification documents                                                                      |
 | `hr.employee_separated`                         | HR                                    | Creates exit documents + final settlement documents                                                                       |
 | `fleet.vehicle_registered`                      | Fleet (stub)                          | Creates pollution certificate + semi-annual obligation                                                                    |
-| `organization.branch_created`                   | Organization                          | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `masters.org_branch_created`                    | Masters                               | Creates trade license + fire safety certificate + annual obligation                                                       |
 | `accounting.financial_year_started`             | Accounting (planned — no package yet) | Creates monthly GST return obligation                                                                                     |
+| `healthcare.operations_created`                 | Healthcare                            | Creates relevant compliance documents + obligations                                                                       |
 | `masters.contact_created`                       | Masters                               | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
 | `task.due_date_changed`                         | Tasks                                 | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
 | `task.deleted`                                  | Tasks                                 | Calendar task bridge — deletes all task reminders for the task                                                            |
@@ -257,7 +249,7 @@ Five modules register scheduled cron jobs via PubSub:
 
 ### Health Check
 
-`BasePlatform.healthCheck()` returns `HealthReport`:
+There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedure (trivial `base.handler(async () => ({ status: "ok" }))`) plus `PubSubUnit.getUnsubscribedProducedTopics()` — topics published to w/ no registered subscriber (pg-boss silently drops these, so they flag a producer/consumer wiring bug):
 
 ```typescript
 {
@@ -274,39 +266,38 @@ Five modules register scheduled cron jobs via PubSub:
 
 - **DB probe**: `controlPlaneDb.execute(sql`SELECT 1`)` (always real control plane, not context-routed wrapper).
 - **PubSub probe**: `getQueueSize("__platform_health_check")` — lazily starts boss, live SQL round-trip; safe on unregistered topics.
-- **Unsubscribed topics**: `pubsub.getUnsubscribedProducedTopics()` lists topics published to w/ no registered subscriber; pg-boss silently drops these, so presence flips report to `unhealthy` to surface wiring bug early. Present only when non-empty.
-- `checkDbHealth` / `checkPubSubHealth` = protected hooks derived classes may override.
+- **Unsubscribed topics**: `pubsub.getUnsubscribedProducedTopics()` lists topics published to w/ no registered subscriber; pg-boss silently drops these, so presence flags a producer/consumer wiring bug. `publish()` warns but does not throw on the no-id result.
 
 ## Context Map Table
 
-| Context          | Type          | Upstream                                 | Downstream                   | Relationship                                                                                                    |
-| ---------------- | ------------- | ---------------------------------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------- |
-| Shared Kernel    | Shared        | —                                        | All units/modules            | Unit & Module interfaces                                                                                        |
-| Database         | Shared Kernel | —                                        | All units                    | Foundation                                                                                                      |
-| Platform         | Customer      | —                                        | Units, Modules               | Creates & wires via `create()` — three server classes + one client class                                        |
-| Auth             | Conformist    | better-auth                              | Modules                      | Adapts API                                                                                                      |
-| Logs             | Conformist    | pino, OTel                               | —                            | Adapts API                                                                                                      |
-| PubSub           | Conformist    | pg-boss                                  | —                            | Adapts API                                                                                                      |
-| Storage          | Partner       | S3 (AWS SDK)                             | DMS module                   | Defines interface                                                                                               |
-| RPC              | Conformist    | oRPC                                     | —                            | Adapts API                                                                                                      |
-| KV Store         | Conformist    | Postgres                                 | Compliance, Masters modules  | Redis-like API (core)                                                                                           |
-| Audit            | Core          | —                                        | All modules                  | Native platform unit — `audit_log` table, DB-record replayability                                               |
-| Workflow         | Core          | —                                        | All modules                  | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
-| Client Platform  | —             | —                                        | —                            | Browser-side (3 units)                                                                                          |
-| Recruiter        | Downstream    | Platform                                 | —                            | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
-| Organization     | Downstream    | Platform                                 | Compliance, Management Plane | 1 workflow group, 1 table, 2 events, 1 ACL resource, no module deps                                             |
-| Masters          | Downstream    | Platform, KV Store                       | Compliance, Organization     | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                        |
-| Notes            | Downstream    | Platform                                 | —                            | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
-| Compliance       | Downstream    | Platform, HR, Organization, Fleet (stub) | —                            | 5 workflow groups, 3 tables, 3 services, subscribes to external events                                          |
-| Tasks            | Downstream    | Platform                                 | Calendar                     | 9 workflow groups, 15 tables (6 control + 9 tenant), 11 events, empty ACL                                       |
-| Calendar         | Downstream    | Platform                                 | —                            | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
-| Comms            | Downstream    | Platform, KV Store                       | —                            | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 8 bridge subscriptions |
-| Workspace        | Downstream    | Platform                                 | —                            | 8 workflow groups, 8 tables, 28 events, 9 ACL resources, per-schedule crons                                     |
-| DMS              | Downstream    | Platform, Storage                        | —                            | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
-| Management Plane | Downstream    | Platform, Organization                   | —                            | 3 workflow groups, 3 owned tables, 0 shadow tables, 17 events, has build step                                   |
-| HR               | Downstream    | Platform                                 | Compliance                   | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
-| Healthcare       | Downstream    | Platform                                 | —                            | 21 workflow groups, 140 tables (all tenant), 47 events, 19 ACL resources, stateless, has build step             |
-| CRM              | Stub          | —                                        | —                            | Package.json only                                                                                               |
-| Fleet            | Stub          | —                                        | —                            | Package.json only                                                                                               |
-| Inventory        | Stub          | —                                        | —                            | Package.json only                                                                                               |
-| Reports          | Stub          | —                                        | —                            | Package.json only                                                                                               |
+| Context          | Type          | Upstream                            | Downstream                  | Relationship                                                                                                    |
+| ---------------- | ------------- | ----------------------------------- | --------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| Shared Kernel    | Shared        | —                                   | All units/modules           | Unit & Module interfaces                                                                                        |
+| Database         | Shared Kernel | —                                   | All units                   | Foundation                                                                                                      |
+| Platform         | Customer      | —                                   | Units, Modules              | Creates & wires via `create()` — three server classes + one client class                                        |
+| Auth             | Conformist    | better-auth                         | Modules                     | Adapts API                                                                                                      |
+| Logs             | Conformist    | pino, OTel                          | —                           | Adapts API                                                                                                      |
+| PubSub           | Conformist    | pg-boss                             | —                           | Adapts API                                                                                                      |
+| Storage          | Partner       | S3 (AWS SDK)                        | DMS module                  | Defines interface                                                                                               |
+| RPC              | Conformist    | oRPC                                | —                           | Adapts API                                                                                                      |
+| KV Store         | Conformist    | Postgres                            | Compliance, Masters modules | Redis-like API (core)                                                                                           |
+| Audit            | Core          | —                                   | All modules                 | Native platform unit — `audit_log` table, DB-record replayability                                               |
+| Workflow         | Core          | —                                   | All modules                 | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
+| Client Platform  | —             | —                                   | —                           | Browser-side (3 units)                                                                                          |
+| Recruiter        | Downstream    | Platform                            | —                           | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
+| Organization     | Removed       | —                                   | —                           | No package on disk; org surface = `masters.orgBranches` + `management.organizations` read model                 |
+| Masters          | Downstream    | Platform, KV Store                  | Compliance                  | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                        |
+| Notes            | Downstream    | Platform                            | —                           | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
+| Compliance       | Downstream    | Platform, HR, Masters, Fleet (stub) | —                           | 5 workflow groups, 3 tables, subscribes to external events                                                      |
+| Tasks            | Downstream    | Platform, Masters                   | Calendar                    | 9 workflow groups, 14 tables (5 control + 9 tenant), 11 events, empty ACL                                       |
+| Calendar         | Downstream    | Platform                            | —                           | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
+| Comms            | Downstream    | Platform, KV Store                  | —                           | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 9 bridge subscriptions |
+| Workspace        | Downstream    | Platform                            | —                           | 8 workflow groups, 8 tables, 30 events, 9 ACL resources, per-schedule crons                                     |
+| DMS              | Downstream    | Platform, Storage                   | —                           | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
+| Management Plane | Downstream    | Platform                            | —                           | 5 workflow groups, 4 owned + 2 shadow tables, 22 events, 4 ACL resources, has build step                        |
+| HR               | Downstream    | Platform                            | Compliance                  | ~307 workflow methods in 10 groups, 54 tables (14 control + 40 tenant), 58 events, 3 crons                      |
+| Healthcare       | Downstream    | Platform                            | —                           | 21 workflow groups, 140 tables (all tenant), 47 events, 19 ACL resources, stateless, has build step             |
+| CRM              | Stub          | —                                   | —                           | Package.json only                                                                                               |
+| Fleet            | Stub          | —                                   | —                           | Package.json only                                                                                               |
+| Inventory        | Stub          | —                                   | —                           | Package.json only                                                                                               |
+| Reports          | Stub          | —                                   | —                           | Package.json only                                                                                               |

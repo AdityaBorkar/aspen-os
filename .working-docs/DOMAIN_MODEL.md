@@ -27,16 +27,16 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | Package         | Tables | Split                                                                                             |
 | --------------- | ------ | ------------------------------------------------------------------------------------------------- |
 | Platform (core) | 16     | audit_log, auth (10 better-auth), kv_store, logs, file_metadata, workflow_runs, workflow_steps    |
-| Organization    | 1      | all tenant (`branch`)                                                                             |
+| Organization    | —      | no package on disk (removed); org surface = `masters.orgBranches` + `management.organizations`    |
 | Masters         | 12     | all tenant (`master_` prefix except `org_branch`; incl. `master_uom_alias`, `master_uom_version`) |
 | Notes           | 1      | all tenant                                                                                        |
 | Compliance      | 3      | all tenant                                                                                        |
-| Tasks           | 15     | 6 control-plane + 9 tenant                                                                        |
+| Tasks           | 14     | 5 control-plane + 9 tenant                                                                        |
 | Calendar        | 4      | all tenant (`calendar_` prefix)                                                                   |
 | Comms           | 7      | 1 control-plane (`comms_provider`) + 6 tenant (`comms_` prefix)                                   |
 | DMS             | 12     | all tenant (`dms_` prefix)                                                                        |
 | HR              | 54     | 14 control-plane + 40 tenant                                                                      |
-| Management      | 3      | all control-plane (0 shadow tables)                                                               |
+| Management      | 4      | all control-plane (4 owned + 2 shadow re-exports)                                                 |
 | Workspace       | 8      | all tenant (`workspace_` prefix)                                                                  |
 | Healthcare      | 140    | all tenant (`healthcare_` prefix) + 13 `healthcare_*` pgEnums                                     |
 

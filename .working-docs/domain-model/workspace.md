@@ -25,17 +25,17 @@
 │  │  targetEntityId │                                                 │
 │  └─────────────────┘                                                 │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐        │
-│  │   Dashboard     │  │    Widget       │  │ (Filter views │        │
-│  │ id              │  │ id              │  │  moved to     │        │
-│  │ name / desc     │  │ dashboardId (FK)│  │  Masters:     │        │
-│  │ layout (jsonb:  │  │ type (enum:     │  │  master_      │        │
-│  │  {widgetId,x,y, │  │  metric/        │  │  filter_view; │        │
-│  │   w,h}[])       │  │  breakdown/     │  │  widget       │        │
-│  │ access          │  │  list/embed)    │  │  viewId is a  │        │
-│  └───────┬─────────┘  │ config (jsonb)  │  │  cross-module │        │
-│          │1:N         │ domain / filter │  │  soft FK)     │        │
-│          │(dashboardId)│ viewId (soft FK │  └──────────────┘        │
-│          ▼            │  → masters)     │                           │
+│  │   Dashboard     │  │    Widget       │  │  FilterView     │        │
+│  │ id              │  │ id              │  │ id              │        │
+│  │ name / desc     │  │ dashboardId (FK)│  │ domain          │        │
+│  │ layout (jsonb:  │  │ type (enum:     │  │ conditions(jsonb)│       │
+│  │  {widgetId,x,y, │  │  metric/        │  │ sort / groupBy  │        │
+│  │   w,h}[])       │  │  breakdown/     │  │ access          │        │
+│  │ access          │  │  list/embed)    │  │ viewId soft-FK  │        │
+│  └───────┬─────────┘  │ config (jsonb)  │  │ target (widgets)│        │
+│          │1:N         │ domain / filter │                           │
+│          │(dashboardId)│ viewId (soft FK │                           │
+│          ▼            │  → filter_view) │                           │
 │                       ┌──────────────┐                            │        │
 │                       │  Schedule    │                            │        │
 │           │            │ id           │  └──────────────┘                │
@@ -45,15 +45,14 @@
 │           │            │ lastRunAt    │                                 │
 │           │            └──────────────┘                                 │
 │           │                                                            │
-│  ┌────────┴────────┐ ┌──────────────┐ ┌──────────────┐ │
-│  │      Pin        │ │    Recent    │ │    Watch     │ │
-│  │ userId          │ │ userId       │ │ userId       │ │
-│  │ itemType        │ │ itemType     │ │ itemType     │ │
-│  │ itemId          │ │ itemId       │ │ itemId       │ │
-│  │ sortOrder       │ │ lastAccessed │ │              │ │
-│  └─────────────────┘ └──────────────┘ └──────────────┘ │
+│  ┌────────┴────────┐ ┌──────────────┐ │
+│  │      Pin        │ │    Recent    │ │
+│  │ userId          │ │ userId       │ │
+│  │ itemType        │ │ itemType     │ │
+│  │ itemId          │ │ itemId       │ │
+│  │ sortOrder       │ │ lastAccessed │ │
+│  └─────────────────┘ └──────────────┘ │
 │  (itemType+itemId soft-reference any registry item)     │
-│  (settings moved to masters: master_setting)            │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -65,7 +64,7 @@
 4. **Draft lifecycle is a guarded status machine** — `draft → submitted → approved → published`, `submitted → rejected` (requires `rejectionReason`), `published|rejected → draft` (`reopen`), `draft → published` directly (approval optional). Transitions are atomic `UPDATE … WHERE status IN (from)` guards. Trash is soft (`deletedAt`).
 5. **Approval is optional** — hosts without a review step call `publish` directly from `draft`.
 6. **Workspace is dependency-free** — `domain` is opaque free-form text (`<module>:<entity>`); the module never queries other modules' tables. Publish/schedule delivery happens through host-subscribed events; filter-view execution (reading masters conditions, querying own tables) is the host's job.
-7. **A widget datasource is `{ domain }` + exactly one of `filter`/`viewId`** — `embed` widgets forbid a datasource. `metric`/`breakdown`/`list` require it. `viewId` is a cross-module soft reference to a masters filter view.
+7. **A widget datasource is `{ domain }` + exactly one of `filter`/`viewId`** — `embed` widgets forbid a datasource. `metric`/`breakdown`/`list` require it. `viewId` is a soft reference to a workspace filter view.
 8. **Widgets are declarative configs** — the module stores and serves them and tracks `lastRefreshedAt`/`lastError`; it never executes analytics.
 9. **Utilities are strictly user-scoped** — pins and recent carry no access column; `userId = actorId` at the row level.
 10. **Recent items are bounded** — `touch` trims each user's history to `maxRecentItems` (default 50).

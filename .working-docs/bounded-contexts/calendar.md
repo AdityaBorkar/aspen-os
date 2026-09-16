@@ -42,4 +42,4 @@ Workflows one file per action under `workflows/<entity>/<verb>.ts` (e.g. `event/
 ## Language
 
 - Calendar, Event, Occurrence, Event Recurrence, Attendee, Reminder, Reminder Dispatcher, Task Bridge, CalendarModuleConfig
-- **Avoid**: "Calendar" for tasks' `savedViewTypeEnum` value `calendar` (render mode, unrelated); "Reminder Engine" (compliance's document-expiry scanner, out of scope); "Schedule" (workspace's dashboard-delivery cron, out of scope)
+- **Avoid**: "Calendar" for tasks' `savedViewTypeEnum` value `calendar` (render mode, unrelated); second reminder surface (calendar owns the single reminder surface — compliance expiry nudges are calendar reminders); "Schedule" (workspace's dashboard-delivery cron, out of scope)

@@ -1,6 +1,6 @@
 # Management Plane Domain Model
 
-> Package: `@aspen-os/management`. The control-plane domain — Tenants, Service Providers, Platform Users, and the audit trail over them. 3 owned tables (all control-plane); no shadow tables.
+> Package: `@aspen-os/management`. The control-plane domain — Tenants, Service Providers, Platform Users, Organizations read model, Tenant Members, and the audit trail over them. 4 owned tables (all control-plane) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`.
 
 ## Entity-Relationship Diagram
 
@@ -54,12 +54,12 @@
 │                                        └──────────────┘             │
 │                                                                     │
 │  Owned tables (control_plane):   tenant, service_provider,          │
-│    service_provider_user                                            │
-│  Shadow tables (tenant):   (none — tenant_schemas is empty)         │
+│    service_provider_user, managedOrganization                       │
+│  Shadow re-exports (not pushed):   organization, user (platform)     │
 │                                                                     │
 │  Roles: platform_admin, sp_user, tenant_admin, tenant_user           │
 │  Config: ManagementPlaneConfig = undefined (WIP)                    │
-│  Deps: ["organization"]                                             │
+│  Deps: []                                                           │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -111,7 +111,7 @@
 
 ### Audit Log (Entity — append-only, Platform Core)
 
-**Identity**: `id` (text, PK, `uuidv7("id")` — generated at insert)
+**Identity**: `id` (text, PK, `uuidv7().primaryKey()` — generated at insert)
 
 **Invariants**:
 
@@ -122,7 +122,7 @@
 - Written inline in each management workflow via `ctx.audit.write(...)` (NOT via a shared `logAuditStep`)
 - Polymorphic: `entityType` + `entityId` references any management entity
 
-## Domain Events — 16
+## Domain Events — 22
 
 ### Tenant Events (8)
 
@@ -148,12 +148,28 @@
 
 ### Platform User Events (4)
 
-| Event                         | Payload                         | Trigger                        |
-| ----------------------------- | ------------------------------- | ------------------------------ |
-| `platform_user.created`       | `{ user: { id, email, role } }` | Platform user created          |
-| `platform_user.updated`       | `{ userId, changes }`           | Platform user updated          |
-| `platform_user.deleted`       | `{ userId }`                    | Platform user deleted          |
-| `platform_user.role_assigned` | `{ userId, role }`              | Role assigned to platform user |
+| Event                         | Payload                         | Trigger                           |
+| ----------------------------- | ------------------------------- | --------------------------------- |
+| `platform_user.created`       | `{ user: { id, email, role } }` | Platform user created             |
+| `platform_user.updated`       | `{ userId, changes }`           | Platform user updated             |
+| `platform_user.deleted`       | `{ userId }`                    | Platform user deleted             |
+| `platform_user.role_assigned` | `{ userId, role }`              | Role assigned to platform user    |
+| `platform_user.sp_assigned`   | `{ userId, spId, role }`        | User assigned to service provider |
+
+### Organization Events (2)
+
+| Event                  | Payload                                          | Trigger              |
+| ---------------------- | ------------------------------------------------ | -------------------- |
+| `organization.created` | `{ organization: { id, name, slug, branding } }` | Organization created |
+| `organization.updated` | `{ organization: { id, name }, changes }`        | Organization updated |
+
+### Tenant Member Events (3)
+
+| Event                   | Payload                                             | Trigger                    |
+| ----------------------- | --------------------------------------------------- | -------------------------- |
+| `tenant.member_added`   | `{ tenantId, member: { id, userId, email, role } }` | Member added to tenant     |
+| `tenant.member_removed` | `{ tenantId, memberId }`                            | Member removed from tenant |
+| `tenant.member_updated` | `{ tenantId, memberId, changes }`                   | Member updated             |
 
 ## Command-Query Separation
 

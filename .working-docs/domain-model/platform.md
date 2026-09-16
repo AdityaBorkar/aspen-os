@@ -147,7 +147,7 @@
 
 ### AuditLog (Entity — append-only, Platform Core)
 
-**Identity**: `id` (text, PK, `uuidv7("id")` — generated at insert)
+**Identity**: `id` (text, PK, `uuidv7().primaryKey()` — generated at insert)
 
 **Invariants**:
 
@@ -208,31 +208,31 @@ Auth events are published from the auth services (`services/{role,session,user}.
 
 ### Queries (Read Side)
 
-| Context  | Query                                 | Method                                             |
-| -------- | ------------------------------------- | -------------------------------------------------- |
-| Auth     | Get user by ID                        | `auth.user.get({ id })`                            |
-| Auth     | Get user by email                     | `auth.user.get({ email })`                         |
-| Auth     | Validate session                      | `auth.session.validate()`                          |
-| Auth     | List roles                            | `auth.role.list()`                                 |
-| Storage  | Get signed URL                        | `storage.getSignedGetUrl()`                        |
-| Storage  | List files                            | `storage.list()`                                   |
-| Storage  | Get metadata                          | `storage.getMetadata()`                            |
-| Logs     | Query logs                            | `logs.query()`                                     |
-| Logs     | Get stats                             | `logs.getStats()`                                  |
-| KV       | Get key                               | `kv.get()`                                         |
-| KV       | Check exists                          | `kv.exists()`                                      |
-| PubSub   | Get queue size                        | `pubsub.getQueueSize()`                            |
-| PubSub   | List produced-but-unsubscribed topics | `pubsub.getUnsubscribedProducedTopics()`           |
-| Platform | Health check                          | `p.healthCheck()`                                  |
-| Audit    | Query audit log                       | `ctx.audit.query(filters)`                         |
-| Audit    | Count audit entries                   | `ctx.audit.count(filters)`                         |
-| Audit    | Reconstruct state                     | `ctx.audit.reconstructState(entityType, entityId)` |
+| Context  | Query                                 | Method                                                        |
+| -------- | ------------------------------------- | ------------------------------------------------------------- |
+| Auth     | Get user by ID                        | `auth.user.get({ id })`                                       |
+| Auth     | Get user by email                     | `auth.user.get({ email })`                                    |
+| Auth     | Validate session                      | `auth.session.validate()`                                     |
+| Auth     | List roles                            | `auth.role.list()`                                            |
+| Storage  | Get signed URL                        | `storage.getSignedGetUrl()`                                   |
+| Storage  | List files                            | `storage.list()`                                              |
+| Storage  | Get metadata                          | `storage.getMetadata()`                                       |
+| Logs     | Query logs                            | `logs.query()`                                                |
+| Logs     | Get stats                             | `logs.getStats()`                                             |
+| KV       | Get key                               | `kv.get()`                                                    |
+| KV       | Check exists                          | `kv.exists()`                                                 |
+| PubSub   | Get queue size                        | `pubsub.getQueueSize()`                                       |
+| PubSub   | List produced-but-unsubscribed topics | `pubsub.getUnsubscribedProducedTopics()`                      |
+| Platform | Health check                          | RPC `health.check` + `pubsub.getUnsubscribedProducedTopics()` |
+| Audit    | Query audit log                       | `ctx.audit.query(filters)`                                    |
+| Audit    | Count audit entries                   | `ctx.audit.count(filters)`                                    |
+| Audit    | Reconstruct state                     | `ctx.audit.reconstructState(entityType, entityId)`            |
 
 ## Invariants & Business Rules
 
 ### Cross-cutting (framework-wide)
 
-1. **All IDs are text** — app-generated via the `uuidv7("id")` Drizzle column type (bakes in the insert-time JS `generateUuidv7()` default). Exception: better-auth tables (`text("id").primaryKey()` without default).
+1. **All IDs are text** — app-generated via the `uuidv7()` Drizzle column type (bakes in the insert-time JS `generateUuidv7()` default). Exception: better-auth tables (`text("id").primaryKey()` without default).
 2. **All timestamps are TIMESTAMPTZ** — `withTimezone: true` on all timestamp columns.
 3. **Cascade deletes** — User deletion cascades to sessions and accounts.
 4. **No barrel files** — explicit convention in `CODING_CONVENTIONS.md`.

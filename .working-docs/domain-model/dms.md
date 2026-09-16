@@ -1,6 +1,6 @@
 # DMS Domain Model
 
-> Package: `@aspen-os/dms`. Unified document management on a **single `file` entity** that carries both filesystem attributes (`folderId`, `path`, `description`) and records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). All 13 tables are tenant schemas with the `dms_` prefix. Saved file views live in `@aspen-os/masters` (`p.masters.filterViews`, `domain: "dms:file"`).
+> Package: `@aspen-os/dms`. Unified document management on a **single `file` entity** that carries both filesystem attributes (`folderId`, `path`, `description`) and records attributes (`classId`, `docNumber`, `fieldValues`, `expiryDate`, `batchId`, `compression`). All 12 tables are tenant schemas with the `dms_` prefix. Saved file views persist as `@aspen-os/workspace` filter views (`p.workspace.filterViews`, `domain: "dms:file"`).
 
 ## Entity-Relationship Diagram
 
@@ -58,7 +58,7 @@
 │                                         │ designation  │                │
 │                                         │ linkedUserId │                │
 │                                         └──────────────┘                │
-│  (Filter views moved to Masters: `master_filter_view`, domain `dms:file`)
+│  (File views persist as workspace filter views, domain `dms:file`)
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐                     │
 │  │   Setting    │  │  LegalHold   │  │              │                     │
 │  │ key (uniq)   │  │ fileId       │  │              │                     │
@@ -194,9 +194,9 @@
 
 **Lifecycle commands** (via `p.dms.labels`): `create(input)`, `update(id, patch)`, `delete(id)`, `apply(input)`, `remove(entityId, entityType, labelId)`, `list(opts?)`, `listByLabel(labelId, opts?)`.
 
-### File View (moved to Masters)
+### File View (persisted in Workspace)
 
-Saved file views now live in `@aspen-os/masters` as `p.masters.filterViews` (`domain: "dms:file"`, `access: personal|global`, `is_default` per owner). The `searchToFileViewConditions({ query, options })` helper in `services/search-service.ts` converts a search into `{ filters, sort }` conditions ready to persist as a masters filter view.
+Saved file views persist as `@aspen-os/workspace` filter views (`p.workspace.filterViews`, `domain: "dms:file"`). The `searchToFileViewConditions({ query, options })` helper in `services/search-service.ts` converts a search into `{ filters, sort }` conditions ready to persist as a workspace filter view.
 
 ### Supporting entities
 

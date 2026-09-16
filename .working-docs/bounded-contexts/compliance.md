@@ -10,8 +10,8 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 
 - `Compliance.create(config)` — factory returning a Module instance; `$config: ComplianceModuleConfig = { country: "INDIA", summaryCacheTtl?, defaultEscalationDays?, defaultExpiryPolicyDays? }`
 - `$name = "compliance"`, `$dependencies = []`
-- 5 workflow groups: `documents`, `obligations`, `verification`, `audit`, `summary`
-- 3 services: `ReminderEngine`, `ObligationGenerator`, `EventBridge` — registered in `$prepareRuntime()`, unregistered in `$cleanup()`. `StatusDerivation` is a utility (pure functions used internally by workflows and the reminder engine, not lifecycle-managed).
+- 5 workflow groups: `documents`, `obligations`, `verification`, `audit`, `summary` (`getSummary`)
+- 2 services: `ObligationGenerator`, `EventBridge` (+ `healthcare-bridge`) — registered in `$prepareRuntime()`, unregistered in `$cleanup()`. `StatusDerivation` is a utility (pure functions used internally by workflows, not lifecycle-managed). There is no compliance-owned reminder engine — expiry nudges are calendar reminders via the calendar compliance bridge.
 - 3 database tables (all `tenant_schemas`): `compliance_document`, `compliance_obligation`, `compliance_verification_rule`
 - 23 domain events published via PubSub (`ComplianceEventMap`)
 - 3 ACL resources: `complianceDocument`, `complianceObligation`, `complianceVerificationRule`
@@ -38,11 +38,12 @@ The `EventBridge` service subscribes to events from other modules to auto-create
 | `hr.employee_onboarded`             | HR                | Creates background check + ID verification documents                                                                      |
 | `hr.employee_separated`             | HR                | Creates exit documents + final settlement documents                                                                       |
 | `fleet.vehicle_registered`          | Fleet (stub)      | Creates pollution certificate + semi-annual obligation                                                                    |
-| `organization.branch_created`       | Organization      | Creates trade license + fire safety certificate + annual obligation                                                       |
+| `masters.org_branch_created`        | Masters           | Creates trade license + fire safety certificate + annual obligation                                                       |
 | `accounting.financial_year_started` | Accounting (stub) | Creates monthly GST return obligation                                                                                     |
 | `masters.contact_created`           | Masters           | Creates insurance policy document (if contact type is insurer and entity is organization-scoped; global contacts ignored) |
+| `healthcare.operations_created`     | Healthcare        | Creates relevant compliance documents + obligations                                                                       |
 
 ## Language
 
-- Compliance Document, Compliance Obligation, Verification Rule, Audit Entry, Verification Status, Renewal Chain, Reminder Engine, Obligation Generator, Event Bridge, StatusDerivation, ComplianceModuleConfig
-- Avoid: Certificate/Permit/Regulatory Record (for Document), Recurring Task (for Obligation), Review Policy (for Verification Rule), Notification Service (for Reminder Engine)
+- Compliance Document, Compliance Obligation, Verification Rule, Audit Entry, Verification Status, Renewal Chain, Obligation Generator, Event Bridge, StatusDerivation, ComplianceModuleConfig
+- Avoid: Certificate/Permit/Regulatory Record (for Document), Recurring Task (for Obligation), Review Policy (for Verification Rule), second reminder surface (calendar owns reminders)

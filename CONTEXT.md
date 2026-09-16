@@ -394,7 +394,7 @@ Per-user routing + consent row: `(userId, type, channelType)` opt-outs plus the 
 _Avoid_: Setting (that is workspace/host config), Subscription
 
 **Comms Workflow**:
-Domain operation within Comms module, built on platform `Workflow` builder. Seven groups exposed on module instance: `p.comms.channels`, `p.comms.providers`, `p.comms.notifications` (getter-bound to `db`/`kvStore` via `createNotify`), `p.comms.preferences`, `p.comms.templates`, `p.comms.settings`, `p.comms.messages`. Runtime-wired (`auth, db, kvStore, pubsub`): `$prepareRuntime()` registers the message sweeper + 7 event-bridge subscriptions + 4 healthcare-bridge subscriptions (`$consumes` = 11 total); `$cleanup()` unregisters both. 1 control-plane table (`provider`) + 6 tenant tables, 21 events, 7 ACL resources. `$dependencies = []`.
+Domain operation within Comms module, built on platform `Workflow` builder. Seven groups exposed on module instance: `p.comms.channels`, `p.comms.providers`, `p.comms.notifications` (getter-bound to `db`/`kvStore` via `createNotify`), `p.comms.preferences`, `p.comms.templates`, `p.comms.settings`, `p.comms.messages`. Runtime-wired (`auth, db, kvStore, pubsub`): `$prepareRuntime()` registers the message sweeper + 7 event-bridge subscriptions + 2 healthcare-bridge subscriptions (`$consumes` = 9 total); `$cleanup()` unregisters both. 1 control-plane table (`provider`) + 6 tenant tables, 21 events, 7 ACL resources. `$dependencies = []`.
 _Avoid_: Service, Handler
 
 ### HR Domain (3 packages)
@@ -768,8 +768,8 @@ Implemented: Comms module — notification/inbox + out-of-band delivery on a
   sweeper + 7 event-bridge subscriptions (`calendar.reminder_due`,
   `dms.file_expired`, `announcement.published`, `workspace.delivery_due`,
   `tenant.provisioned`/`tenant.activated`, `auth.email_otp_requested` — OTP
-  never persisted, delivered inline) + 4 healthcare-bridge subscriptions
-  (`$consumes` = 11 total). 1 control-plane table (`provider`) + 6 tenant
+  never persisted, delivered inline) + 2 healthcare-bridge subscriptions
+  (`$consumes` = 9 total). 1 control-plane table (`provider`) + 6 tenant
   tables, 21 events, 7 ACL resources. No module deps.
 
 Implemented: Healthcare module — stateless OPD clinic backend (`$initialize`/
@@ -806,21 +806,9 @@ Stubs (empty `src/index.ts` + `docs/` shell + `package.json` name only — no
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, unassigned event only has `{ userId }`.
-2. **No DB-level FK constraints in domain modules** — all cross-table references in compliance, tasks, masters, management, hr logical (soft FKs by naming convention), not DB-enforced.
-3. **DMS consolidation (`.working-docs/sow/dms-consolidation.md`) complete** — removed `@aspen-os/drive` filesystem consolidated into `@aspen-os/dms` as one `file` entity, one label mechanism, one sharing group (`p.dms.shares`), one trash module, `fileViews` terminology. `dms_document*`/`dms_tag`/`dms_view`/`dms_item_*` tables no longer exist; host deployments must run §8 migration to drop merged-away tables + rename enums/tables.
-4. **`SingleTenantPlatform` + `SharedTenantPlatform` EXPERIMENTAL** — both constructors emit `console.warn("... Architecture is currently EXPERIMENTAL")`. `IsolatedTenantPlatform` does not warn.
-5. **`IsolatedTenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()` instead of accepting real `TenantResolver` via config.
-6. **`ManagementPlaneConfig` = `undefined`** — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet.
-7. **Management module `$name` = `"management"`** — matches `@aspen-os/management` package name (renamed from `management-plane`). Proxy accessor = `p.management`. Exposes 5 groups (`tenants`, `tenantMembers`, `serviceProviders`, `organizations`, `users`); `$dependencies = []`.
-8. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
-9. **ADR-0009 accepted for Layer 1** — `AuditUnit` + `audit_log` table described in ADR-0009's Layer 1 built + shipped; ADR status now "Accepted (Layer 1)". Layer 2 (trigger-based blind-write capture, ADR-0010) remains proposed/unimplemented.
-10. **`audit_log.id` now conforms** — previously `uuid()` + `$defaultFn(() => uuidv7())` (the sole native uuid column); now uses `uuidv7().primaryKey()` (text), matching every other table.
-11. **HR split into 3 packages** — `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`). Earlier docs marked HR "partial/not conformant" or a single `Hr` module; all three are now conformant (`implements Module`, `$prepareRuntime()`, one-file-per-action layout).
-12. **Masters extraction complete; no `bank_account` table** — `@aspen-os/masters` owns contacts, addresses, integration connections, entities, payment methods (inline bank details, no `master_bank_account` table), labels, org branches, settings, units of measure (9 groups, 12 tables, 32 events, 9 ACL). `connection` = integration credential (secrets in platform `kvStore` via `credentialRef`). There is no `packages/organization` — org surface is `masters.orgBranches` + `management.organizations`.
-13. **Masters UOM + labels/settings added post-Phase-2** — `unitOfMeasure` tenant-wide reference data (one base unit per category; `master_uom_alias` / `master_uom_version` history); `labels` scope-keyed + `settings` (`org.*` tenant-wide, else per-user). Payment-method `bankAccountId` FK is gone — type-specific inline fields instead.
-14. **Workspace module implemented (no resolver registry)** — `@aspen-os/workspace` provides drafts, filter views, dashboards, widgets, schedules, utilities (8 tenant tables, 6 pgEnums, 30 events, 9 ACL resources). `domain` is free-form `<module>:<entity>` text w/ documented `FILTER_VIEW_DOMAIN` 6 values — there is no host-registered resolver registry in code. Host apps must subscribe to `workspace.delivery_due` / `workspace.draft_published` — both silently dropped by pg-boss when unsubscribed (detect via `getUnsubscribedProducedTopics`). `context.actorId` (gap 8) feeds access scoping: `create` falls back to explicit `ownerId`/`userId` input when context actor unset.
-15. **Notes module implemented; `master_note` removed** — `@aspen-os/notes` owns first-class `note` entity (`personal`/`global` access, optional `(scopeType, scopeId)` scope, `NOTE_TYPE`, tags; 1 tenant table + 2 enums, 3 events, 1 ACL resource; no units). Host deployments must migrate `master_note` rows to `note` (map `entityType → scopeType = masters:<entityType>`, `entityId → scopeId`, `content → body`, `userId → ownerId`) + `DROP TABLE master_note` afterward; `pushSchema` never drops it.
-16. **`.working-docs/` lags code** — still references `packages/organization` (deleted), tasks "15 tables / 6 control-plane" (code: 14 / 5+9), management "3 groups / 3 owned / 0 shadow / 17 events / deps organization" (code: 5 groups / 4 owned + 2 shadow / 22 events / deps []), workspace "28 events / 4 enums / resolver registry" (code: 30 / 6 / none), compliance Reminder Engine (none in code — calendar owns reminders), masters `bank_account` tables/events (removed), HR single-module shape (now 3 packages), `BasePlatform.healthCheck` + zero-arg `SingleTenantPlatform.run(fn)` (code: uniform `run(tenantId, fn)`, only rpc `health.check`). Code is truth; fix docs before relying on them.
+2. **`IsolatedTenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()` instead of accepting real `TenantResolver` via config.
+3. **`ManagementPlaneConfig` = `undefined`** — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet.
+4. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 
 ## Anti-Patterns
 

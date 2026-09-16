@@ -125,7 +125,7 @@ Every item below is imperative or explicit prohibition. Pair each prohibition wi
       pubsub.ts           # Event constants + typed event interfaces + EventMap
       types.ts            # type re-exports from schemas + module config interfaces
       constants.ts        # as const enums — or utils/constants.ts (optional)
-      runtime.ts          # module-scope runtime state (config, storage, view-resolver registry) — optional
+      runtime.ts          # module-scope runtime state (config, storage) — optional
       utils/strip-undefined.ts  # stripUndefined helper — optional
       db-schemas/
         index.ts          # exports control_plane_schemas + tenant_schemas
@@ -147,7 +147,7 @@ Every item below is imperative or explicit prohibition. Pair each prohibition wi
 - Never use barrel files except module-internal workflow aggregates (`workflows/index.ts` routers); platform has no root export — import via `@aspen-os/platform/server`, `@aspen-os/platform/client`, `@aspen-os/platform/server/db-schemas`, never `@aspen-os/platform`.
 - Never use package's `#/*` alias from another package — each `tsconfig.json` maps `#/*` to its own `./src/*`; root `tsconfig.json` has no `paths`, so cross-package `#/` fails `check:types`; run `tsc -b` in package whose alias you mean.
 - Keep platform's eight required units in mind: `db` (`DatabaseUnit`), `auth` (`AuthUnit`), `audit` (`AuditUnit`), `logs` (`LogUnit`), `pubsub` (`PubSubUnit`), `storage` (`StorageUnit`), `rpc` (`RpcUnit`), `kvStore` (`KvStoreUnit`); `PlatformUnits<S>` accessors are `audit, auth, db, kvStore, logs, pubsub, rpc, storage`; `platform.getUnit("name")` and `platform.getModule("name")` are typed accessors; `platform.$name` proxy exposes module names before unit names.
-- Use mode-specific non-overloaded `run()` signatures, never overloaded `run()`; `SingleTenantPlatform.run(fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)` are distinct; shared mode uses RLS transaction (`SELECT set_config('app.tenant_id', ...)` + `SET LOCAL ROLE tenant_role`), isolated mode uses `TenantResolver` DB-per-tenant, `isGlobalTenantId("$global")` routes to control-plane DB; do not add overloaded `run()`.
+- Use uniform non-overloaded `run(tenantId, fn)` signatures, never overloaded `run()`; `SingleTenantPlatform.run(tenantId, fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)` are distinct; `"$global"` routes to the control-plane DB; shared mode uses RLS transaction (`SELECT set_config('app.tenant_id', ...)` + `SET LOCAL ROLE tenant_role`), isolated mode uses `TenantResolver` DB-per-tenant, `isGlobalTenantId("$global")` routes to control-plane DB; do not add overloaded `run()`.
 
 ### Validation
 
@@ -182,7 +182,7 @@ Every item below is imperative or explicit prohibition. Pair each prohibition wi
 ### PubSub
 
 - Never call `pubsub.$prepareInfra()` expecting eager start — single control-plane `pg-boss` is lazily started on first `publish`/`subscribe`/`schedule`, not during `$prepareInfra()`; `publish` auto-creates a missing queue and retries, so fire-and-forget works without a prior consumer — jobs queue durably until a subscriber appears, never assume an unsubscribed topic throws.
-- Always ensure every produced topic has subscriber; `PubSubUnit.getUnsubscribedProducedTopics()` tracks produced topics lacking `subscriptions.has(topic)`; `BasePlatform.healthCheck()` probes `SELECT 1` + `getQueueSize` and marks `unhealthy` when unsubscribed produced topics exist.
+- Always ensure every produced topic has subscriber; `PubSubUnit.getUnsubscribedProducedTopics()` tracks produced topics lacking `subscriptions.has(topic)`; pg-boss silently drops these, so liveness (RPC `health.check` + unsubscribed-topic check) flags a producer/consumer wiring bug — `publish()` warns but does not throw on the no-id result.
 - Use `publish(topic, data, options?)`, `publishBatch(topic, messages)`, `subscribe(topic, handler)`, `unsubscribe(topic)`, `schedule({ topic, cron, data?, options? })`, `unschedule(topic)`, `getSchedules()`, `purgeQueue(topic)` via `PubSubUnit`, never raw `pg-boss` APIs elsewhere; handlers run inside `context.run({ audit, auth, db, log, pubsub, tenantId })` with isolated-tenant DB resolution when `tenancyMode==="isolated"` and `tenantId` is non-global.
 - Always register schedules and subscriptions in `$prepareRuntime()` and unregister in `$cleanup()`, never in `$initialize` or constructors; calendar uses `calendar.reminder-scan` cron + task bridge (`task.due_date_changed`, `task.deleted`, `task.status_changed`); dms uses `dms.expiry-scan` and `dms.purge` plus `masters.contact_removed` bridge; compliance uses obligation-generator plus event-bridge topics; comms uses `comms.message-sweeper` outbox cron + 6 event-bridge subscriptions; workspace uses per-schedule `workspace.delivery_schedule.<id>` crons; hr uses daily `attendance-sync` + `leave-accrual` schedules.
 
@@ -212,7 +212,7 @@ Pair each prohibition with its replacement:
 - Never recreate `notifications` package or parallel `comms.deliver` topic — `@aspen-os/comms` is single notification/inbox surface; delivery is cron-scan `comms.message-sweeper` outbox worker, never direct publish.
 - Never add second `task_reminder` surface — `@aspen-os/calendar` owns single reminder surface (`calendar_reminder`); `@aspen-os/tasks` publishes `task.*` events consumed by calendar's task bridge, never direct cross-module calls.
 - Never own `master_note` or duplicate notes — `@aspen-os/notes` owns notes (`notes_note`).
-- Never add overloaded `run()` signature — use `SingleTenantPlatform.run(fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)`.
+- Never add overloaded `run()` signature — all server platforms use uniform `run(tenantId, fn)` (`"$global"` = control plane).
 - Never use Zod for domain input validation — use Valibot; Zod stays for oRPC procedures and `docs/source.config.ts` only.
 - Never use package's `#/*` alias from another package — root has no `paths`, each package maps locally.
 - Never call `wrapHandler` or `publish` outside `Platform.run()` context — `getContext()` must have store.
