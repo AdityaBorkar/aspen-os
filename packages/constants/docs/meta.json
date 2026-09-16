@@ -1,6 +1,6 @@
 {
   "icon": "IconNumber123",
-  "pages": ["reference"],
+  "pages": ["features", "reference"],
   "pagesIndex": "index",
   "root": true,
   "title": "Constants"

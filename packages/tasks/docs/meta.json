@@ -1,6 +1,6 @@
 {
   "icon": "IconCheckbox",
-  "pages": ["overview", "workflows", "services", "events", "db-schemas"],
+  "pages": ["overview", "features", "workflows", "services", "events", "db-schemas"],
   "pagesIndex": "index",
   "root": true,
   "title": "Tasks"

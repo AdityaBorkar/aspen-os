@@ -3,6 +3,7 @@
   "pages": [
     "---Getting Started---",
     "overview",
+    "features",
     "usage",
     "tenancy",
     "workflows",

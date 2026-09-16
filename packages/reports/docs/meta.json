@@ -1,6 +1,6 @@
 {
   "icon": "IconReportAnalytics",
-  "pages": [],
+  "pages": ["features"],
   "pagesIndex": "index",
   "root": true,
   "title": "Reports"

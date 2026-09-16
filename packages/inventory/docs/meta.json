@@ -1,6 +1,6 @@
 {
   "icon": "IconPackages",
-  "pages": [],
+  "pages": ["features"],
   "pagesIndex": "index",
   "root": true,
   "title": "Inventory"
