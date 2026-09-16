@@ -1,17 +1,17 @@
 import { archiveAnnouncement } from "#/workflows/announcement/archive";
 import { getAnnouncementById } from "#/workflows/announcement/by-id/get";
-import { cancelScheduleAnnouncement } from "#/workflows/announcement/cancel-schedule";
 import { createAnnouncement } from "#/workflows/announcement/create";
 import { deleteAnnouncement } from "#/workflows/announcement/delete";
+import { listAnnouncement } from "#/workflows/announcement/list";
 import { pinAnnouncement } from "#/workflows/announcement/pin";
 import { publishAnnouncement } from "#/workflows/announcement/publish";
 import { listRecipients } from "#/workflows/announcement/recipients/list";
 import { restoreAnnouncement } from "#/workflows/announcement/restore";
 import { scheduleAnnouncement } from "#/workflows/announcement/schedule";
+import { cancelScheduleAnnouncement } from "#/workflows/announcement/schedule/cancel";
 import { getAnnouncementStats } from "#/workflows/announcement/stats/get";
 import { unpinAnnouncement } from "#/workflows/announcement/unpin";
 import { updateAnnouncement } from "#/workflows/announcement/update";
-import { listAnnouncements } from "#/workflows/announcements/list";
 
 export const announcement = {
   archive: archiveAnnouncement,
@@ -20,7 +20,7 @@ export const announcement = {
   delete: deleteAnnouncement,
   getById: getAnnouncementById,
   getStats: getAnnouncementStats,
-  list: listAnnouncements,
+  list: listAnnouncement,
   listRecipients,
   pin: pinAnnouncement,
   publish: publishAnnouncement,

@@ -9,7 +9,7 @@ const InputSchema = object({
   filters: optional(AnnouncementFiltersSchema, {}),
 });
 
-export const listAnnouncements = Workflow.name("hr.announcements.list")
+export const listAnnouncement = Workflow.name("hr.announcement.list")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { filters } = input;

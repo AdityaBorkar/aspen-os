@@ -9,7 +9,7 @@ const InputSchema = object({
   id: pipe(string(), minLength(1, "id is required")),
 });
 
-export const cancelScheduleAnnouncement = Workflow.name("hr.announcement.cancel-schedule")
+export const cancelScheduleAnnouncement = Workflow.name("hr.announcement.schedule.cancel")
   .input(InputSchema)
   .handler(async ({ id }, ctx) => {
     const existing = await fetchAnnouncementById(ctx.db, id);
