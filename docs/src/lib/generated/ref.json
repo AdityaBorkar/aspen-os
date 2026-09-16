@@ -519,6 +519,13 @@
       "tableName": "healthcare_compliance_evidence"
     },
     {
+      "file": "packages/healthcare/src/db-schemas/condition.ts",
+      "kind": "table",
+      "name": "healthcareCondition",
+      "package": "@aspen-os/healthcare",
+      "tableName": "healthcare_condition"
+    },
+    {
       "file": "packages/healthcare/src/db-schemas/patient.ts",
       "kind": "table",
       "name": "healthcareConsent",
@@ -743,6 +750,13 @@
       "tableName": "healthcare_invoice"
     },
     {
+      "file": "packages/healthcare/src/db-schemas/invoice-line.ts",
+      "kind": "table",
+      "name": "healthcareInvoiceLine",
+      "package": "@aspen-os/healthcare",
+      "tableName": "healthcare_invoice_line"
+    },
+    {
       "file": "packages/healthcare/src/db-schemas/enums.ts",
       "kind": "enum",
       "name": "healthcareInvoiceStatusEnum",
@@ -904,6 +918,13 @@
       "tableName": "healthcare_nursing_vitals"
     },
     {
+      "file": "packages/healthcare/src/db-schemas/observation.ts",
+      "kind": "table",
+      "name": "healthcareObservation",
+      "package": "@aspen-os/healthcare",
+      "tableName": "healthcare_observation"
+    },
+    {
       "file": "packages/healthcare/src/db-schemas/rehab.ts",
       "kind": "table",
       "name": "healthcareOutcomeScore",
@@ -1035,6 +1056,13 @@
       "name": "healthcarePrescription",
       "package": "@aspen-os/healthcare",
       "tableName": "healthcare_prescription"
+    },
+    {
+      "file": "packages/healthcare/src/db-schemas/prescription-line.ts",
+      "kind": "table",
+      "name": "healthcarePrescriptionLine",
+      "package": "@aspen-os/healthcare",
+      "tableName": "healthcare_prescription_line"
     },
     {
       "file": "packages/healthcare/src/db-schemas/billing.ts",
@@ -1443,6 +1471,41 @@
       "tableName": "healthcare_yoga_enrollment"
     },
     {
+      "file": "packages/hr-announcement/src/db-schemas/announcement.ts",
+      "kind": "table",
+      "name": "hrAnnouncement",
+      "package": "@aspen-os/hr-announcement",
+      "tableName": "hr_announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/db-schemas/enums.ts",
+      "kind": "enum",
+      "name": "announcementChannelEnum",
+      "package": "@aspen-os/hr-announcement",
+      "tableName": "hr_announcement_channel"
+    },
+    {
+      "file": "packages/hr-announcement/src/db-schemas/enums.ts",
+      "kind": "enum",
+      "name": "announcementPriorityEnum",
+      "package": "@aspen-os/hr-announcement",
+      "tableName": "hr_announcement_priority"
+    },
+    {
+      "file": "packages/hr-announcement/src/db-schemas/announcement.ts",
+      "kind": "table",
+      "name": "hrAnnouncementRecipient",
+      "package": "@aspen-os/hr-announcement",
+      "tableName": "hr_announcement_recipient"
+    },
+    {
+      "file": "packages/hr-announcement/src/db-schemas/enums.ts",
+      "kind": "enum",
+      "name": "announcementStatusEnum",
+      "package": "@aspen-os/hr-announcement",
+      "tableName": "hr_announcement_status"
+    },
+    {
       "file": "packages/hr-attendance/src/db-schemas/attendance.ts",
       "kind": "table",
       "name": "attendance",
@@ -1686,41 +1749,6 @@
       "name": "accessLevelEnum",
       "package": "@aspen-os/hr-core",
       "tableName": "hr_access_level"
-    },
-    {
-      "file": "packages/hr-core/src/db-schemas/announcement.ts",
-      "kind": "table",
-      "name": "hrAnnouncement",
-      "package": "@aspen-os/hr-core",
-      "tableName": "hr_announcement"
-    },
-    {
-      "file": "packages/hr-core/src/db-schemas/enums.ts",
-      "kind": "enum",
-      "name": "announcementChannelEnum",
-      "package": "@aspen-os/hr-core",
-      "tableName": "hr_announcement_channel"
-    },
-    {
-      "file": "packages/hr-core/src/db-schemas/enums.ts",
-      "kind": "enum",
-      "name": "announcementPriorityEnum",
-      "package": "@aspen-os/hr-core",
-      "tableName": "hr_announcement_priority"
-    },
-    {
-      "file": "packages/hr-core/src/db-schemas/announcement.ts",
-      "kind": "table",
-      "name": "hrAnnouncementRecipient",
-      "package": "@aspen-os/hr-core",
-      "tableName": "hr_announcement_recipient"
-    },
-    {
-      "file": "packages/hr-core/src/db-schemas/enums.ts",
-      "kind": "enum",
-      "name": "announcementStatusEnum",
-      "package": "@aspen-os/hr-core",
-      "tableName": "hr_announcement_status"
     },
     {
       "file": "packages/hr-core/src/db-schemas/enums.ts",
@@ -2550,6 +2578,13 @@
       "file": "packages/healthcare/src/module.ts",
       "name": "healthcare",
       "package": "@aspen-os/healthcare"
+    },
+    {
+      "consumes": [],
+      "dependencies": ["hrCore"],
+      "file": "packages/hr-announcement/src/module.ts",
+      "name": "hrAnnouncement",
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "consumes": [],
@@ -3446,11 +3481,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "file": "packages/healthcare/src/schemas/patients.ts",
-      "name": "ArchiveConsentSchema",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "file": "packages/healthcare/src/schemas/enums.ts",
       "name": "AuditActionSchema",
       "package": "@aspen-os/healthcare"
@@ -3522,11 +3552,6 @@
     },
     {
       "file": "packages/healthcare/src/schemas/appointments.ts",
-      "name": "CaptureConsentSchema",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "file": "packages/healthcare/src/schemas/appointments.ts",
       "name": "CertificateFiltersSchema",
       "package": "@aspen-os/healthcare"
     },
@@ -3538,6 +3563,16 @@
     {
       "file": "packages/healthcare/src/schemas/appointments.ts",
       "name": "ComputeSlotsSchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "ConditionClinicalStatusSchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "ConditionVerificationStatusSchema",
       "package": "@aspen-os/healthcare"
     },
     {
@@ -3852,6 +3887,11 @@
     },
     {
       "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "InvoiceStatusAliasSchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
       "name": "InvoiceStatusSchema",
       "package": "@aspen-os/healthcare"
     },
@@ -3942,12 +3982,27 @@
     },
     {
       "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "MedicationRequestIntentSchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "MedicationRequestStatusSchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
       "name": "MessageStatusSchema",
       "package": "@aspen-os/healthcare"
     },
     {
       "file": "packages/healthcare/src/schemas/practitioners.ts",
       "name": "NextFreeSlotQuerySchema",
+      "package": "@aspen-os/healthcare"
+    },
+    {
+      "file": "packages/healthcare/src/schemas/enums.ts",
+      "name": "ObservationProfileHintSchema",
       "package": "@aspen-os/healthcare"
     },
     {
@@ -4591,6 +4646,46 @@
       "package": "@aspen-os/healthcare"
     },
     {
+      "file": "packages/hr-announcement/src/schemas/announcement.ts",
+      "name": "AnnouncementAudienceSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/enums.ts",
+      "name": "AnnouncementChannelSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/announcement.ts",
+      "name": "AnnouncementFiltersSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/enums.ts",
+      "name": "AnnouncementPrioritySchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/enums.ts",
+      "name": "AnnouncementStatusSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/announcement.ts",
+      "name": "CreateAnnouncementSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/announcement.ts",
+      "name": "RecipientListFiltersSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
+      "file": "packages/hr-announcement/src/schemas/announcement.ts",
+      "name": "UpdateAnnouncementSchema",
+      "package": "@aspen-os/hr-announcement"
+    },
+    {
       "file": "packages/hr-attendance/src/schemas/attendance.ts",
       "name": "AttendanceFiltersSchema",
       "package": "@aspen-os/hr-attendance"
@@ -4796,31 +4891,6 @@
       "package": "@aspen-os/hr-core"
     },
     {
-      "file": "packages/hr-core/src/schemas/announcement.ts",
-      "name": "AnnouncementAudienceSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/enums.ts",
-      "name": "AnnouncementChannelSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/announcement.ts",
-      "name": "AnnouncementFiltersSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/enums.ts",
-      "name": "AnnouncementPrioritySchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/enums.ts",
-      "name": "AnnouncementStatusSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
       "file": "packages/hr-core/src/schemas/position.ts",
       "name": "AssignEmployeeSchema",
       "package": "@aspen-os/hr-core"
@@ -4833,11 +4903,6 @@
     {
       "file": "packages/hr-core/src/schemas/access.ts",
       "name": "AssignRoleSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/announcement.ts",
-      "name": "CreateAnnouncementSchema",
       "package": "@aspen-os/hr-core"
     },
     {
@@ -5091,11 +5156,6 @@
       "package": "@aspen-os/hr-core"
     },
     {
-      "file": "packages/hr-core/src/schemas/announcement.ts",
-      "name": "RecipientListFiltersSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
       "file": "packages/hr-core/src/schemas/lifecycle.ts",
       "name": "SeparationFiltersSchema",
       "package": "@aspen-os/hr-core"
@@ -5128,11 +5188,6 @@
     {
       "file": "packages/hr-core/src/schemas/enums.ts",
       "name": "TransferStatusSchema",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "file": "packages/hr-core/src/schemas/announcement.ts",
-      "name": "UpdateAnnouncementSchema",
       "package": "@aspen-os/hr-core"
     },
     {
@@ -8085,12 +8140,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "exportName": "captureConsent",
-      "file": "packages/healthcare/src/workflows/appointments/capture-consent.ts",
-      "name": "healthcare.appointments.capture-consent",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "exportName": "checkinAppointment",
       "file": "packages/healthcare/src/workflows/appointments/checkin.ts",
       "name": "healthcare.appointments.checkin",
@@ -8364,12 +8413,6 @@
       "exportName": "closeStage",
       "file": "packages/healthcare/src/workflows/dental/close-stage.ts",
       "name": "healthcare.dental.closeStage",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "consent",
-      "file": "packages/healthcare/src/workflows/dental/consent.ts",
-      "name": "healthcare.dental.consent",
       "package": "@aspen-os/healthcare"
     },
     {
@@ -8847,12 +8890,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "exportName": "archiveConsent",
-      "file": "packages/healthcare/src/workflows/patients/archive-consent.ts",
-      "name": "healthcare.patients.archive-consent",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "exportName": "dedupeCheckPatients",
       "file": "packages/healthcare/src/workflows/patients/dedupe-check.ts",
       "name": "healthcare.patients.dedupe-check",
@@ -9171,12 +9208,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "exportName": "caregiverConsent",
-      "file": "packages/healthcare/src/workflows/psych/caregiver-consent.ts",
-      "name": "healthcare.psych.caregiverConsent",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "exportName": "chartWithdrawal",
       "file": "packages/healthcare/src/workflows/psych/chart-withdrawal.ts",
       "name": "healthcare.psych.chartWithdrawal",
@@ -9243,12 +9274,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "exportName": "consentsGet",
-      "file": "packages/healthcare/src/workflows/records/consents-get.ts",
-      "name": "healthcare.records.consents-get",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "exportName": "dischargeIssue",
       "file": "packages/healthcare/src/workflows/records/discharge-issue.ts",
       "name": "healthcare.records.discharge-issue",
@@ -9306,12 +9331,6 @@
       "exportName": "recentlyUsedRx",
       "file": "packages/healthcare/src/workflows/records/recently-used-rx.ts",
       "name": "healthcare.records.recently-used-rx",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "recordConsent",
-      "file": "packages/healthcare/src/workflows/records/record-consent.ts",
-      "name": "healthcare.records.record-consent",
       "package": "@aspen-os/healthcare"
     },
     {
@@ -9591,66 +9610,6 @@
       "package": "@aspen-os/healthcare"
     },
     {
-      "exportName": "attendanceMark",
-      "file": "packages/healthcare/src/workflows/staff/attendance-mark.ts",
-      "name": "healthcare.staff.attendance-mark",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "createRole",
-      "file": "packages/healthcare/src/workflows/staff/create-role.ts",
-      "name": "healthcare.staff.create-role",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "deleteRole",
-      "file": "packages/healthcare/src/workflows/staff/delete-role.ts",
-      "name": "healthcare.staff.delete-role",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "disableUser",
-      "file": "packages/healthcare/src/workflows/staff/disable-user.ts",
-      "name": "healthcare.staff.disable-user",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "leaveDecide",
-      "file": "packages/healthcare/src/workflows/staff/leave-decide.ts",
-      "name": "healthcare.staff.leave-decide",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "leaveRequest",
-      "file": "packages/healthcare/src/workflows/staff/leave-request.ts",
-      "name": "healthcare.staff.leave-request",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "listRoles",
-      "file": "packages/healthcare/src/workflows/staff/list-roles.ts",
-      "name": "healthcare.staff.list-roles",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "payrollExport",
-      "file": "packages/healthcare/src/workflows/staff/payroll-export.ts",
-      "name": "healthcare.staff.payroll-export",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "rosterPlan",
-      "file": "packages/healthcare/src/workflows/staff/roster-plan.ts",
-      "name": "healthcare.staff.roster-plan",
-      "package": "@aspen-os/healthcare"
-    },
-    {
-      "exportName": "upsertStaff",
-      "file": "packages/healthcare/src/workflows/staff/upsert-staff.ts",
-      "name": "healthcare.staff.upsert-staff",
-      "package": "@aspen-os/healthcare"
-    },
-    {
       "exportName": "assignPermissionToRole",
       "file": "packages/hr-core/src/workflows/access/role/permission/assign.ts",
       "name": "hr.access.assign-permission-to-role",
@@ -9850,87 +9809,87 @@
     },
     {
       "exportName": "archiveAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/archive.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/archive.ts",
       "name": "hr.announcement.archive",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "cancelScheduleAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/cancel-schedule.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/cancel-schedule.ts",
       "name": "hr.announcement.cancel-schedule",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "createAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/create.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/create.ts",
       "name": "hr.announcement.create",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "deleteAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/delete.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/delete.ts",
       "name": "hr.announcement.delete",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "getAnnouncementById",
-      "file": "packages/hr-core/src/workflows/announcement/by-id/get.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/by-id/get.ts",
       "name": "hr.announcement.get-by-id",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "pinAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/pin.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/pin.ts",
       "name": "hr.announcement.pin",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "publishAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/publish.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/publish.ts",
       "name": "hr.announcement.publish",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "listRecipients",
-      "file": "packages/hr-core/src/workflows/announcement/recipients/list.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/recipients/list.ts",
       "name": "hr.announcement.recipients.list",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "restoreAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/restore.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/restore.ts",
       "name": "hr.announcement.restore",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "scheduleAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/schedule.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/schedule.ts",
       "name": "hr.announcement.schedule",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "getAnnouncementStats",
-      "file": "packages/hr-core/src/workflows/announcement/stats/get.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/stats/get.ts",
       "name": "hr.announcement.stats.get",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "unpinAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/unpin.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/unpin.ts",
       "name": "hr.announcement.unpin",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "updateAnnouncement",
-      "file": "packages/hr-core/src/workflows/announcement/update.ts",
+      "file": "packages/hr-announcement/src/workflows/announcement/update.ts",
       "name": "hr.announcement.update",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "listAnnouncements",
-      "file": "packages/hr-core/src/workflows/announcements/list.ts",
+      "file": "packages/hr-announcement/src/workflows/announcements/list.ts",
       "name": "hr.announcements.list",
-      "package": "@aspen-os/hr-core"
+      "package": "@aspen-os/hr-announcement"
     },
     {
       "exportName": "approveAttendanceRequest",
@@ -10033,6 +9992,240 @@
       "file": "packages/hr-attendance/src/workflows/attendance/request/update.ts",
       "name": "hr.attendance.update-attendance-request",
       "package": "@aspen-os/hr-attendance"
+    },
+    {
+      "exportName": "createDepartment",
+      "file": "packages/hr-core/src/workflows/config/department/create.ts",
+      "name": "hr.config.department.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteDepartment",
+      "file": "packages/hr-core/src/workflows/config/department/delete.ts",
+      "name": "hr.config.department.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getDepartmentById",
+      "file": "packages/hr-core/src/workflows/config/department/get.ts",
+      "name": "hr.config.department.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listDepartments",
+      "file": "packages/hr-core/src/workflows/config/department/list.ts",
+      "name": "hr.config.department.list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listPositionsByDepartment",
+      "file": "packages/hr-core/src/workflows/config/department/positions/list.ts",
+      "name": "hr.config.department.list-positions",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "moveDepartment",
+      "file": "packages/hr-core/src/workflows/config/department/move.ts",
+      "name": "hr.config.department.move",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "setDepartmentHead",
+      "file": "packages/hr-core/src/workflows/config/department/set-head.ts",
+      "name": "hr.config.department.set-head",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getDepartmentSubtree",
+      "file": "packages/hr-core/src/workflows/config/department/subtree.ts",
+      "name": "hr.config.department.subtree",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getDepartmentTree",
+      "file": "packages/hr-core/src/workflows/config/department/tree.ts",
+      "name": "hr.config.department.tree",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateDepartment",
+      "file": "packages/hr-core/src/workflows/config/department/update.ts",
+      "name": "hr.config.department.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "createDesignation",
+      "file": "packages/hr-core/src/workflows/config/designation/create.ts",
+      "name": "hr.config.designation.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteDesignation",
+      "file": "packages/hr-core/src/workflows/config/designation/delete.ts",
+      "name": "hr.config.designation.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getDesignationById",
+      "file": "packages/hr-core/src/workflows/config/designation/get.ts",
+      "name": "hr.config.designation.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listDesignations",
+      "file": "packages/hr-core/src/workflows/config/designation/list.ts",
+      "name": "hr.config.designation.list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateDesignation",
+      "file": "packages/hr-core/src/workflows/config/designation/update.ts",
+      "name": "hr.config.designation.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "createEmployeeGrade",
+      "file": "packages/hr-core/src/workflows/config/employee-grade/create.ts",
+      "name": "hr.config.employee-grade.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteEmployeeGrade",
+      "file": "packages/hr-core/src/workflows/config/employee-grade/delete.ts",
+      "name": "hr.config.employee-grade.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getEmployeeGradeById",
+      "file": "packages/hr-core/src/workflows/config/employee-grade/get.ts",
+      "name": "hr.config.employee-grade.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listEmployeeGrades",
+      "file": "packages/hr-core/src/workflows/config/employee-grade/list.ts",
+      "name": "hr.config.employee-grade.list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateEmployeeGrade",
+      "file": "packages/hr-core/src/workflows/config/employee-grade/update.ts",
+      "name": "hr.config.employee-grade.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "createEmploymentType",
+      "file": "packages/hr-core/src/workflows/config/employment-type/create.ts",
+      "name": "hr.config.employment-type.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteEmploymentType",
+      "file": "packages/hr-core/src/workflows/config/employment-type/delete.ts",
+      "name": "hr.config.employment-type.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getEmploymentTypeById",
+      "file": "packages/hr-core/src/workflows/config/employment-type/get.ts",
+      "name": "hr.config.employment-type.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listEmploymentTypes",
+      "file": "packages/hr-core/src/workflows/config/employment-type/list.ts",
+      "name": "hr.config.employment-type.list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateEmploymentType",
+      "file": "packages/hr-core/src/workflows/config/employment-type/update.ts",
+      "name": "hr.config.employment-type.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "createHolidayList",
+      "file": "packages/hr-core/src/workflows/config/holiday-list/create.ts",
+      "name": "hr.config.holiday-list.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteHolidayList",
+      "file": "packages/hr-core/src/workflows/config/holiday-list/delete.ts",
+      "name": "hr.config.holiday-list.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getHolidayListById",
+      "file": "packages/hr-core/src/workflows/config/holiday-list/get.ts",
+      "name": "hr.config.holiday-list.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listHolidayLists",
+      "file": "packages/hr-core/src/workflows/config/holiday-list/list.ts",
+      "name": "hr.config.holiday-list.list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateHolidayList",
+      "file": "packages/hr-core/src/workflows/config/holiday-list/update.ts",
+      "name": "hr.config.holiday-list.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "createHoliday",
+      "file": "packages/hr-core/src/workflows/config/holiday/create.ts",
+      "name": "hr.config.holiday.create",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "deleteHoliday",
+      "file": "packages/hr-core/src/workflows/config/holiday/delete.ts",
+      "name": "hr.config.holiday.delete",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getHolidayById",
+      "file": "packages/hr-core/src/workflows/config/holiday/get.ts",
+      "name": "hr.config.holiday.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "listHolidaysByList",
+      "file": "packages/hr-core/src/workflows/config/holiday/by-list/list.ts",
+      "name": "hr.config.holiday.list-by-list",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateHoliday",
+      "file": "packages/hr-core/src/workflows/config/holiday/update.ts",
+      "name": "hr.config.holiday.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getHrSettings",
+      "file": "packages/hr-core/src/workflows/config/hr/get.ts",
+      "name": "hr.config.hr.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updateHrSettings",
+      "file": "packages/hr-core/src/workflows/config/hr/update.ts",
+      "name": "hr.config.hr.update",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "getPayrollSettings",
+      "file": "packages/hr-core/src/workflows/config/payroll/get.ts",
+      "name": "hr.config.payroll.get",
+      "package": "@aspen-os/hr-core"
+    },
+    {
+      "exportName": "updatePayrollSettings",
+      "file": "packages/hr-core/src/workflows/config/payroll/update.ts",
+      "name": "hr.config.payroll.update",
+      "package": "@aspen-os/hr-core"
     },
     {
       "exportName": "activate",
@@ -11040,240 +11233,6 @@
       "exportName": "updatePosition",
       "file": "packages/hr-core/src/workflows/position/position/update.ts",
       "name": "hr.position.update",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createDepartment",
-      "file": "packages/hr-core/src/workflows/setup/department/create.ts",
-      "name": "hr.setup.create-department",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createDesignation",
-      "file": "packages/hr-core/src/workflows/setup/designation/create.ts",
-      "name": "hr.setup.create-designation",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createEmployeeGrade",
-      "file": "packages/hr-core/src/workflows/setup/employee-grade/create.ts",
-      "name": "hr.setup.create-employee-grade",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createEmploymentType",
-      "file": "packages/hr-core/src/workflows/setup/employment-type/create.ts",
-      "name": "hr.setup.create-employment-type",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createHoliday",
-      "file": "packages/hr-core/src/workflows/setup/holiday/create.ts",
-      "name": "hr.setup.create-holiday",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "createHolidayList",
-      "file": "packages/hr-core/src/workflows/setup/holiday-list/create.ts",
-      "name": "hr.setup.create-holiday-list",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteDepartment",
-      "file": "packages/hr-core/src/workflows/setup/department/delete.ts",
-      "name": "hr.setup.delete-department",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteDesignation",
-      "file": "packages/hr-core/src/workflows/setup/designation/delete.ts",
-      "name": "hr.setup.delete-designation",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteEmployeeGrade",
-      "file": "packages/hr-core/src/workflows/setup/employee-grade/delete.ts",
-      "name": "hr.setup.delete-employee-grade",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteEmploymentType",
-      "file": "packages/hr-core/src/workflows/setup/employment-type/delete.ts",
-      "name": "hr.setup.delete-employment-type",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteHoliday",
-      "file": "packages/hr-core/src/workflows/setup/holiday/delete.ts",
-      "name": "hr.setup.delete-holiday",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "deleteHolidayList",
-      "file": "packages/hr-core/src/workflows/setup/holiday-list/delete.ts",
-      "name": "hr.setup.delete-holiday-list",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getDepartmentById",
-      "file": "packages/hr-core/src/workflows/setup/department/by-id/get.ts",
-      "name": "hr.setup.get-department-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getDepartmentSubtree",
-      "file": "packages/hr-core/src/workflows/setup/departments/subtree.ts",
-      "name": "hr.setup.get-department-subtree",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getDepartmentTree",
-      "file": "packages/hr-core/src/workflows/setup/departments/tree.ts",
-      "name": "hr.setup.get-department-tree",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getDesignationById",
-      "file": "packages/hr-core/src/workflows/setup/designation/by-id/get.ts",
-      "name": "hr.setup.get-designation-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getEmployeeGradeById",
-      "file": "packages/hr-core/src/workflows/setup/employee-grade/by-id/get.ts",
-      "name": "hr.setup.get-employee-grade-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getEmploymentTypeById",
-      "file": "packages/hr-core/src/workflows/setup/employment-type/by-id/get.ts",
-      "name": "hr.setup.get-employment-type-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getHolidayById",
-      "file": "packages/hr-core/src/workflows/setup/holiday/by-id/get.ts",
-      "name": "hr.setup.get-holiday-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getHolidayListById",
-      "file": "packages/hr-core/src/workflows/setup/holiday-list/by-id/get.ts",
-      "name": "hr.setup.get-holiday-list-by-id",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getHrSettings",
-      "file": "packages/hr-core/src/workflows/setup/hr-settings/get.ts",
-      "name": "hr.setup.get-hr-settings",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "getPayrollSettings",
-      "file": "packages/hr-core/src/workflows/setup/payroll-settings/get.ts",
-      "name": "hr.setup.get-payroll-settings",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listDepartments",
-      "file": "packages/hr-core/src/workflows/setup/departments/list.ts",
-      "name": "hr.setup.list-departments",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listDesignations",
-      "file": "packages/hr-core/src/workflows/setup/designations/list.ts",
-      "name": "hr.setup.list-designations",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listEmployeeGrades",
-      "file": "packages/hr-core/src/workflows/setup/employee-grades/list.ts",
-      "name": "hr.setup.list-employee-grades",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listEmploymentTypes",
-      "file": "packages/hr-core/src/workflows/setup/employment-types/list.ts",
-      "name": "hr.setup.list-employment-types",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listHolidayLists",
-      "file": "packages/hr-core/src/workflows/setup/holiday-lists/list.ts",
-      "name": "hr.setup.list-holiday-lists",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listHolidaysByList",
-      "file": "packages/hr-core/src/workflows/setup/holidays/by-list/list.ts",
-      "name": "hr.setup.list-holidays-by-list",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "listPositionsByDepartment",
-      "file": "packages/hr-core/src/workflows/setup/departments/positions-by-department/list.ts",
-      "name": "hr.setup.list-positions-by-department",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "moveDepartment",
-      "file": "packages/hr-core/src/workflows/setup/department/move.ts",
-      "name": "hr.setup.move-department",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "setDepartmentHead",
-      "file": "packages/hr-core/src/workflows/setup/department/set-head.ts",
-      "name": "hr.setup.set-department-head",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateDepartment",
-      "file": "packages/hr-core/src/workflows/setup/department/update.ts",
-      "name": "hr.setup.update-department",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateDesignation",
-      "file": "packages/hr-core/src/workflows/setup/designation/update.ts",
-      "name": "hr.setup.update-designation",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateEmployeeGrade",
-      "file": "packages/hr-core/src/workflows/setup/employee-grade/update.ts",
-      "name": "hr.setup.update-employee-grade",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateEmploymentType",
-      "file": "packages/hr-core/src/workflows/setup/employment-type/update.ts",
-      "name": "hr.setup.update-employment-type",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateHoliday",
-      "file": "packages/hr-core/src/workflows/setup/holiday/update.ts",
-      "name": "hr.setup.update-holiday",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateHolidayList",
-      "file": "packages/hr-core/src/workflows/setup/holiday-list/update.ts",
-      "name": "hr.setup.update-holiday-list",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updateHrSettings",
-      "file": "packages/hr-core/src/workflows/setup/hr-settings/update.ts",
-      "name": "hr.setup.update-hr-settings",
-      "package": "@aspen-os/hr-core"
-    },
-    {
-      "exportName": "updatePayrollSettings",
-      "file": "packages/hr-core/src/workflows/setup/payroll-settings/update.ts",
-      "name": "hr.setup.update-payroll-settings",
       "package": "@aspen-os/hr-core"
     },
     {
