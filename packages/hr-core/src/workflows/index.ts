@@ -74,11 +74,6 @@ import { createGroup } from "#/workflows/employee/group/create";
 import { deleteGroup } from "#/workflows/employee/group/delete";
 import { updateGroup } from "#/workflows/employee/group/update";
 import { listGroups } from "#/workflows/employee/groups/list";
-import { listHealthInsuranceByEmployee } from "#/workflows/employee/health-insurance/by-employee/list";
-import { getHealthInsuranceById } from "#/workflows/employee/health-insurance/by-id/get";
-import { createHealthInsurance } from "#/workflows/employee/health-insurance/create";
-import { deleteHealthInsurance } from "#/workflows/employee/health-insurance/delete";
-import { updateHealthInsurance } from "#/workflows/employee/health-insurance/update";
 import { list as listEmployees } from "#/workflows/employee/list";
 import { getOrganizationalChart } from "#/workflows/employee/organizational-chart/get";
 import { listSkillMapByEmployee } from "#/workflows/employee/skill-map/by-employee/list";
@@ -226,13 +221,6 @@ export const employee = {
     remove: deleteGroup,
     removeMember: removeGroupMember,
     update: updateGroup,
-  },
-  healthInsurance: {
-    create: createHealthInsurance,
-    get: getHealthInsuranceById,
-    listByEmployee: listHealthInsuranceByEmployee,
-    remove: deleteHealthInsurance,
-    update: updateHealthInsurance,
   },
   skillMaps: {
     create: createSkillMap,

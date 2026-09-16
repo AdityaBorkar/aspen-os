@@ -93,25 +93,6 @@ export const employeeGroupMember = pgTable(
   ],
 );
 
-export const employeeHealthInsurance = pgTable(
-  "employee_health_insurance",
-  {
-    coverage_details: text(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    employee_id: text().notNull(),
-    end_date: date(),
-    id: uuidv7().primaryKey(),
-    insurer: text().notNull(),
-    is_active: boolean().notNull().default(true),
-    metadata: jsonb(),
-    policy_number: text().notNull(),
-    premium_amount: text(),
-    start_date: date().notNull(),
-    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index("idx_employee_health_insurance_employee_id").on(table.employee_id)],
-);
-
 export const employeeSkillMap = pgTable(
   "employee_skill_map",
   {

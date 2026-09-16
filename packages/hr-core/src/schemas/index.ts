@@ -32,24 +32,20 @@ export type {
   AddGroupMemberInput,
   CreateEmployeeGroupInput,
   CreateEmployeeInput,
-  CreateHealthInsuranceInput,
   CreateSkillMapInput,
   EmployeeFilters,
   UpdateEmployeeGroupInput,
   UpdateEmployeeInput,
-  UpdateHealthInsuranceInput,
   UpdateSkillMapInput,
 } from "#/schemas/employee";
 export {
   AddGroupMemberSchema,
   CreateEmployeeGroupSchema,
   CreateEmployeeSchema,
-  CreateHealthInsuranceSchema,
   CreateSkillMapSchema,
   EmployeeFiltersSchema,
   UpdateEmployeeGroupSchema,
   UpdateEmployeeSchema,
-  UpdateHealthInsuranceSchema,
   UpdateSkillMapSchema,
 } from "#/schemas/employee";
 // Enum schemas

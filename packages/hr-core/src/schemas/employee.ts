@@ -118,28 +118,6 @@ export const AddGroupMemberSchema = object({
 
 export type AddGroupMemberInput = InferOutput<typeof AddGroupMemberSchema>;
 
-// Employee Health Insurance
-
-export const CreateHealthInsuranceSchema = object({
-  coverageDetails: optional(nullable(string())),
-  employeeId: pipe(string(), minLength(1, "Employee ID is required")),
-  endDate: optional(string()),
-  insurer: pipe(string(), minLength(1, "Insurer is required")),
-  metadata: optional(nullable(object({}))),
-  policyNumber: pipe(string(), minLength(1, "Policy number is required")),
-  premiumAmount: optional(nullable(string())),
-  startDate: pipe(string(), minLength(1, "Start date is required")),
-});
-
-export type CreateHealthInsuranceInput = InferOutput<typeof CreateHealthInsuranceSchema>;
-
-export const UpdateHealthInsuranceSchema = object({
-  ...partial(omit(CreateHealthInsuranceSchema, ["employeeId"])).entries,
-  isActive: optional(boolean()),
-});
-
-export type UpdateHealthInsuranceInput = InferOutput<typeof UpdateHealthInsuranceSchema>;
-
 // Employee Skill Map
 
 export const CreateSkillMapSchema = object({
