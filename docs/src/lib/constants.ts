@@ -2,6 +2,8 @@ export const APP_NAME = "Aspen OS";
 
 export const DOCS_ROUTE = "/docs";
 
+export const FEATURES_ROUTE = "/features";
+
 export const REF_ROUTE = "/ref";
 
 export const DOCS_IMAGE_ROUTE = "/og/docs";

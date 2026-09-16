@@ -9,6 +9,14 @@
     // "pedantic": "warn"
   },
   "ignorePatterns": [".agents/**", "tools/**"],
+  "overrides": [
+    {
+      // TanStack Router derives `$param` names from route filenames, which must be
+      // valid JS identifiers and therefore cannot always be kebab-case.
+      "files": ["**/$*.ts", "**/$*.tsx"],
+      "rules": { "unicorn/filename-case": "off" }
+    }
+  ],
   "jsPlugins": [{ "name": "anti-slop", "specifier": "./tools/oxlint/anti-slop/index.ts" }],
   "env": {
     "browser": true,
