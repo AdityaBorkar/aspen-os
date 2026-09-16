@@ -60,7 +60,7 @@ flowchart TB
   LC_SEP --> RC -->|publish position.unassigned| PS
   LC_TR --> RC
 
-  HR_CORE_WORKFLOWS[workflows\naccess, employee, lifecycle, position, setup] --> DB
+  HR_CORE_WORKFLOWS[workflows\naccess, employee, lifecycle, position, config] --> DB
   HR_CORE_WORKFLOWS --> PS
 
   DB --- CP
@@ -93,7 +93,7 @@ export const acl = defineAcl({
   hrUser: ["create", "delete", "read", "update"],
   lifecycle: ["approve", "create", "read", "reject", "update"],
   position: ["create", "delete", "read", "update"],
-  setup: ["create", "delete", "read", "update"],
+  config: ["create", "delete", "read", "update"],
 });
 ```
 

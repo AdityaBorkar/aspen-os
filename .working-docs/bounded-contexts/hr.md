@@ -44,8 +44,9 @@ p.hr.leave        leave types/periods/policies/allocations/applications/compensa
 p.hr.lifecycle    onboarding, promotions, transfers, separation, F&F, exit interviews (51 methods)
 p.hr.overtime     overtime types + slips (13 methods)
 p.hr.position     positions, assignments, org/position trees, direct reports, team (20 methods)
-p.hr.setup        departments (+ tree ops), designations, grades, employment types, holidays,
-                  settings (39 methods)
+p.hrCore.config   departments (+ tree ops), designations, grades, employment types, holidays,
+                  settings (nested groups: departments, designations, employeeGrades,
+                  employmentTypes, holidayLists, holidays, hr, payroll)
 p.hr.shift        shift types, locations, assignments, requests, schedules (33 methods)
 ```
 

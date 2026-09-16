@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the hr-core module
 icon: IconListCheck
 ---
 
-The hr-core module exposes workflow groups via `p.hrCore`: `access`, `employee`, `lifecycle`, `position`, and `setup`.
+The hr-core module exposes workflow groups via `p.hrCore`: `access`, `employee`, `lifecycle`, `position`, and `config`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 
@@ -194,36 +194,36 @@ await p.hrCore.position.getPeers({ employeeId: "EMP-001" });
 await p.hrCore.position.getTeam({ employeeId: "EMP-001" });
 ```
 
-### Setup
+### Config
 
-Access: `p.hrCore.setup`
+Access: `p.hrCore.config`
 
-HR/payroll settings, employment types, departments (tree ops), designations, grades, and holiday lists.
+HR/payroll settings, employment types, departments (tree ops), designations, grades, and holiday lists. Each resource is a nested REST-style group (`departments`, `designations`, `employeeGrades`, `employmentTypes`, `holidayLists`, `holidays`, `hr`, `payroll`) with `get`/`list`/`create`/`update`/`delete` verbs plus domain extras (`move`, `setHead`, `tree`, `subtree`, `listPositions`, `listByList`).
 
-```ts title="setup — settings and departments"
-await p.hrCore.setup.getHrSettings({});
-await p.hrCore.setup.updateHrSettings({ patch: { defaultHolidayList: "hl-1" } });
-await p.hrCore.setup.getPayrollSettings({});
-await p.hrCore.setup.updatePayrollSettings({ patch: { fiscalYearStart: "2024-04-01" } });
+```ts title="config — settings and departments"
+await p.hrCore.config.hr.get({});
+await p.hrCore.config.hr.update({ patch: { defaultHolidayList: "hl-1" } });
+await p.hrCore.config.payroll.get({});
+await p.hrCore.config.payroll.update({ patch: { fiscalYearStart: "2024-04-01" } });
 
-await p.hrCore.setup.createDepartment({ input: { code: "eng", name: "Engineering" } });
-await p.hrCore.setup.moveDepartment({ id, newParentId: "dept-prod" });
-await p.hrCore.setup.setDepartmentHead({ id, employeeId: "EMP-001" });
-await p.hrCore.setup.getDepartmentTree({});
-await p.hrCore.setup.getDepartmentSubtree({ id, depth: 2 });
-await p.hrCore.setup.listPositionsByDepartment({ departmentId: "dept-eng", includeSubtree: true });
-await p.hrCore.setup.deleteDepartment({ id });
+await p.hrCore.config.departments.create({ input: { code: "eng", name: "Engineering" } });
+await p.hrCore.config.departments.move({ id, newParentId: "dept-prod" });
+await p.hrCore.config.departments.setHead({ id, employeeId: "EMP-001" });
+await p.hrCore.config.departments.tree({});
+await p.hrCore.config.departments.subtree({ id, depth: 2 });
+await p.hrCore.config.departments.listPositions({ departmentId: "dept-eng", includeSubtree: true });
+await p.hrCore.config.departments.delete({ id });
 ```
 
-```ts title="setup — catalog and holidays"
-await p.hrCore.setup.createDesignation({ input: { name: "Software Engineer" } });
-await p.hrCore.setup.createEmploymentType({ input: { name: "Permanent" } });
-await p.hrCore.setup.createEmployeeGrade({ input: { name: "G7" } });
-await p.hrCore.setup.createHolidayList({ input: { name: "India 2026", year: 2026 } });
-await p.hrCore.setup.createHoliday({
+```ts title="config — catalog and holidays"
+await p.hrCore.config.designations.create({ input: { name: "Software Engineer" } });
+await p.hrCore.config.employmentTypes.create({ input: { name: "Permanent" } });
+await p.hrCore.config.employeeGrades.create({ input: { name: "G7" } });
+await p.hrCore.config.holidayLists.create({ input: { name: "India 2026", year: 2026 } });
+await p.hrCore.config.holidays.create({
   input: { holidayListId: "hl-1", name: "Republic Day", date: "2026-01-26", type: "public" },
 });
-await p.hrCore.setup.listHolidaysByList({ holidayListId: "hl-1" });
+await p.hrCore.config.holidays.listByList({ holidayListId: "hl-1" });
 ```
 
 `updateHrSettings` and `updatePayrollSettings` are upserts; department codes are uppercased on write.

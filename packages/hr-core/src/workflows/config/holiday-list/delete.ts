@@ -1,0 +1,23 @@
+import { holidayList } from "#/db-schemas";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
+import { minLength, object, pipe, string } from "valibot";
+
+const InputSchema = object({
+  id: pipe(string(), minLength(1, "id is required")),
+});
+
+export const deleteHolidayList = Workflow.name("hr.config.holiday-list.delete")
+  .input(InputSchema)
+  .handler(async (input, ctx) => {
+    const { id } = input;
+
+    const [updated] = await ctx.db
+      .update(holidayList)
+      .set({ is_active: false, updated_at: new Date() })
+      .where(eq(holidayList.id, id))
+      .returning();
+
+    return updated;
+  });

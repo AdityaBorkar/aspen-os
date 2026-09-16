@@ -117,7 +117,7 @@
 
 **Invariants**: Department (hierarchical via `parentDepartment`, `manager`), Designation, EmployeeGrade, EmploymentType, Holiday + HolidayList, HrSettings, PayrollSettings — all control-plane (shared across tenants).
 
-**Lifecycle commands** (via `p.hr.setup`): create/update/delete/get/list for departments, designations, grades, employment types, holidays, holiday lists; get/update `hrSettings` and `payrollSettings`.
+**Lifecycle commands** (via `p.hrCore.config`): `departments` (create/update/delete/get/list + `move`, `setHead`, `tree`, `subtree`, `listPositions`), `designations`, `employeeGrades`, `employmentTypes`, `holidays`, `holidayLists` (create/update/delete/get/list); `hr` and `payroll` singletons (get/update).
 
 ### Announcement (internal communications sub-domain)
 
@@ -157,7 +157,7 @@
 | HR      | Approve leave application | `p.hr.leave.approveLeaveApplication()` |
 | HR      | Create shift assignment   | `p.hr.shift.createShiftAssignment()`   |
 | HR      | Create overtime slip      | `p.hr.overtime.createOvertimeSlip()`   |
-| HR      | Create department         | `p.hr.setup.createDepartment()`        |
+| HR      | Create department         | `p.hrCore.config.departments.create()` |
 | HR      | Create position           | `p.hr.position.create()`               |
 | HR      | Assign employee to role   | `p.hr.position.assignEmployee()`       |
 | HR      | Create HR user            | `p.hr.access.createUser()`             |
@@ -177,7 +177,7 @@
 | HR      | List leave applications      | `p.hr.leave.listLeaveApplications()`     |
 | HR      | Get leave balance            | `p.hr.leave.getLeaveBalance()`           |
 | HR      | List roles                   | `p.hr.access.listRoles()`                |
-| HR      | Get HR settings              | `p.hr.setup.getHrSettings()`             |
+| HR      | Get HR settings              | `p.hrCore.config.hr.get()`               |
 | HR      | Get announcement stats       | `p.hr.announcement.getStats()`           |
 | HR      | List announcement recipients | `p.hr.announcement.listRecipients()`     |
 

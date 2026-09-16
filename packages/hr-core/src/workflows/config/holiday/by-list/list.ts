@@ -1,0 +1,17 @@
+import { holiday } from "#/db-schemas";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
+import { minLength, object, pipe, string } from "valibot";
+
+const InputSchema = object({
+  holidayListId: pipe(string(), minLength(1, "holidayListId is required")),
+});
+
+export const listHolidaysByList = Workflow.name("hr.config.holiday.list-by-list")
+  .input(InputSchema)
+  .handler(async (input, ctx) => {
+    const { holidayListId } = input;
+
+    return ctx.db.select().from(holiday).where(eq(holiday.holiday_list_id, holidayListId));
+  });

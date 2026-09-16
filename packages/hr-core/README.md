@@ -72,15 +72,15 @@ const platform = Platform.create(config, { organization, hr });
 
 ### Planned workflow accessors
 
-| Getter                   | Workflow             | Domain                                                     |
-| ------------------------ | -------------------- | ---------------------------------------------------------- |
-| `platform.hr.setup`      | `SetupWorkflow`      | HR settings, departments, designations, grades, holidays   |
-| `platform.hr.employees`  | `EmployeeWorkflow`   | Employee CRUD, groups, health insurance, skills, org chart |
-| `platform.hr.attendance` | `AttendanceWorkflow` | Attendance records, checkins, requests                     |
-| `platform.hr.shifts`     | `ShiftWorkflow`      | Shift types, locations, assignments, schedules             |
-| `platform.hr.leave`      | `LeaveWorkflow`      | Leave types, policies, allocations, applications, ledger   |
-| `platform.hr.lifecycle`  | `LifecycleWorkflow`  | Onboarding, promotions, transfers, separations             |
-| `platform.hr.overtime`   | `OvertimeWorkflow`   | Overtime types, slips, approval, summary                   |
+| Getter                   | Workflow                                                                                                                      | Domain                                                           |
+| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| `platform.hrCore.config` | nested `departments`, `designations`, `employeeGrades`, `employmentTypes`, `holidayLists`, `holidays`, `hr`, `payroll` groups | HR/payroll settings, departments, designations, grades, holidays |
+| `platform.hr.employees`  | `EmployeeWorkflow`                                                                                                            | Employee CRUD, groups, health insurance, skills, org chart       |
+| `platform.hr.attendance` | `AttendanceWorkflow`                                                                                                          | Attendance records, checkins, requests                           |
+| `platform.hr.shifts`     | `ShiftWorkflow`                                                                                                               | Shift types, locations, assignments, schedules                   |
+| `platform.hr.leave`      | `LeaveWorkflow`                                                                                                               | Leave types, policies, allocations, applications, ledger         |
+| `platform.hr.lifecycle`  | `LifecycleWorkflow`                                                                                                           | Onboarding, promotions, transfers, separations                   |
+| `platform.hr.overtime`   | `OvertimeWorkflow`                                                                                                            | Overtime types, slips, approval, summary                         |
 
 ## Phase 1: Core Operations
 

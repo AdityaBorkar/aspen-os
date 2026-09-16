@@ -70,5 +70,5 @@ export class HrCore implements Module {
 
   readonly position = wf.position;
 
-  readonly setup = wf.setup;
+  readonly config = wf.config;
 }

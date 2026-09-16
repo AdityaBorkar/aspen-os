@@ -31,6 +31,45 @@ import { assignRoleToUser } from "#/workflows/access/user/role/assign";
 import { removeRoleFromUser } from "#/workflows/access/user/role/remove";
 import { updateUser } from "#/workflows/access/user/update";
 import { listUsers } from "#/workflows/access/users/list";
+import { createDepartment } from "#/workflows/config/department/create";
+import { deleteDepartment } from "#/workflows/config/department/delete";
+import { getDepartmentById } from "#/workflows/config/department/get";
+import { listDepartments } from "#/workflows/config/department/list";
+import { moveDepartment } from "#/workflows/config/department/move";
+import { listPositionsByDepartment } from "#/workflows/config/department/positions/list";
+import { setDepartmentHead } from "#/workflows/config/department/set-head";
+import { getDepartmentSubtree } from "#/workflows/config/department/subtree";
+import { getDepartmentTree } from "#/workflows/config/department/tree";
+import { updateDepartment } from "#/workflows/config/department/update";
+import { createDesignation } from "#/workflows/config/designation/create";
+import { deleteDesignation } from "#/workflows/config/designation/delete";
+import { getDesignationById } from "#/workflows/config/designation/get";
+import { listDesignations } from "#/workflows/config/designation/list";
+import { updateDesignation } from "#/workflows/config/designation/update";
+import { createEmployeeGrade } from "#/workflows/config/employee-grade/create";
+import { deleteEmployeeGrade } from "#/workflows/config/employee-grade/delete";
+import { getEmployeeGradeById } from "#/workflows/config/employee-grade/get";
+import { listEmployeeGrades } from "#/workflows/config/employee-grade/list";
+import { updateEmployeeGrade } from "#/workflows/config/employee-grade/update";
+import { createEmploymentType } from "#/workflows/config/employment-type/create";
+import { deleteEmploymentType } from "#/workflows/config/employment-type/delete";
+import { getEmploymentTypeById } from "#/workflows/config/employment-type/get";
+import { listEmploymentTypes } from "#/workflows/config/employment-type/list";
+import { updateEmploymentType } from "#/workflows/config/employment-type/update";
+import { createHolidayList } from "#/workflows/config/holiday-list/create";
+import { deleteHolidayList } from "#/workflows/config/holiday-list/delete";
+import { getHolidayListById } from "#/workflows/config/holiday-list/get";
+import { listHolidayLists } from "#/workflows/config/holiday-list/list";
+import { updateHolidayList } from "#/workflows/config/holiday-list/update";
+import { listHolidaysByList } from "#/workflows/config/holiday/by-list/list";
+import { createHoliday } from "#/workflows/config/holiday/create";
+import { deleteHoliday } from "#/workflows/config/holiday/delete";
+import { getHolidayById } from "#/workflows/config/holiday/get";
+import { updateHoliday } from "#/workflows/config/holiday/update";
+import { getHrSettings } from "#/workflows/config/hr/get";
+import { updateHrSettings } from "#/workflows/config/hr/update";
+import { getPayrollSettings } from "#/workflows/config/payroll/get";
+import { updatePayrollSettings } from "#/workflows/config/payroll/update";
 import { activate } from "#/workflows/employee/activate";
 import { markAsLeft } from "#/workflows/employee/as-left/mark";
 import { getByEmployeeId } from "#/workflows/employee/by-employee-id/get";
@@ -131,45 +170,6 @@ import { listPositions } from "#/workflows/position/position/list";
 import { updatePosition } from "#/workflows/position/position/update";
 import { getSubordinates } from "#/workflows/position/subordinates/get";
 import { getTeam } from "#/workflows/position/team/get";
-import { getDepartmentById } from "#/workflows/setup/department/by-id/get";
-import { createDepartment } from "#/workflows/setup/department/create";
-import { deleteDepartment } from "#/workflows/setup/department/delete";
-import { moveDepartment } from "#/workflows/setup/department/move";
-import { setDepartmentHead } from "#/workflows/setup/department/set-head";
-import { updateDepartment } from "#/workflows/setup/department/update";
-import { listDepartments } from "#/workflows/setup/departments/list";
-import { listPositionsByDepartment } from "#/workflows/setup/departments/positions-by-department/list";
-import { getDepartmentSubtree } from "#/workflows/setup/departments/subtree";
-import { getDepartmentTree } from "#/workflows/setup/departments/tree";
-import { getDesignationById } from "#/workflows/setup/designation/by-id/get";
-import { createDesignation } from "#/workflows/setup/designation/create";
-import { deleteDesignation } from "#/workflows/setup/designation/delete";
-import { updateDesignation } from "#/workflows/setup/designation/update";
-import { listDesignations } from "#/workflows/setup/designations/list";
-import { getEmployeeGradeById } from "#/workflows/setup/employee-grade/by-id/get";
-import { createEmployeeGrade } from "#/workflows/setup/employee-grade/create";
-import { deleteEmployeeGrade } from "#/workflows/setup/employee-grade/delete";
-import { updateEmployeeGrade } from "#/workflows/setup/employee-grade/update";
-import { listEmployeeGrades } from "#/workflows/setup/employee-grades/list";
-import { getEmploymentTypeById } from "#/workflows/setup/employment-type/by-id/get";
-import { createEmploymentType } from "#/workflows/setup/employment-type/create";
-import { deleteEmploymentType } from "#/workflows/setup/employment-type/delete";
-import { updateEmploymentType } from "#/workflows/setup/employment-type/update";
-import { listEmploymentTypes } from "#/workflows/setup/employment-types/list";
-import { getHolidayListById } from "#/workflows/setup/holiday-list/by-id/get";
-import { createHolidayList } from "#/workflows/setup/holiday-list/create";
-import { deleteHolidayList } from "#/workflows/setup/holiday-list/delete";
-import { updateHolidayList } from "#/workflows/setup/holiday-list/update";
-import { listHolidayLists } from "#/workflows/setup/holiday-lists/list";
-import { getHolidayById } from "#/workflows/setup/holiday/by-id/get";
-import { createHoliday } from "#/workflows/setup/holiday/create";
-import { deleteHoliday } from "#/workflows/setup/holiday/delete";
-import { updateHoliday } from "#/workflows/setup/holiday/update";
-import { listHolidaysByList } from "#/workflows/setup/holidays/by-list/list";
-import { getHrSettings } from "#/workflows/setup/hr-settings/get";
-import { updateHrSettings } from "#/workflows/setup/hr-settings/update";
-import { getPayrollSettings } from "#/workflows/setup/payroll-settings/get";
-import { updatePayrollSettings } from "#/workflows/setup/payroll-settings/update";
 
 export const access = {
   assignPermissionToRole,
@@ -314,44 +314,60 @@ export const position = {
   update: updatePosition,
 } as const;
 
-export const setup = {
-  createDepartment,
-  createDesignation,
-  createEmployeeGrade,
-  createEmploymentType,
-  createHoliday,
-  createHolidayList,
-  deleteDepartment,
-  deleteDesignation,
-  deleteEmployeeGrade,
-  deleteEmploymentType,
-  deleteHoliday,
-  deleteHolidayList,
-  getDepartmentById,
-  getDepartmentSubtree,
-  getDepartmentTree,
-  getDesignationById,
-  getEmployeeGradeById,
-  getEmploymentTypeById,
-  getHolidayById,
-  getHolidayListById,
-  getHrSettings,
-  getPayrollSettings,
-  listDepartments,
-  listDesignations,
-  listEmployeeGrades,
-  listEmploymentTypes,
-  listHolidayLists,
-  listHolidaysByList,
-  listPositionsByDepartment,
-  moveDepartment,
-  setDepartmentHead,
-  updateDepartment,
-  updateDesignation,
-  updateEmployeeGrade,
-  updateEmploymentType,
-  updateHoliday,
-  updateHolidayList,
-  updateHrSettings,
-  updatePayrollSettings,
+export const config = {
+  departments: {
+    create: createDepartment,
+    delete: deleteDepartment,
+    get: getDepartmentById,
+    list: listDepartments,
+    listPositions: listPositionsByDepartment,
+    move: moveDepartment,
+    setHead: setDepartmentHead,
+    subtree: getDepartmentSubtree,
+    tree: getDepartmentTree,
+    update: updateDepartment,
+  },
+  designations: {
+    create: createDesignation,
+    delete: deleteDesignation,
+    get: getDesignationById,
+    list: listDesignations,
+    update: updateDesignation,
+  },
+  employeeGrades: {
+    create: createEmployeeGrade,
+    delete: deleteEmployeeGrade,
+    get: getEmployeeGradeById,
+    list: listEmployeeGrades,
+    update: updateEmployeeGrade,
+  },
+  employmentTypes: {
+    create: createEmploymentType,
+    delete: deleteEmploymentType,
+    get: getEmploymentTypeById,
+    list: listEmploymentTypes,
+    update: updateEmploymentType,
+  },
+  holidayLists: {
+    create: createHolidayList,
+    delete: deleteHolidayList,
+    get: getHolidayListById,
+    list: listHolidayLists,
+    update: updateHolidayList,
+  },
+  holidays: {
+    create: createHoliday,
+    delete: deleteHoliday,
+    get: getHolidayById,
+    listByList: listHolidaysByList,
+    update: updateHoliday,
+  },
+  hr: {
+    get: getHrSettings,
+    update: updateHrSettings,
+  },
+  payroll: {
+    get: getPayrollSettings,
+    update: updatePayrollSettings,
+  },
 } as const;

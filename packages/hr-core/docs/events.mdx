@@ -43,14 +43,14 @@ The hr-core module defines domain events by group. Events are type-level contrac
 
 ## Setup
 
-| Event                           | Payload                                      | Trigger                   |
-| ------------------------------- | -------------------------------------------- | ------------------------- |
-| `setup.department_created`      | `{ department: { id, code, name } }`         | `setup.createDepartment`  |
-| `setup.department_moved`        | `{ departmentId, fromParentId, toParentId }` | `setup.moveDepartment`    |
-| `setup.department_head_changed` | `{ departmentId, headEmployeeId }`           | `setup.setDepartmentHead` |
-| `setup.designation_created`     | `{ designation: { id, name } }`              | `setup.createDesignation` |
-| `setup.holiday_list_created`    | `{ holidayList: { id, name, year } }`        | `setup.createHolidayList` |
-| `setup.settings_updated`        | `{ changes }`                                | `setup.updateHrSettings`  |
+| Event                           | Payload                                      | Trigger                      |
+| ------------------------------- | -------------------------------------------- | ---------------------------- |
+| `setup.department_created`      | `{ department: { id, code, name } }`         | `config.departments.create`  |
+| `setup.department_moved`        | `{ departmentId, fromParentId, toParentId }` | `config.departments.move`    |
+| `setup.department_head_changed` | `{ departmentId, headEmployeeId }`           | `config.departments.setHead` |
+| `setup.designation_created`     | `{ designation: { id, name } }`              | `config.designations.create` |
+| `setup.holiday_list_created`    | `{ holidayList: { id, name, year } }`        | `config.holidayLists.create` |
+| `setup.settings_updated`        | `{ changes }`                                | `config.hr.update`           |
 
 ## Access
 

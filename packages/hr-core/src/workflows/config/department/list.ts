@@ -1,0 +1,30 @@
+import { department } from "#/db-schemas";
+import { DepartmentFiltersSchema } from "#/types";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { and, eq } from "drizzle-orm";
+import { object, optional } from "valibot";
+
+const InputSchema = object({
+  filters: optional(DepartmentFiltersSchema, {}),
+});
+
+export const listDepartments = Workflow.name("hr.config.department.list")
+  .input(InputSchema)
+  .handler(async (input, ctx) => {
+    const { filters } = input;
+
+    const parsed = filters;
+    const conditions = [];
+
+    if (parsed.isActive !== undefined) {
+      conditions.push(eq(department.is_active, parsed.isActive));
+    }
+    if (parsed.parentDepartment) {
+      conditions.push(eq(department.parent_department, parsed.parentDepartment));
+    }
+
+    const whereClause = conditions.length > 0 ? and(...conditions) : undefined;
+
+    return ctx.db.select().from(department).where(whereClause);
+  });
