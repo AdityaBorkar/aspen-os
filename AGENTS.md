@@ -15,8 +15,8 @@
 - Install with `bun install`. `bunfig.toml` sets `ignore-scripts = true`, so postinstall hooks never run.
 - Verify with `bun run check:lint` and `bun run check:types` (`tsc -b`). Lint is mutating: `oxlint --fix . ; oxfmt .`. Focused checks: `cd packages/<name> && bun run check:lint` / `bun run check:types`.
 - Root `bun run build` is `nx run-many -t build --exclude=docs --no-tui`. Build a build-step package from its directory with `bun run build` (`bun run ../../scripts/build.ts`).
-- Build-step packages (have a `build` script) are `platform`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, `healthcare`, and `constants`. Raw-source packages (no build, export `./src/index.ts`) are `compliance`, `tasks`, `hr-core`, `hr-attendance`, `hr-leave`.
-- `scripts/build.ts` deletes/recreates `.output/` and rewrites `package.json` exports/bin to `.output` paths in place (`git status` shows `package.json` modified); `constants` keeps its `./src/index.ts` export and only emits declarations. `bun run build --dev` rewrites exports/bin back to `./src/*` without emitting. Rebuild the required build-step packages before typechecking raw-source consumers (`compliance`, `tasks`, `hr-*`) after a clean checkout or a `platform` change. Never commit `.output/`.
+- Build-step packages (have a `build` script) are `platform`, `masters`, `notes`, `calendar`, `management`, `comms`, `dms`, `workspace`, `healthcare`, and `constants`. Raw-source packages (no build, export `./src/index.ts`) are `announcement`, `compliance`, `tasks`, `hr-core`, `hr-attendance`, `hr-leave`.
+- `scripts/build.ts` deletes/recreates `.output/` and rewrites `package.json` exports/bin to `.output` paths in place (`git status` shows `package.json` modified); `constants` keeps its `./src/index.ts` export and only emits declarations. `bun run build --dev` rewrites exports/bin back to `./src/*` without emitting. Rebuild the required build-step packages before typechecking raw-source consumers (`announcement`, `compliance`, `tasks`, `hr-*`) after a clean checkout or a `platform` change. Never commit `.output/`.
 - `bun run clean` deletes `node_modules`, `.nx`, `.output`, `.local`, and `bun.lockb`; use it only when intentionally removing the lockfile and generated artifacts.
 - Better-auth schema is generated, not hand-edited: from `packages/platform` run `bun run gen:auth-schema` (`bunx auth generate --config ./src/server/auth/~config.ts --output ./src/server/db/schema/auth.gen.ts`).
 - Docs commands run from `docs` and always start with `gen:ref`: `bun run dev` (`gen:ref` + Vite on port 3005), `bun run check:types` (`gen:ref` + `fumadocs-mdx` + `tsc --noEmit`), `bun run build` (`gen:ref` + `gen:cf-types` + Vite), `bun run deploy` (`wrangler deploy`). If `docs/.source/` is missing, run `bunx fumadocs-mdx` (install scripts are disabled).
@@ -26,7 +26,7 @@
 ## Architecture
 
 - Server lifecycle is `Platform.create(config, modules)` -> `$prepareInfra()` -> `run(...)` -> `$cleanup()`. Creation validates module `$dependencies`, initializes modules with units, and returns a proxy exposing unit keys and module `$name`s.
-- Tenancy is class-time: `SingleTenantPlatform.run(fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)`. Shared mode uses PostgreSQL RLS in a transaction; isolated mode resolves a database per tenant. Do not add an overloaded `run()` signature.
+- Tenancy is class-time with a uniform signature: `SingleTenantPlatform.run(tenantId, fn)`, `SharedTenantPlatform.run(tenantId, fn)`, `IsolatedTenantPlatform.run(tenantId, fn)` (all inherit `BasePlatform.run`; there is no zero-arg server `run(fn)`). Shared mode uses PostgreSQL RLS in a transaction; isolated mode resolves a database per tenant. Do not add an overloaded `run()` signature.
 - Modules declare schemas, ACL, and event contracts from `$prepareInfra()`. Platform pushes schemas, applies merged ACL, then invokes module `$prepareRuntime()`. Runtime-wired modules must unregister schedules/subscriptions in `$cleanup()`.
 - A normal domain module has `src/module.ts`, `auth.ts`, `pubsub.ts`, `types.ts`, `db-schemas/`, `schemas/`, `workflows/`, and optional `services/` or `runtime.ts`. Keep one workflow action per file and compose public workflow groups in the module.
 - Each package maps `#/*` to its own `./src/*` (via `imports` + local `tsconfig.json` paths). Root `tsconfig.json` has no `paths`, so never use a package's `#/*` alias from another package.
@@ -39,6 +39,7 @@
 - `@aspen-os/dms` is the single document/file surface; do not recreate a `drive` package or parallel file/tag/share/trash model.
 - `@aspen-os/comms` is the single notification/inbox and out-of-band delivery surface. Do not recreate a `notifications` package or a parallel `comms.deliver` topic — delivery is the cron-scan `comms.message-sweeper` outbox worker.
 - `@aspen-os/notes` owns notes. `@aspen-os/masters` no longer owns notes.
+- `@aspen-os/announcement` owns announcements (`$name = "announcement"`, `$dependencies = ["hrCore"]` for audience resolution); it publishes `announcement.published` — `@aspen-os/comms` owns delivery.
 - `@aspen-os/calendar` owns the single reminder surface, including task reminders. `@aspen-os/tasks` publishes task events consumed by calendar's task bridge; do not add a second `task_reminder` surface or direct cross-module task/calendar calls.
 
 ## Local Infrastructure And Hooks
