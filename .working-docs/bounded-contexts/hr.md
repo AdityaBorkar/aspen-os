@@ -11,7 +11,7 @@ Downstream of Platform (Customer–Supplier). Fully conformant — each `impleme
 - `HrCore.create(config)` — `$name = "hrCore"`, `$dependencies = []`; `$config: HrCoreModuleConfig = { country: "INDIA" }`
 - `HrAttendance.create(config)` — `$name = "hrAttendance"`, `$dependencies = []`; `$config: HrAttendanceModuleConfig = { country: "INDIA" }`
 - `HrLeave.create(config)` — `$name = "hrLeave"`, `$dependencies = []`; `$config: HrLeaveModuleConfig = { country: "INDIA" }`
-- 10 workflow groups across three packages: hr-core `access`, `employee`, `lifecycle`, `position`, `config`; hr-attendance `attendance`, `overtime`, `shift`; hr-leave `leave`, `config`
+- 11 workflow groups across three packages: hr-core `access`, `employee`, `lifecycle`, `position`, `payroll`, `config`; hr-attendance `attendance`, `overtime`, `shift`; hr-leave `leave`, `config`
 - 51 database tables:
 - **12 control-plane** (hr-core setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
 - **39 tenant** (operational/transactional): hr-core 14 (employee, groups, skill maps, onboarding/promotion/transfer/separation, exit interviews, F&F, position + assignment, onboarding/separation tasks), hr-attendance 11 (attendance, requests, check-ins, overtime, shift), hr-leave 14 (leave types/periods/policies/allocations/applications/block lists/adjustments/encashments/ledger/compensatory + holidays)
@@ -38,6 +38,7 @@ p.hrCore.access     branch-scoped RBAC — users, roles, permissions, branch acc
 p.hrCore.employee   employees, groups, skill maps, org chart (28 methods)
 p.hrCore.lifecycle  onboarding, promotions, transfers, separation, F&F, exit interviews (52 methods)
 p.hrCore.position   positions, assignments, org/position trees, direct reports, team (20 methods)
+p.hrCore.payroll    monthly payroll export over employees + attendance/leave/overtime (1 method)
 p.hrCore.config     departments (+ tree ops), designations, grades, employment types,
                     settings (nested groups: departments, designations, employeeGrades,
                     employmentTypes, hr, payroll)

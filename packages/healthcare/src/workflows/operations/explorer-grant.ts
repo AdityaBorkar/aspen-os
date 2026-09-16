@@ -1,4 +1,4 @@
-import { healthcareExplorerGrant } from "#/db-schemas/staff";
+import { healthcareExplorerGrant } from "#/db-schemas/operations";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { GrantExplorerSchema } from "#/schemas/operations";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -36,9 +36,8 @@ export const explorerGrant = Workflow.name("healthcare.operations.explorer-grant
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { granteeId: row.grantee_id, scope: row.scope },
       });
-      // The explorer-grant table lives in db-schemas/staff.ts but is owned by
-      // operations; the shared surface owns grants/views/CSV/report-definitions.
-      // Workspace is the interim owner (reports is a placeholder); this row
+      // The explorer-grant table lives in db-schemas/operations.ts; the shared
+      // surface owns grants/views/CSV/report-definitions. Workspace is the interim owner (reports is a placeholder); this row
       // carries the workspace grant intent.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,

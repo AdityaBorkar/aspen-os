@@ -21,7 +21,6 @@ import {
   INVOICE_STATUS,
   LAB_JOB_STATUS,
   LAB_ORDER_STATUS,
-  LEAVE_STATUS,
   MESSAGE_STATUS,
   ORDER_KIND,
   ORDER_STATUS,
@@ -166,8 +165,6 @@ export const MessageStatusSchema = picklist(Object.values(MESSAGE_STATUS));
 
 export const ReportStatusSchema = picklist(Object.values(REPORT_STATUS));
 
-export const LeaveStatusSchema = picklist(Object.values(LEAVE_STATUS));
-
 export const AuditActionSchema = picklist(Object.values(AUDIT_ACTION));
 
 export const AuditEntityTypeSchema = picklist(Object.values(AUDIT_ENTITY_TYPE));
@@ -189,7 +186,6 @@ export {
   INVOICE_STATUS,
   LAB_JOB_STATUS,
   LAB_ORDER_STATUS,
-  LEAVE_STATUS,
   MESSAGE_STATUS,
   ORDER_KIND,
   ORDER_STATUS,

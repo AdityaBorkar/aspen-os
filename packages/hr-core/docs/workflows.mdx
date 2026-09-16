@@ -4,7 +4,7 @@ description: API reference for the workflow groups exposed by the hr-core module
 icon: IconListCheck
 ---
 
-The hr-core module exposes workflow groups via `p.hrCore`: `access`, `employee`, `lifecycle`, `position`, and `config`.
+The hr-core module exposes workflow groups via `p.hrCore`: `access`, `employee`, `lifecycle`, `position`, `payroll`, and `config`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 
@@ -227,5 +227,19 @@ await p.hrCore.config.employeeGrades.create({ input: { name: "G7" } });
 ```
 
 `hr.update` and `payroll.update` are upserts; department codes are uppercased on write.
+
+### Payroll
+
+Access: `p.hrCore.payroll`
+
+Monthly payroll export (`export`): per-employee payable days, loss-of-pay days, attendance counts, approved leave days by type, approved overtime hours/amounts (cross-month slips prorated), approved/paid leave encashments, and open full-and-final statements. Reads `employee` plus HR attendance/leave tables (soft dependency — missing tables degrade to empty rows with a note). Rounding follows `payroll_settings.rounding`.
+
+```ts title="payroll — monthly export"
+const payroll = await p.hrCore.payroll.export({
+  input: { branch: "hq", company: "Acme", month: "2026-09" },
+});
+// payroll.employees[0]: { payableDays, lopDays, attendance, leavesByType, overtime, encashment, fullAndFinal }
+// payroll.totals: { employeeCount, payableDays, lopDays, overtimeAmount, encashmentAmount }
+```
 
 Events emitted by these workflows: [Events](/docs/hr-core/events). Tables touched: [DB Schemas](/docs/hr-core/db-schemas).

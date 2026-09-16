@@ -115,6 +115,12 @@
 
 **Lifecycle commands** (via `p.hrCore.config`): `departments` (create/update/delete/get/list + `move`, `setHead`, `tree`, `subtree`, `listPositions`), `designations`, `employeeGrades`, `employmentTypes`; `hr` and `payroll` singletons (get/update). Holidays via `p.hrLeave.config`: `holidays`, `holidayLists` (create/update/delete/get/list, list-by-list).
 
+### Payroll (reporting surface, hr-core)
+
+**Invariants**: No payroll tables — `export` aggregates `employee` + open `fullAndFinalStatement` rows with soft reads of hr-attendance (`attendance`, `overtime_slip`) and hr-leave (`leave_application`, `leave_encashment`) tables. Missing attendance/leave tables degrade to empty rows with a note, never a failure. `payableDays = present + work_from_home + half_day * 0.5 + on_leave + approvedLeaveDays`; `lopDays = absent + half_day * 0.5`; cross-month overtime prorated by overlapping days; rounding follows `payroll_settings.rounding`.
+
+**Lifecycle commands** (via `p.hrCore.payroll`): `export({ month, company?, branch?, department?, employeeId?, leavePeriod? })` — read-only, publishes no events.
+
 ### Announcement — extracted
 
 Broadcasts moved to `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`): 1 workflow group (14 actions), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, no cron. See `domain-model/announcement.md`.
@@ -166,6 +172,7 @@ Announcement's 6 events live in `@aspen-os/announcement` — see `domain-model/a
 | HR      | Get org tree             | `p.hrCore.position.getOrgTree()`             |
 | HR      | Get position history     | `p.hrCore.position.getPositionHistory()`     |
 | HR      | List leave applications  | `p.hrLeave.leave.listLeaveApplications()`    |
+| HR      | Monthly payroll export   | `p.hrCore.payroll.export()`                  |
 | HR      | Get leave balance        | `p.hrLeave.leave.getLeaveBalance()`          |
 | HR      | List roles               | `p.hrCore.access.listRoles()`                |
 | HR      | Get HR settings          | `p.hrCore.config.hr.get()`                   |

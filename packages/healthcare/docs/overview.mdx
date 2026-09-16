@@ -49,7 +49,7 @@ flowchart TB
     direction LR
     REG[patients practitioners facilities services pricelists appointments encounters admin]
     EMR[allopathy dental ayush rehab psych]
-    OPS[residents pharmacy diagnostics billing nursing records operations staff]
+    OPS[residents pharmacy diagnostics billing nursing records operations]
   end
   Groups --> M[Healthcare module]
   M --> INFRA[$prepareInfra: auth acl, tenant_schemas, events]

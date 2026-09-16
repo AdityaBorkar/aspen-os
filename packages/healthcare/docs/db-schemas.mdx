@@ -614,7 +614,7 @@ Indexes: `branch_id`.
 
 #### `healthcare_role`
 
-Role-membership changes live in the staff group; no role workflows here beyond the table.
+Role membership lives in HR access control (`p.hrCore.access.roles`); no role workflows here beyond the table.
 
 | Column                      | Type        | Description |
 | --------------------------- | ----------- | ----------- |
@@ -2184,7 +2184,7 @@ Indexes: `branch_id`, `patient_id`.
 
 #### `healthcare_report_definition`
 
-Reports run only against the 20-table explorer allowlist.
+Reports run only against the 17-table explorer allowlist.
 
 | Column                      | Type        | Description |
 | --------------------------- | ----------- | ----------- |
@@ -2244,90 +2244,6 @@ Indexes: `domain_key`, `branch_id`, `domain`.
 
 Indexes: `branch_id`, `preset`.
 
-### Staff
-
-Staff audit rows use `healthcare:operations` entity types; staff workflows publish `OPERATIONS_EVENTS`.
-
-#### `healthcare_staff`
-
-| Column                      | Type        | Description                       |
-| --------------------------- | ----------- | --------------------------------- |
-| `id`                        | text (PK)   |                                   |
-| `name` / `phone` / `role`   | text        |                                   |
-| `doj`                       | date        |                                   |
-| `status`                    | text        | `active` / `on-notice` / `exited` |
-| `payload`                   | jsonb       |                                   |
-| `branch_id`                 | text        |                                   |
-| `created_at` / `updated_at` | timestamptz |                                   |
-
-Indexes: `branch_id`, `role`, `status`.
-
-#### `healthcare_staff_role`
-
-Unique on branch + name; deletes blocked while holders exist.
-
-| Column                      | Type        | Description |
-| --------------------------- | ----------- | ----------- |
-| `id`                        | text (PK)   |             |
-| `name`                      | text        |             |
-| `permissions`               | jsonb       |             |
-| `payload`                   | jsonb       |             |
-| `branch_id`                 | text        |             |
-| `created_at` / `updated_at` | timestamptz |             |
-
-Indexes: `branch_name`, `branch_id`.
-
-#### `healthcare_roster_entry`
-
-| Column                      | Type        | Description                    |
-| --------------------------- | ----------- | ------------------------------ |
-| `id`                        | text (PK)   |                                |
-| `staff_id`                  | text        | (FK → staff, soft; must exist) |
-| `month`                     | text        | Month scope                    |
-| `date`                      | date        |                                |
-| `shift`                     | text        |                                |
-| `payload`                   | jsonb       |                                |
-| `branch_id`                 | text        |                                |
-| `created_at` / `updated_at` | timestamptz |                                |
-
-Indexes: `branch_id`, `month`, `staff_id`.
-
-#### `healthcare_attendance`
-
-Active staff only.
-
-| Column                      | Type        | Description |
-| --------------------------- | ----------- | ----------- |
-| `id`                        | text (PK)   |             |
-| `staff_id`                  | text        |             |
-| `date`                      | date        |             |
-| `status`                    | text        |             |
-| `marked_at`                 | timestamptz |             |
-| `payload`                   | jsonb       |             |
-| `branch_id`                 | text        |             |
-| `created_at` / `updated_at` | timestamptz |             |
-
-Indexes: `branch_id`, `date`, `staff_id`.
-
-#### `healthcare_leave_request`
-
-Clinic `pending` maps to `applied`; overlapping date ranges blocked; decisions are maker-checker on applied-only requests.
-
-| Column                      | Type               | Description                                      |
-| --------------------------- | ------------------ | ------------------------------------------------ |
-| `id`                        | text (PK)          |                                                  |
-| `staff_id`                  | text               |                                                  |
-| `from_date` / `to_date`     | date               |                                                  |
-| `reason`                    | text               |                                                  |
-| `status`                    | text               | `applied` / `approved` / `rejected` / `exported` |
-| `decided_by` / `decided_at` | text / timestamptz |                                                  |
-| `requested_at`              | timestamptz        |                                                  |
-| `payload`                   | jsonb              |                                                  |
-| `branch_id`                 | text               |                                                  |
-| `created_at` / `updated_at` | timestamptz        |                                                  |
-
-Indexes: `branch_id`, `staff_id`, `status`.
-
 #### `healthcare_explorer_grant`
 
 | Column                      | Type        | Description |
@@ -2356,7 +2272,6 @@ flowchart LR
   P --> N[nursing tasks / vitals / sittings]
   P --> D[healthcare_clinical_document]
   RS[healthcare_resident] --> SC[healthcare_stay_charge]
-  ST[healthcare_staff] --> AT[healthcare_attendance]
 ```
 
 All arrows are soft text references resolved by workflow guards (patient-mismatch, open-encounter, same-branch checks) — the database enforces no foreign keys.

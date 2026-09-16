@@ -332,15 +332,6 @@ export const REPORT_STATUS = {
 
 export type ReportStatus = (typeof REPORT_STATUS)[keyof typeof REPORT_STATUS];
 
-export const LEAVE_STATUS = {
-  APPLIED: "applied",
-  APPROVED: "approved",
-  EXPORTED: "exported",
-  REJECTED: "rejected",
-} as const;
-
-export type LeaveStatus = (typeof LEAVE_STATUS)[keyof typeof LEAVE_STATUS];
-
 export const FACILITY_CATEGORY = {
   CONSULTATION: "consultation",
   DIAGNOSTICS: "diagnostics",

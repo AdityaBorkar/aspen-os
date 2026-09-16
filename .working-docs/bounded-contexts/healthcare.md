@@ -4,14 +4,14 @@
 
 ## Relationship Type
 
-Downstream of Platform (Customer–Supplier). Implements `Module` interface; `$initialize`/`$prepareRuntime`/`$cleanup` empty — 21 workflow groups, all stateless `readonly` properties (same shape as `tasks`/`notes`).
+Downstream of Platform (Customer–Supplier). Implements `Module` interface; `$initialize`/`$prepareRuntime`/`$cleanup` empty — 20 workflow groups, all stateless `readonly` properties (same shape as `tasks`/`notes`).
 
 ## Structure (`packages/healthcare/`)
 
 - `Healthcare.create(config?)` — factory; `$config: Required<HealthcareConfig> = { tenantCodePrefix: "HC" }` (runtime frozen via `runtime.ts`)
 - `$name = "healthcare"`, `$dependencies = []`, no `$consumes`
-- 21 workflow groups (289 action files under `workflows/<group>/<verb>.ts`, one action per file, + `index.ts` router + `pricelists/shared.ts` helpers): `admin` (14), `allopathy` (10), `appointments` (14), `ayush` (16), `billing` (18), `dental` (12), `diagnostics` (22), `encounters` (10), `facilities` (11), `nursing` (14), `operations` (19), `patients` (14), `pharmacy` (16), `practitioners` (13), `pricelists` (10), `psych` (15), `records` (21), `rehab` (12), `residents` (15), `services` (11), `staff` (10)
-- 140 database tables (all `tenant_schemas`, `healthcare_` prefix) + 13 pgEnums; `control_plane_schemas` empty
+- 20 workflow groups (276 files under `workflows/<group>/`, one action per file, + `index.ts` router + `pricelists/shared.ts` helpers): `admin` (14), `allopathy` (10), `appointments` (14), `ayush` (16), `billing` (18), `dental` (12), `diagnostics` (22), `encounters` (10), `facilities` (11), `nursing` (14), `operations` (19), `patients` (14), `pharmacy` (16), `practitioners` (13), `pricelists` (10), `psych` (15), `records` (21), `rehab` (12), `residents` (15), `services` (11)
+- 137 database tables (all `tenant_schemas`, `healthcare_` prefix) + 13 pgEnums; `control_plane_schemas` empty
 - 47 domain events sharing `HealthcareEntityEvent` payload (`HealthcareEventMap`)
 - 19 ACL resources (CRUD everywhere; elevated only `billing:discount-approve`, `diagnostics:authorize`, `psych:override`)
 - Valibot schemas per group in `schemas/`; `workflow-steps/` holds reusable fetch steps (`fetch-encounter`, `fetch-service`)
@@ -42,7 +42,6 @@ p.healthcare.records        { 21 methods: doc/share/register/addendum/merge/time
 p.healthcare.rehab          { 12 methods: episode/assess/goals/sitting/package/day-board/discharge }
 p.healthcare.residents      { 15 methods: admit/bed/daily/round/visit/charge/bill/summary/feedback }
 p.healthcare.services       { 11 methods: create/list/update/publish/price }
-p.healthcare.staff          { 10 methods: upsert/role/roster/attendance/leave/payroll }
 ```
 
 Counts = methods per group (keys in `workflows/index.ts`), not files. Per-action files under `workflows/<group>/`.
@@ -53,5 +52,6 @@ Counts = methods per group (keys in `workflows/index.ts`), not files. Per-action
 
 ## Language
 
-- Patient, Practitioner, Facility, Service, Pricelist, Appointment, Encounter, Allopathy, Dental, Ayush, Rehab, Psych, Resident (long-stay, not IPD), Pharmacy, Diagnostics, Billing, Nursing, Records, Operations, Staff, Branch (`healthcare_branch`: `subdomain` UNIQUE routing row, `branchId` defaults `"main"`), Counter (gapless numbers)
+- Patient, Practitioner, Facility, Service, Pricelist, Appointment, Encounter, Allopathy, Dental, Ayush, Rehab, Psych, Resident (long-stay, not IPD), Pharmacy, Diagnostics, Billing, Nursing, Records, Operations, Branch (`healthcare_branch`: `subdomain` UNIQUE routing row, `branchId` defaults `"main"`), Counter (gapless numbers)
+- Staff, roster, attendance, leave, and payroll live in HR (`hrCore.employee`/`hrCore.payroll`, `hrAttendance`, `hrLeave`); practitioner `employee_id` is a soft text ref, never a join
 - Avoid: Branch for org structure (that is Organization `Branch` / Masters `orgBranch` — healthcare Branch is a subdomain routing row); Resident for IPD admission (no ADT here); Insurance/TPA (out of scope); OT scheduling (out of scope)

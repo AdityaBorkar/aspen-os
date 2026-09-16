@@ -20,20 +20,17 @@ import {
   healthcareStayCharge,
   healthcareVisitLog,
 } from "#/db-schemas/residents";
-import { healthcareAttendance, healthcareLeaveRequest, healthcareStaff } from "#/db-schemas/staff";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 
 export const healthcareExplorerTables = {
   healthcare_advance: healthcareAdvance,
-  healthcare_attendance: healthcareAttendance,
   healthcare_clinical_document: healthcareClinicalDocument,
   healthcare_credit_debit_note: healthcareCreditDebitNote,
   healthcare_daily_log: healthcareDailyLog,
   healthcare_drug_administration: healthcareDrugAdministration,
   healthcare_geriatric_score: healthcareGeriatricScore,
   healthcare_invoice: healthcareInvoice,
-  healthcare_leave_request: healthcareLeaveRequest,
   healthcare_medical_register: healthcareMedicalRegister,
   healthcare_nursing_checklist: healthcareNursingChecklist,
   healthcare_nursing_task: healthcareNursingTask,
@@ -42,7 +39,6 @@ export const healthcareExplorerTables = {
   healthcare_receipt: healthcareReceipt,
   healthcare_resident: healthcareResident,
   healthcare_round: healthcareRound,
-  healthcare_staff: healthcareStaff,
   healthcare_stay_charge: healthcareStayCharge,
   healthcare_visit_log: healthcareVisitLog,
 } as const;

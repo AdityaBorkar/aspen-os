@@ -133,6 +133,7 @@ import { deleteTransfer } from "#/workflows/lifecycle/transfer/delete";
 import { rejectTransfer } from "#/workflows/lifecycle/transfer/reject";
 import { updateTransfer } from "#/workflows/lifecycle/transfer/update";
 import { listTransfers } from "#/workflows/lifecycle/transfers/list";
+import { exportPayroll } from "#/workflows/payroll/export";
 import { assignEmployee } from "#/workflows/position/assignment/assign";
 import { getEmployeePositionHistory } from "#/workflows/position/assignment/by-employee/history";
 import { getPositionHistory } from "#/workflows/position/assignment/by-position/history";
@@ -372,4 +373,8 @@ export const config = {
     get: getPayrollSettings,
     update: updatePayrollSettings,
   },
+} as const;
+
+export const payroll = {
+  export: exportPayroll,
 } as const;

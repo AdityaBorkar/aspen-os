@@ -63,7 +63,6 @@ export type {
   InvoiceStatus,
   LabJobStatus,
   LabOrderStatus,
-  LeaveStatus,
   MessageStatus,
   OrderKind,
   OrderStatus,
@@ -106,7 +105,6 @@ export {
   INVOICE_STATUS,
   LAB_JOB_STATUS,
   LAB_ORDER_STATUS,
-  LEAVE_STATUS,
   MESSAGE_STATUS,
   ORDER_KIND,
   ORDER_STATUS,
@@ -435,20 +433,7 @@ export type {
   NewHealthcareService,
   NewHealthcareServicePrice,
 } from "#/db-schemas/services";
-export type {
-  HealthcareAttendance,
-  HealthcareExplorerGrant,
-  HealthcareLeaveRequest,
-  HealthcareRosterEntry,
-  HealthcareStaff,
-  HealthcareStaffRole,
-  NewHealthcareAttendance,
-  NewHealthcareExplorerGrant,
-  NewHealthcareLeaveRequest,
-  NewHealthcareRosterEntry,
-  NewHealthcareStaff,
-  NewHealthcareStaffRole,
-} from "#/db-schemas/staff";
+export type { HealthcareExplorerGrant, NewHealthcareExplorerGrant } from "#/db-schemas/operations";
 export type {
   AuditLogsQueryInput,
   BranchFiltersInput,
@@ -749,24 +734,6 @@ export type {
   ServiceIdInput,
   SetPriceInput,
   UpdateServiceInput,
-} from "#/schemas";
-export type {
-  AttendanceFilters,
-  CreateRoleInput,
-  DecideLeaveInput,
-  DisableUserInput,
-  ExportPayrollInput,
-  LeaveFilters,
-  MarkAttendanceInput,
-  PlanRosterInput,
-  RequestLeaveInput,
-  RoleFilters,
-  RoleIdInput,
-  RosterFilters,
-  StaffFilters,
-  StaffIdInput,
-  UpdateRoleInput,
-  UpsertStaffInput,
 } from "#/schemas";
 export type {
   AuthorizeInput,

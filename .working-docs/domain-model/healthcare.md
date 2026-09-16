@@ -1,6 +1,6 @@
 # Healthcare Domain Model
 
-> Package: `@aspen-os/healthcare`. OPD clinic backend — registration, EMR across five specialties (allopathy, dental, ayush, rehab, psych), pharmacy, diagnostics, billing, nursing, records. No ADT/IPD bed management, no OT scheduling, no insurance/TPA. 140 tables, all tenant schemas (`healthcare_` prefix) + 13 `healthcare_*` pgEnums. Stateless: `$initialize`/`$prepareRuntime`/`$cleanup` empty; no schedules, no subscriptions.
+> Package: `@aspen-os/healthcare`. OPD clinic backend — registration, EMR across five specialties (allopathy, dental, ayush, rehab, psych), pharmacy, diagnostics, billing, nursing, records. No ADT/IPD bed management, no OT scheduling, no insurance/TPA. 135 tables, all tenant schemas (`healthcare_` prefix) + 13 `healthcare_*` pgEnums. Staff, roster, attendance, leave, and payroll live in HR (`hrCore`, `hr-attendance`, `hr-leave`). Stateless: `$initialize`/`$prepareRuntime`/`$cleanup` empty; no schedules, no subscriptions.
 
 ## Entity-Relationship Diagram
 
@@ -47,20 +47,16 @@
 │  ┌──────────────┐  └──────────────┘  │   Nursing    │  │ invoice/receipt/ │   │
 │  │   Records    │  ┌──────────────┐  │  12 tables   │  │ advance/package/ │   │
 │  │  9 tables    │  │ Operations   │  │ task/note/   │  │ cndn/pricelist   │   │
-│  │ doc/share/   │  │ 4 tables     │  │ vitals/io/   │  └──────────────────┘   │
+│  │ doc/share/   │  │ 5 tables     │  │ vitals/io/   │  └──────────────────┘   │
 │  │ register/    │  │ report-def/  │  │ pain/risk/   │  ┌──────────────────┐   │
-│  │ addendum/    │  │ evidence/    │  │ drug/escal/  │  │      Staff       │   │
-│  │ merge/msg/   │  │ master/seed  │  │ daycare/check│  │  6 tables        │   │
-│  │ consent/optout│  └──────────────┘  │ handover/tag │  │ staff/role/roster│   │
-│  └──────────────┘  ┌──────────────┐  └──────────────┘  │ attend/leave/    │   │
-│                    │   Counter    │                    │ explorer-grant   │   │
-│                    │ 1 table      │                    └──────────────────┘   │
-│                    │ gapless nums │                                           │
-│                    └──────────────┘                                           │
+│  │ addendum/    │  │ evidence/    │  │ drug/escal/  │  │    Counter       │   │
+│  │ merge/msg/   │  │ master/seed/ │  │ daycare/check│  │ 1 table          │   │
+│  │ consent/optout│  │ grant        │  │ handover/tag │  │ gapless nums     │   │
+│  └──────────────┘  └──────────────┘  └──────────────┘  └──────────────────┘   │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Counts sum to 140 `pgTable` + 13 pgEnums (`healthcare_appointment_status`, `healthcare_queue_token_status`, `healthcare_encounter_status`, `healthcare_invoice_status`, `healthcare_lab_order_status`, `healthcare_radio_order_status`, `healthcare_task_status`, `healthcare_sitting_status`, `healthcare_resident_status`, `healthcare_sale_status`, `healthcare_po_status`, `healthcare_grn_status`, `healthcare_batch_status`).
+Counts sum to 137 `pgTable` + 13 pgEnums (`healthcare_appointment_status`, `healthcare_queue_token_status`, `healthcare_encounter_status`, `healthcare_invoice_status`, `healthcare_lab_order_status`, `healthcare_radio_order_status`, `healthcare_task_status`, `healthcare_sitting_status`, `healthcare_resident_status`, `healthcare_sale_status`, `healthcare_po_status`, `healthcare_grn_status`, `healthcare_batch_status`).
 
 ## Aggregates
 
@@ -168,17 +164,15 @@ Long-stay care, not IPD: `resident` + `bed_assignment`/`geriatric_score`/`polyph
 
 ### Operations (Aggregate Root)
 
-`report_definition`/`compliance_evidence`/`master_entry`/`seed_run`.
+`report_definition`/`compliance_evidence`/`master_entry`/`seed_run`/`explorer_grant`.
 
 **Invariants**: generic explorer (`explorerQuery`/`explorerGrant`/`explorerExportCsv`), report define/run, compliance evidence list, master upsert/get, seed presets, messaging send/retry/opt-out.
 
 **Lifecycle commands**: 19 methods.
 
-### Staff (Aggregate Root)
+### Staff — removed
 
-`staff`/`staff_role`/`roster_entry`/`attendance`/`leave_request`/`explorer_grant`.
-
-**Lifecycle commands**: 10 methods (`attendanceMark`, `createRole`, `deleteRole`, `disableUser`, `leaveDecide`, `leaveRequest`, `listRoles`, `payrollExport`, `rosterPlan`, `upsertStaff`).
+Staff, role, roster, attendance, leave-request, and payroll tables are deleted. Use HR instead: `p.hrCore.employee` (profiles), `p.hrCore.access.roles` (roles), `p.hrAttendance.shift` (rosters), `p.hrAttendance.attendance` (attendance), `p.hrLeave.leave` (leave), `p.hrCore.payroll.export` (payroll). Practitioner `employee_id` is a soft text ref to the HR employee record; `posting`/`leave_block` stay as clinical availability for slot computation.
 
 ### Admin (Aggregate Root)
 

@@ -106,6 +106,7 @@ import {
 import { healthcareObservation } from "#/db-schemas/observation";
 import {
   healthcareComplianceEvidence,
+  healthcareExplorerGrant,
   healthcareMasterEntry,
   healthcareReportDefinition,
   healthcareSeedRun,
@@ -187,14 +188,6 @@ import {
   healthcareService,
   healthcareServicePrice,
 } from "#/db-schemas/services";
-import {
-  healthcareAttendance,
-  healthcareExplorerGrant,
-  healthcareLeaveRequest,
-  healthcareRosterEntry,
-  healthcareStaff,
-  healthcareStaffRole,
-} from "#/db-schemas/staff";
 
 export {
   healthcareCompany,
@@ -305,6 +298,7 @@ export {
 export { healthcareObservation } from "#/db-schemas/observation";
 export {
   healthcareComplianceEvidence,
+  healthcareExplorerGrant,
   healthcareMasterEntry,
   healthcareReportDefinition,
   healthcareSeedRun,
@@ -386,14 +380,6 @@ export {
   healthcareService,
   healthcareServicePrice,
 } from "#/db-schemas/services";
-export {
-  healthcareAttendance,
-  healthcareExplorerGrant,
-  healthcareLeaveRequest,
-  healthcareRosterEntry,
-  healthcareStaff,
-  healthcareStaffRole,
-} from "#/db-schemas/staff";
 
 export const healthcareTables = {
   healthcareAddictionChart,
@@ -401,7 +387,6 @@ export const healthcareTables = {
   healthcareAllergy,
   healthcareAppointment,
   healthcareAppointmentStatusEnum,
-  healthcareAttendance,
   healthcareAyushCaseSheet,
   healthcareBatchStatusEnum,
   healthcareBedAssignment,
@@ -459,7 +444,6 @@ export const healthcareTables = {
   healthcareLabSample,
   healthcareLabTest,
   healthcareLeaveBlock,
-  healthcareLeaveRequest,
   healthcareMasterEntry,
   healthcareMasterVersion,
   healthcareMedicalAddendum,
@@ -521,7 +505,6 @@ export const healthcareTables = {
   healthcareResidentStatusEnum,
   healthcareRiskFlag,
   healthcareRole,
-  healthcareRosterEntry,
   healthcareRound,
   healthcareSafetyPlan,
   healthcareSaleStatusEnum,
@@ -534,8 +517,6 @@ export const healthcareTables = {
   healthcareSideEffectCheck,
   healthcareSittingStatusEnum,
   healthcareSoapNote,
-  healthcareStaff,
-  healthcareStaffRole,
   healthcareStayCharge,
   healthcareSterilizationLog,
   healthcareStockTransfer,

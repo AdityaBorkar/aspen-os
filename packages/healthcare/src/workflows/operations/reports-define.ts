@@ -18,9 +18,6 @@ const ALLOWLISTED_REPORT_COLLECTIONS = new Set([
   "healthcare_drug_administration",
   "healthcare_clinical_document",
   "healthcare_medical_register",
-  "healthcare_staff",
-  "healthcare_attendance",
-  "healthcare_leave_request",
 ]);
 
 export const reportsDefine = Workflow.name("healthcare.operations.reports-define")

@@ -98,3 +98,27 @@ export type HealthcareMasterEntry = typeof healthcareMasterEntry.$inferSelect;
 export type NewHealthcareMasterEntry = typeof healthcareMasterEntry.$inferInsert;
 export type HealthcareSeedRun = typeof healthcareSeedRun.$inferSelect;
 export type NewHealthcareSeedRun = typeof healthcareSeedRun.$inferInsert;
+
+export const healthcareExplorerGrant = pgTable(
+  "healthcare_explorer_grant",
+  {
+    branch_id: text().notNull().default("main"),
+    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    expires_at: timestamp({ withTimezone: true }),
+    grantee_id: text().notNull(),
+    id: uuidv7().primaryKey(),
+    payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
+    scope: text().notNull(),
+    updated_at: timestamp({ withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("idx_healthcare_explorer_grant_branch_id").on(table.branch_id),
+    index("idx_healthcare_explorer_grant_grantee_id").on(table.grantee_id),
+  ],
+);
+
+export type HealthcareExplorerGrant = typeof healthcareExplorerGrant.$inferSelect;
+export type NewHealthcareExplorerGrant = typeof healthcareExplorerGrant.$inferInsert;

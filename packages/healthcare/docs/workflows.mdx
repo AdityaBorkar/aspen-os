@@ -4,7 +4,9 @@ description: API reference for the workflow groups exposed by the Healthcare mod
 icon: IconListCheck
 ---
 
-Workflow groups via `p.healthcare`: `patients`, `practitioners`, `facilities`, `services`, `pricelists`, `appointments`, `encounters`, `admin`, `allopathy`, `dental`, `ayush`, `rehab`, `psych`, `residents`, `pharmacy`, `diagnostics`, `billing`, `nursing`, `records`, `operations`, `staff`.
+Workflow groups via `p.healthcare`: `patients`, `practitioners`, `facilities`, `services`, `pricelists`, `appointments`, `encounters`, `admin`, `allopathy`, `dental`, `ayush`, `rehab`, `psych`, `residents`, `pharmacy`, `diagnostics`, `billing`, `nursing`, `records`, `operations`.
+
+Staff, roster, attendance, leave, and payroll live in `@aspen-os/hr-core`, `@aspen-os/hr-attendance`, and `@aspen-os/hr-leave` (`p.hrCore.payroll.export` for the monthly payroll export).
 
 Create takes Valibot `{ input }` with `branchId` (defaults `"main"`); reads take filter objects. Every mutation writes an audit entry and publishes a `healthcare.*` event; reads publish nothing.
 
@@ -490,27 +492,6 @@ await p.healthcare.operations.mastersUpsert({
 });
 await p.healthcare.operations.explorerQuery({
   input: { branchId: "main", collection: "healthcare_invoice", limit: 50 },
-});
-```
-
-### Staff
-
-Access: `p.healthcare.staff`
-
-Staff profiles, month-scoped rosters, active-only attendance, leave requests with overlap blocks and maker-checker decisions, payroll export hooks, and role CRUD with holder-delete guards. Actions: `upsertStaff`, `rosterPlan`, `attendanceMark`, `leaveRequest`, `leaveDecide`, `payrollExport`, `listRoles`, `createRole`, `deleteRole`, `disableUser`.
-
-```ts
-const member = await p.healthcare.staff.upsertStaff({
-  input: { branchId: "main", name: "S. Nair", phone: "9811112222", role: "nurse" },
-});
-await p.healthcare.staff.leaveRequest({
-  input: {
-    branchId: "main",
-    from: "2026-09-20",
-    reason: "family",
-    staffId: member.id,
-    to: "2026-09-21",
-  },
 });
 ```
 

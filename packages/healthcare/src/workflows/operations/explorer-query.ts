@@ -1,4 +1,4 @@
-import { healthcareExplorerGrant } from "#/db-schemas/staff";
+import { healthcareExplorerGrant } from "#/db-schemas/operations";
 import { QueryExplorerSchema } from "#/schemas/operations";
 import { healthcareExplorerTables, serializeExplorerRow } from "#/workflow-steps/explorer-tables";
 

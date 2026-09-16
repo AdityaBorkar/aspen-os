@@ -113,6 +113,9 @@ export {
   UpdateSeparationTaskSchema,
   UpdateTransferSchema,
 } from "#/schemas/lifecycle";
+// Payroll schemas
+export type { ExportPayrollInput } from "#/schemas/payroll";
+export { ExportPayrollSchema } from "#/schemas/payroll";
 // Position schemas
 export type {
   AssignEmployeeInput,
