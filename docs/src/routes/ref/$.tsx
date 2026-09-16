@@ -1,8 +1,10 @@
 import refData from "#/../.generated/ref.json";
+import { WorkflowDiagram } from "#/components/ref-workflow-diagram";
 import { REF_ROUTE } from "#/lib/constants";
 import { githubFileUrl, slugify, trimSlashes } from "#/lib/paths";
 
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useCallback, useState } from "react";
 import type { ReactElement, ReactNode } from "react";
 
 type RefData = typeof refData;
@@ -16,35 +18,41 @@ type EventRow = RefData["events"][number];
 const CONTENT_TABS = [
   {
     blurb: (data: RefData) => `${data.modules.length} modules from packages/*/src/module.ts`,
+    count: (data: RefData) => data.modules.length,
     label: "Modules",
     slug: "modules",
   },
   {
     blurb: (data: RefData) =>
       `${data.schemas.length} Valibot schemas from packages/*/src/schemas/**/*.ts`,
+    count: (data: RefData) => data.schemas.length,
     label: "Schemas",
     slug: "schemas",
   },
   {
     blurb: (data: RefData) =>
       `${data.dbSchemas.length} Drizzle tables/enums from packages/*/src/db-schemas/**/*.ts`,
+    count: (data: RefData) => data.dbSchemas.length,
     label: "DB Schemas",
     slug: "db-schemas",
   },
   {
     blurb: (data: RefData) =>
       `${data.workflows.length} Workflow.name(...) from packages/*/src/workflows/**/*.ts`,
+    count: (data: RefData) => data.workflows.length,
     label: "Workflows",
     slug: "workflows",
   },
   {
     blurb: (data: RefData) =>
       `${data.workflowSteps.length} WorkflowStep.name(...) from packages/*/src/workflow-steps/**/*.ts`,
+    count: (data: RefData) => data.workflowSteps.length,
     label: "Workflow Steps",
     slug: "workflow-steps",
   },
   {
     blurb: (data: RefData) => `${data.events.length} topics from packages/*/src/pubsub.ts`,
+    count: (data: RefData) => data.events.length,
     label: "Events",
     slug: "events",
   },
@@ -54,6 +62,7 @@ const TABS = [{ label: "Overview", slug: "" }, ...CONTENT_TABS] as const;
 
 type TabSlug = (typeof TABS)[number]["slug"];
 type ContentSlug = (typeof CONTENT_TABS)[number]["slug"];
+type WorkflowView = "diagram" | "table";
 
 const VALID_SLUGS = new Set<string>(TABS.map((entry) => entry.slug));
 
@@ -322,6 +331,31 @@ const TABLES = {
 
 function RefPage() {
   const { slug } = Route.useLoaderData();
+  const [workflowView, setWorkflowView] = useState<WorkflowView>("table");
+  const showWorkflowTable = useCallback(() => {
+    setWorkflowView("table");
+  }, []);
+  const showWorkflowDiagram = useCallback(() => {
+    setWorkflowView("diagram");
+  }, []);
+  const isDiagramFullWidth = slug === "workflows" && workflowView === "diagram";
+
+  const content =
+    slug === "" ? (
+      <Overview />
+    ) : slug === "workflows" ? (
+      <>
+        <WorkflowViewToggle
+          onDiagram={showWorkflowDiagram}
+          onTable={showWorkflowTable}
+          view={workflowView}
+        />
+        {TABLES.workflows.render(refData)}
+      </>
+    ) : (
+      TABLES[slug].render(refData)
+    );
+
   return (
     <div className="min-h-screen bg-fd-background text-fd-foreground">
       <header className="sticky top-0 z-20 border-b bg-fd-background/80 backdrop-blur">
@@ -348,39 +382,127 @@ function RefPage() {
         </div>
       </header>
 
-      <div className="mx-auto max-w-6xl px-4 py-6">
-        <div className="mb-6 flex flex-wrap gap-2">
-          {TABS.map((tab) => {
-            const isActive = tab.slug === slug;
-            return (
-              <Link
-                key={tab.slug}
-                className={
-                  isActive
-                    ? "rounded-full bg-fd-primary px-3 py-1 text-sm text-fd-primary-foreground"
-                    : "rounded-full border bg-fd-card px-3 py-1 text-sm text-fd-muted-foreground hover:text-fd-foreground"
-                }
-                // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TanStack Router requires a per-tab params object; each tab needs its own _splat value.
-                params={{ _splat: tab.slug }}
-                to="/ref/$"
+      <div
+        className={
+          isDiagramFullWidth ? "mx-auto max-w-none px-4 py-6" : "mx-auto max-w-6xl px-4 py-6"
+        }
+      >
+        {isDiagramFullWidth ? (
+          <main className="min-w-0">
+            <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+              <WorkflowViewToggle
+                onDiagram={showWorkflowDiagram}
+                onTable={showWorkflowTable}
+                view={workflowView}
+              />
+              <p className="text-sm text-fd-muted-foreground">
+                {refData.workflows.length} workflows across {refData.modules.length} modules. Pick a
+                module to explore its hierarchy.
+              </p>
+            </div>
+            <WorkflowDiagram workflows={refData.workflows} />
+          </main>
+        ) : (
+          <div className="flex flex-col gap-6 md:flex-row">
+            <aside className="w-full shrink-0 md:w-56">
+              <nav
+                aria-label="Reference sections"
+                className="flex flex-row flex-wrap gap-1 md:flex-col"
               >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </div>
+                {TABS.map((tab) => {
+                  const isActive = tab.slug === slug;
+                  const count = "count" in tab ? tab.count(refData) : null;
+                  return (
+                    <Link
+                      aria-current={isActive ? "page" : undefined}
+                      key={tab.slug}
+                      className={
+                        isActive
+                          ? "flex items-center justify-between gap-2 rounded-md bg-fd-primary px-3 py-2 text-sm font-medium text-fd-primary-foreground"
+                          : "flex items-center justify-between gap-2 rounded-md px-3 py-2 text-sm text-fd-muted-foreground hover:bg-fd-muted hover:text-fd-foreground"
+                      }
+                      // oxlint-disable-next-line react-perf/jsx-no-new-object-as-prop -- TanStack Router requires a per-tab params object; each tab needs its own _splat value.
+                      params={{ _splat: tab.slug }}
+                      to="/ref/$"
+                    >
+                      <span>{tab.label}</span>
+                      {count !== null ? (
+                        <span
+                          className={
+                            isActive
+                              ? "rounded-full bg-fd-primary-foreground/20 px-2 py-0.5 text-xs tabular-nums"
+                              : "rounded-full bg-fd-muted px-2 py-0.5 text-xs tabular-nums"
+                          }
+                        >
+                          {count}
+                        </span>
+                      ) : null}
+                    </Link>
+                  );
+                })}
+              </nav>
+            </aside>
 
-        <div className="mb-2 text-sm text-fd-muted-foreground">
-          {refData.modules.length} modules, {refData.schemas.length} schemas,{" "}
-          {refData.dbSchemas.length} db schemas, {refData.workflows.length} workflows,{" "}
-          {refData.workflowSteps.length} steps, {refData.events.length} events.
-          <span className="ml-2">
-            Source: generated at build time via <code>scripts/generate-ref.ts</code>
-          </span>
-        </div>
+            <main className="min-w-0 flex-1">
+              <div className="mb-4 text-sm text-fd-muted-foreground">
+                {refData.modules.length} modules, {refData.schemas.length} schemas,{" "}
+                {refData.dbSchemas.length} db schemas, {refData.workflows.length} workflows,{" "}
+                {refData.workflowSteps.length} steps, {refData.events.length} events.
+                <span className="ml-2">
+                  Source: generated at build time via <code>scripts/generate-ref.ts</code>
+                </span>
+              </div>
 
-        {slug === "" ? <Overview /> : TABLES[slug].render(refData)}
+              {content}
+            </main>
+          </div>
+        )}
       </div>
+    </div>
+  );
+}
+
+function WorkflowViewToggle({
+  onDiagram,
+  onTable,
+  view,
+}: {
+  onDiagram: () => void;
+  onTable: () => void;
+  view: WorkflowView;
+}) {
+  return (
+    <div
+      aria-label="Workflows view"
+      className="mb-4 inline-flex rounded-md border p-1"
+      role="tablist"
+    >
+      <button
+        aria-selected={view === "table"}
+        className={
+          view === "table"
+            ? "rounded bg-fd-primary px-3 py-1 text-sm font-medium text-fd-primary-foreground"
+            : "rounded px-3 py-1 text-sm text-fd-muted-foreground hover:text-fd-foreground"
+        }
+        onClick={onTable}
+        role="tab"
+        type="button"
+      >
+        Table View
+      </button>
+      <button
+        aria-selected={view === "diagram"}
+        className={
+          view === "diagram"
+            ? "rounded bg-fd-primary px-3 py-1 text-sm font-medium text-fd-primary-foreground"
+            : "rounded px-3 py-1 text-sm text-fd-muted-foreground hover:text-fd-foreground"
+        }
+        onClick={onDiagram}
+        role="tab"
+        type="button"
+      >
+        Diagram View
+      </button>
     </div>
   );
 }

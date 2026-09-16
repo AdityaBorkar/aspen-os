@@ -1,0 +1,1698 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Healthcare Module Refactoring Report — @aspen-os/healthcare</title>
+    <style>
+      :root {
+        --bg: #0f172a;
+        --panel: #ffffff;
+        --ink: #1e293b;
+        --muted: #64748b;
+        --line: #e2e8f0;
+        --accent: #0ea5e9;
+        --accent2: #0d9488;
+        --warn: #d97706;
+        --danger: #dc2626;
+        --soft-blue: #eff6ff;
+        --soft-green: #ecfdf5;
+        --soft-amber: #fffbeb;
+        --soft-red: #fef2f2;
+        --soft-violet: #f5f3ff;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family:
+          ui-sans-serif,
+          system-ui,
+          -apple-system,
+          "Segoe UI",
+          Roboto,
+          Helvetica,
+          Arial,
+          sans-serif;
+        color: var(--ink);
+        background: #f1f5f9;
+        line-height: 1.6;
+      }
+      header.hero {
+        background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 55%, #0f766e 100%);
+        color: #fff;
+        padding: 48px 32px 36px;
+      }
+      header.hero .wrap,
+      main.wrap,
+      footer.wrap {
+        max-width: 1080px;
+        margin: 0 auto;
+      }
+      .kicker {
+        display: inline-block;
+        font-size: 12px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        background: rgba(255, 255, 255, 0.14);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        padding: 4px 10px;
+        border-radius: 999px;
+        margin-bottom: 14px;
+      }
+      h1 {
+        margin: 0.2em 0 0.3em;
+        font-size: 34px;
+        line-height: 1.2;
+      }
+      .subtitle {
+        color: #cbd5e1;
+        max-width: 72ch;
+      }
+      .meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-top: 18px;
+        color: #e2e8f0;
+        font-size: 13px;
+      }
+      .meta span {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        padding: 4px 10px;
+        border-radius: 999px;
+      }
+      main.wrap {
+        padding: 28px 20px 60px;
+      }
+      .card {
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 14px;
+        padding: 24px 26px;
+        margin: 18px 0;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.05);
+      }
+      .card h2 {
+        margin: 0 0 6px;
+        font-size: 22px;
+      }
+      .card h3 {
+        margin: 22px 0 8px;
+        font-size: 17px;
+      }
+      .card h4 {
+        margin: 16px 0 6px;
+        font-size: 15px;
+      }
+      p.lead {
+        font-size: 16px;
+        color: #334155;
+      }
+      table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 13.5px;
+        margin: 12px 0;
+      }
+      th,
+      td {
+        text-align: left;
+        padding: 9px 10px;
+        border-bottom: 1px solid var(--line);
+        vertical-align: top;
+      }
+      th {
+        background: #f8fafc;
+        font-size: 12px;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: #475569;
+        position: sticky;
+        top: 0;
+      }
+      tr:last-child td {
+        border-bottom: none;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 11.5px;
+        font-weight: 700;
+        padding: 2px 9px;
+        border-radius: 999px;
+        border: 1px solid var(--line);
+        white-space: nowrap;
+      }
+      .keep {
+        background: var(--soft-green);
+        border-color: #a7f3d0;
+        color: #065f46;
+      }
+      .split {
+        background: var(--soft-blue);
+        border-color: #bfdbfe;
+        color: #1d4ed8;
+      }
+      .merge {
+        background: var(--soft-violet);
+        border-color: #ddd6fe;
+        color: #5b21b6;
+      }
+      .move {
+        background: var(--soft-amber);
+        border-color: #fde68a;
+        color: #92400e;
+      }
+      .risk {
+        background: var(--soft-red);
+        border-color: #fecaca;
+        color: #991b1b;
+      }
+      .grid2 {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 14px;
+      }
+      .grid3 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 14px;
+      }
+      @media (max-width: 860px) {
+        .grid2,
+        .grid3 {
+          grid-template-columns: 1fr;
+        }
+        h1 {
+          font-size: 26px;
+        }
+      }
+      .stat {
+        background: #f8fafc;
+        border: 1px solid var(--line);
+        border-radius: 12px;
+        padding: 14px 16px;
+      }
+      .stat b {
+        font-size: 24px;
+        display: block;
+      }
+      .stat span {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .callout {
+        border-left: 4px solid var(--accent);
+        background: var(--soft-blue);
+        padding: 12px 16px;
+        border-radius: 0 10px 10px 0;
+        margin: 14px 0;
+      }
+      .callout.amber {
+        border-color: var(--warn);
+        background: var(--soft-amber);
+      }
+      .callout.green {
+        border-color: var(--accent2);
+        background: var(--soft-green);
+      }
+      .callout.red {
+        border-color: var(--danger);
+        background: var(--soft-red);
+      }
+      ul.tight li,
+      ol.tight li {
+        margin: 4px 0;
+      }
+      code,
+      .mono {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        font-size: 12.5px;
+        background: #f1f5f9;
+        border: 1px solid var(--line);
+        border-radius: 6px;
+        padding: 1px 6px;
+      }
+      .arch {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: stretch;
+        margin: 12px 0;
+      }
+      .arch .box {
+        flex: 1 1 160px;
+        border: 1.5px solid var(--line);
+        border-radius: 10px;
+        padding: 10px 12px;
+        background: #f8fafc;
+        font-size: 13px;
+      }
+      .arch .box b {
+        display: block;
+        font-size: 13px;
+        margin-bottom: 4px;
+      }
+      .arch .arrow {
+        align-self: center;
+        color: var(--muted);
+        font-weight: 800;
+      }
+      footer {
+        color: var(--muted);
+        font-size: 13px;
+        padding: 0 20px 40px;
+      }
+      .toc {
+        columns: 2;
+        font-size: 14px;
+      }
+      .toc li {
+        margin: 3px 0;
+      }
+      @media print {
+        body {
+          background: #fff;
+        }
+        header.hero {
+          -webkit-print-color-adjust: exact;
+          print-color-adjust: exact;
+        }
+        .card {
+          box-shadow: none;
+          break-inside: avoid;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="hero">
+      <div class="wrap">
+        <div class="kicker">Aspen OS &bull; Module refactoring report &bull; No code changed</div>
+        <h1>How to divide <span class="mono">@aspen-os/healthcare</span> into smaller modules</h1>
+        <p class="subtitle">
+          Evidence-backed proposal to split the 21-group OPD-clinic monolith into focused healthcare
+          modules, and to fold generic capabilities into the existing platform surfaces — while
+          keeping externally visible functionality similar.
+        </p>
+        <div class="meta">
+          <span>Scope: packages/healthcare/src (293 workflow files, ~36.7k LOC)</span>
+          <span>Date: 2026-09-16</span>
+          <span>Type: Analysis only — no source edits</span>
+          <span>Sources: src, docs, .working-docs, sibling packages</span>
+        </div>
+      </div>
+    </header>
+
+    <main class="wrap">
+      <div class="card" id="toc">
+        <h2>Contents</h2>
+        <ol class="toc">
+          <li><a href="#exec">Executive summary &amp; recommended end-state</a></li>
+          <li><a href="#today">What exists today (measured inventory)</a></li>
+          <li><a href="#why">Why the monolith hurts</a></li>
+          <li><a href="#principles">Splitting principles &amp; hard constraints</a></li>
+          <li><a href="#target">Proposed module map</a></li>
+          <li><a href="#disposition">Per-group disposition (all 21 groups)</a></li>
+          <li><a href="#integrations">Functions to integrate into existing modules</a></li>
+          <li><a href="#stay">What stays healthcare-specific</a></li>
+          <li><a href="#cross">Cross-cutting concerns</a></li>
+          <li><a href="#phases">Migration phases &amp; compatibility</a></li>
+          <li><a href="#risks">Risks &amp; what not to do</a></li>
+          <li><a href="#appendix">Appendix: counts &amp; evidence</a></li>
+        </ol>
+      </div>
+
+      <div class="card" id="exec">
+        <h2>1. Executive summary</h2>
+        <p class="lead">
+          <span class="mono">healthcare</span> is really
+          <strong>four different systems wearing one name</strong>: (a) a clinic front-office kernel
+          (patients, practitioners, facilities, appointments, encounters, services/pricelists), (b)
+          a five-specialty EMR (allopathy, dental, ayush, rehab, psych), (c) ancillary clinical
+          operations (pharmacy, diagnostics, nursing, residents), and (d) generic platform
+          capabilities that already have a home elsewhere (staff/HR, masters, compliance,
+          reports/explorer, documents, messaging, reminders).
+        </p>
+        <div class="callout green">
+          <strong>Recommendation:</strong> split into
+          <strong>5 focused healthcare modules</strong> + migrate
+          <strong>6 generic capability clusters</strong> into their canonical platform modules. Keep
+          every current workflow reachable under a compatibility facade (<span class="mono"
+            >p.healthcare.*</span
+          >
+          keeps working) until consumers cut over. No behavior change in phase 1 — only moves with
+          re-exports and dual-published events.
+        </div>
+        <div class="arch">
+          <div class="box">
+            <b>Today (1 module)</b>healthcare: 21 groups, 140 tables, 19 ACL resources, 47 events
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <b>Proposed healthcare family (5)</b>core-registry · emr-specialties · pharmacy ·
+            diagnostics · care (nursing+residents) + revenue kept inside core or standalone billing
+          </div>
+          <div class="arrow">→</div>
+          <div class="box">
+            <b>Absorbed elsewhere (6 targets)</b>hr-* · masters · compliance · dms/notes · comms ·
+            calendar/tasks (+ reports)
+          </div>
+        </div>
+        <h3>End-state at a glance</h3>
+        <table>
+          <tr>
+            <th>New / receiving module</th>
+            <th>Receives (from healthcare)</th>
+            <th>Disposition</th>
+          </tr>
+          <tr>
+            <td><span class="mono">@aspen-os/healthcare-core</span> (new)</td>
+            <td>
+              patients, practitioners, facilities, appointments, encounters, services, pricelists,
+              billing, admin/branch/counter
+            </td>
+            <td><span class="pill keep">KEEP · kernel</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">@aspen-os/healthcare-emr</span> (new)</td>
+            <td>allopathy, dental, ayush, rehab, psych</td>
+            <td><span class="pill split">SPLIT · specialty EMR</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">@aspen-os/healthcare-pharmacy</span> (new)</td>
+            <td>pharmacy (16 actions)</td>
+            <td><span class="pill split">SPLIT · standalone</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">@aspen-os/healthcare-diagnostics</span> (new)</td>
+            <td>diagnostics (22 actions, largest group)</td>
+            <td><span class="pill split">SPLIT · standalone</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">@aspen-os/healthcare-care</span> (new)</td>
+            <td>nursing (14) + residents (15)</td>
+            <td><span class="pill split">SPLIT · daycare/inpatient care</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">hr-core / hr-attendance / hr-leave</span></td>
+            <td>entire <span class="mono">staff</span> group (10 actions)</td>
+            <td><span class="pill merge">MERGE · delete from healthcare</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">masters</span></td>
+            <td>
+              operations masters/upsert/get, services/pricelist catalog parts, admin
+              master-versions/templates
+            </td>
+            <td><span class="pill merge">MERGE · thin adapter left behind</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">compliance</span></td>
+            <td>
+              operations compliance-evidence/list, records retention logic, psych involuntary-hook
+              policy surface
+            </td>
+            <td><span class="pill merge">MERGE</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">dms + notes</span></td>
+            <td>records docs-attach/verify, registers, addenda, timelines</td>
+            <td><span class="pill merge">MERGE</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">comms</span></td>
+            <td>
+              patients log-communication/share-slip, records share-print/whatsapp, residents
+              family-summary/send, appointments recalls/certificates delivery
+            </td>
+            <td><span class="pill merge">MERGE · via outbox</span></td>
+          </tr>
+          <tr>
+            <td><span class="mono">calendar + tasks</span></td>
+            <td>
+              appointment recalls, nursing tasks-from-orders, rehab/therapy sittings, practitioner
+              schedules/leave
+            </td>
+            <td><span class="pill merge">MERGE · reminders &amp; tasks</span></td>
+          </tr>
+        </table>
+        <div class="callout">
+          <strong>Functionality preserved:</strong> every one of the ~276 named workflow methods
+          stays reachable. Splits are <em>moves</em>, merges are
+          <em>delegations behind the same facade</em>. Event topics are dual-published (old
+          <span class="mono">healthcare.*</span> + new canonical topic) during transition.
+        </div>
+      </div>
+
+      <div class="card" id="today">
+        <h2>2. What exists today (measured, not estimated)</h2>
+        <div class="grid3">
+          <div class="stat">
+            <b>293</b
+            ><span
+              >workflow files (21 groups + shared/ + index router). Largest: diagnostics 22, records
+              21, billing 17–18.</span
+            >
+          </div>
+          <div class="stat">
+            <b>~36,729</b
+            ><span
+              >lines across src (workflows + 24 db-schema files + 23 schema files +
+              auth/pubsub/runtime/types).</span
+            >
+          </div>
+          <div class="stat">
+            <b>140 / 13 / 47 / 19</b
+            ><span
+              >tenant tables (all healthcare_ prefix) · pgEnums · domain events · ACL resources.
+              control_plane_schemas is empty.</span
+            >
+          </div>
+        </div>
+        <h3>Module shape</h3>
+        <ul class="tight">
+          <li>
+            <span class="mono">Healthcare.create({ tenantCodePrefix: "HC" })</span> →
+            <span class="mono">$name = "healthcare"</span>,
+            <span class="mono">$dependencies = []</span>, no consumed topics.
+            <span class="mono">$prepareInfra()</span> returns auth ACL + tenant schemas + events;
+            <span class="mono">$initialize / $prepareRuntime / $cleanup</span> are empty (stateless,
+            no schedules/subscriptions).
+          </li>
+          <li>
+            Tenancy: every clinical table carries <span class="mono">branch_id</span> (default
+            <span class="mono">"main"</span>); <span class="mono">healthcare_branch</span> is a
+            subdomain-routing row (not org structure);
+            <span class="mono">healthcare_counter</span> backs gapless human numbers (UHID, invoice,
+            sale, lab order, register serials) via
+            <span class="mono">workflow-steps/series.ts</span>.
+          </li>
+          <li>
+            Cross-entity links are soft text references (<span class="mono"
+              >patient_id, encounter_id</span
+            >) enforced by workflow guards, never FKs. Specialty writers gate on an open
+            same-patient encounter (<span class="mono">fetchOpenEncounterStep</span>).
+          </li>
+          <li>
+            Shared helpers in <span class="mono">workflows/shared/</span> (8 files, 555 lines):
+            scheduling/overlap math, package lifecycle, pricelist lifecycle, branch lifecycle,
+            consent-unification across 4 consent stores, psych-booking guards, board-query literals,
+            share-guard.
+          </li>
+          <li>
+            Status is split-brain by design: shared lifecycles use pgEnums; specialty statuses stay
+            capitalized text columns so ported guards keep exact semantics.
+          </li>
+        </ul>
+        <h3>Size by workflow group (files on disk)</h3>
+        <table>
+          <tr>
+            <th>Group</th>
+            <th>Files</th>
+            <th>What it does (one line)</th>
+          </tr>
+          <tr>
+            <td><span class="mono">diagnostics</span></td>
+            <td>22</td>
+            <td>
+              Lab test/panel masters, barcode samples, versioned results, four-eyes authorize,
+              radiology flow, QC, TAT
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">records</span></td>
+            <td>21</td>
+            <td>
+              Timelines, doc attach/verify, print/WhatsApp shares, gapless registers, addenda,
+              discharge, consent-unification, merge, retention
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">billing</span></td>
+            <td>17</td>
+            <td>
+              Invoices, maker-checker discounts, collection, packages sell/redeem/expire, CNDN,
+              advances, dues aging, GST export
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">ayush</span></td>
+            <td>13</td>
+            <td>
+              Case sheets, NAMASTE+TM2 dual coding, repertorization, therapy packages, sittings,
+              diet, yoga batches
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">practitioners</span></td>
+            <td>13</td>
+            <td>
+              Doctor masters, registrations/education/postings, schedules, fee versions, leave
+              blocks, conflict, next-free-slot
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">operations</span></td>
+            <td>13</td>
+            <td>
+              Masters KV, seed presets, grant-gated explorer + CSV, report definitions/runs,
+              compliance evidence, audit query
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">patients</span></td>
+            <td>14</td>
+            <td>
+              Registration, phone/ABHA dedupe, family/allergy/flag/consent/recall, two-party merge
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">appointments</span></td>
+            <td>14</td>
+            <td>
+              Slot compute, booking/clash guards, FIFO queue, video, consents, recalls, certificates
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">nursing</span></td>
+            <td>14</td>
+            <td>
+              Order-derived tasks, boards, vitals/EWS, IO, pain, risk, witnessed drug admin,
+              handover, triage tags
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">admin</span></td>
+            <td>15</td>
+            <td>
+              Company singleton, branch CRUD, master-versions, templates, recall-rules, audit logs
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">residents</span></td>
+            <td>15</td>
+            <td>
+              Daycare stays: admit, bed allocate, geriatric scores, polypharmacy,
+              daily/rounds/visits, stay charges + compiled bill
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">psych</span></td>
+            <td>15</td>
+            <td>
+              Masked assessments, scale gates, risk/safety, counselling/tele, withdrawal, relapse,
+              controlled-Rx, caregiver consent
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">pharmacy</span></td>
+            <td>16</td>
+            <td>
+              Items, batches, Rx sales, partial close, PO/GRN/PI, CNDN, transfers, reorder, ledger
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">facilities</span></td>
+            <td>11</td>
+            <td>
+              Rooms/chairs/equipment, schedules, blocks, occupy/release, sterilization, status board
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">services</span></td>
+            <td>11</td>
+            <td>
+              Billable services, versioned prices, discount rules, facility maps, packages
+              define/redeem
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">dental</span></td>
+            <td>11</td>
+            <td>
+              FDI charts, staged plans, quotes, consent-before-chair, lab jobs, implant milestones
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">allopathy</span></td>
+            <td>10</td>
+            <td>SOAP, exams, chronic logs, immunizations, triage, statutory registers</td>
+          </tr>
+          <tr>
+            <td><span class="mono">encounters</span></td>
+            <td>10</td>
+            <td>
+              Visit root: create/sign (immutable after sign), dx, Rx, refill, orders, vitals,
+              follow-up, addenda
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">rehab</span></td>
+            <td>12</td>
+            <td>
+              Episodes, assessments, goals, packages, sittings, exercise sheets, rescore, discharge,
+              day board
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">staff</span></td>
+            <td>10</td>
+            <td>Profiles, rosters, attendance, leave request/decide, payroll export, roles</td>
+          </tr>
+          <tr>
+            <td><span class="mono">pricelists</span></td>
+            <td>7</td>
+            <td>
+              Versioned lists, publish/retire, bulk revision preview/apply, DEFAULT-fallback price
+              resolution
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">shared</span></td>
+            <td>8</td>
+            <td>Cross-cutting helpers listed above (not a public group)</td>
+          </tr>
+        </table>
+        <p style="color: var(--muted); font-size: 13px">
+          Counts are files under <span class="mono">src/workflows/&lt;group&gt;/*.ts</span>; method
+          counts in docs differ slightly where one file exports 2–3 actions (ayush
+          followup-grid/yoga-attendance, dental implant-milestone, pricelists
+          bulk-revision/list/publish). Total including index router: 293 files.
+        </p>
+      </div>
+
+      <div class="card" id="why">
+        <h2>3. Why the monolith hurts (specific, observable)</h2>
+        <div class="grid2">
+          <div>
+            <h4>Blast radius &amp; review load</h4>
+            <ul class="tight">
+              <li>
+                One ACL file (19 resources), one event map (47 topics), one schema index (984
+                lines), one router (643 lines) — every specialty change touches shared files.
+              </li>
+              <li>
+                A pharmacy or billing fix rebuilds/reviews alongside psych masking rules and yoga
+                batches. Reviewers must hold all 21 domains in mind.
+              </li>
+              <li>
+                DB schema index re-exports 140 tables; a table rename ripples through types,
+                schemas, steps, and docs.
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>Duplicated generic capabilities</h4>
+            <ul class="tight">
+              <li>
+                <span class="mono">staff</span> re-implements HR
+                (roster/attendance/leave/payroll/roles) that
+                <span class="mono">hr-core / hr-attendance / hr-leave</span> already own.
+              </li>
+              <li>
+                <span class="mono">operations</span> re-implements masters KV, compliance evidence,
+                and reporting that <span class="mono">masters / compliance / reports</span> own.
+              </li>
+              <li>
+                <span class="mono">records</span> re-implements file attach/verify (<span
+                  class="mono"
+                  >dms</span
+                >), notes/timeline (<span class="mono">notes</span>), and outbound shares (<span
+                  class="mono"
+                  >comms</span
+                >).
+              </li>
+              <li>
+                Recalls/reminders and task derivation bypass
+                <span class="mono">calendar</span> (sole reminder surface) and
+                <span class="mono">tasks</span> (sole task surface).
+              </li>
+            </ul>
+          </div>
+        </div>
+        <div class="grid2">
+          <div>
+            <h4>Latent inconsistencies</h4>
+            <ul class="tight">
+              <li>
+                Two package systems: <span class="mono">services.define-package/redeem</span> vs
+                <span class="mono">billing.package-sell/redeem/expire</span> sharing only a 54-line
+                helper — different tables, statuses, and events.
+              </li>
+              <li>
+                Four consent stores unified only at read time (<span class="mono"
+                  >consent-lifecycle.ts</span
+                >, 217 lines) — writes can drift.
+              </li>
+              <li>
+                Parallel billing CNDN vs pharmacy CNDN; parallel collection-report vs dues-aging vs
+                GST export with no single revenue ledger owner.
+              </li>
+            </ul>
+          </div>
+          <div>
+            <h4>Scale signals</h4>
+            <ul class="tight">
+              <li>
+                Diagnostics (22 files, 363-line schema, 302-line psych-adjacent tables excluded) and
+                records (21 files) are each bigger than many whole platform modules.
+              </li>
+              <li>
+                Nursing has the widest table (323-line schema, 12 tables) and the most
+                safety-critical escalation paths — it deserves its own release cadence.
+              </li>
+              <li>
+                Residents duplicates facility-bed, billing-charge, and comms-summary logic instead
+                of composing them.
+              </li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <div class="card" id="principles">
+        <h2>4. Splitting principles &amp; hard constraints</h2>
+        <div class="callout amber">
+          <strong>Read first:</strong> repo rules that constrain any proposal.
+          <span class="mono">dms</span> is the single document/file surface (no parallel drive
+          model). <span class="mono">comms</span> is the single notification/inbox and out-of-band
+          delivery surface (delivery via the <span class="mono">comms.message-sweeper</span> outbox
+          worker — no parallel deliver topics). <span class="mono">notes</span> owns notes.
+          <span class="mono">calendar</span> owns the single reminder surface, including task
+          reminders (<span class="mono">tasks</span> publishes, calendar bridges — no second
+          reminder surface). Valibot for domain input validation. One workflow action per file;
+          public groups composed in the module. PostgreSQL names snake_case, no cross-module FKs,
+          Drizzle push (no migrations).
+        </div>
+        <ol class="tight">
+          <li>
+            <strong>Keep functionality similar:</strong> phase 1 is move-only. Same inputs (Valibot
+            schemas unchanged), same guards (open-encounter gate, four-eyes, maker-checker), same
+            audit writes, same event payloads — only the owning module path changes, with a compat
+            facade.
+          </li>
+          <li>
+            <strong>Bounded contexts over layers:</strong> split by clinical ownership (who can
+            safely change it), not by technical layer. Pharmacy, diagnostics, and daycare-care each
+            have distinct owners, lifecycles, and release risk.
+          </li>
+          <li>
+            <strong>Canonical surfaces win:</strong> when a generic capability already has an owner
+            (HR, masters, compliance, dms, comms, calendar, tasks, notes), healthcare delegates
+            instead of duplicating. Healthcare keeps only the clinical adapter (e.g. "prescribe →
+            sale" link, not the stock ledger itself).
+          </li>
+          <li>
+            <strong>Encounters stay the clinical root:</strong> all specialty writers keep gating on
+            an open same-patient encounter. The gate helper moves to the shared kernel both EMR and
+            care modules depend on.
+          </li>
+          <li>
+            <strong>Branch + counter stay shared:</strong>
+            <span class="mono">healthcare_branch / healthcare_counter</span> and gapless numbering
+            move to the core kernel; every other module consumes them via a declared dependency,
+            never by copying.
+          </li>
+          <li>
+            <strong>Events versioned, not renamed silently:</strong> old
+            <span class="mono">healthcare.*</span> topics keep publishing alongside new canonical
+            topics until consumers migrate. ACL splits preserve every current permission; elevated
+            operations (<span class="mono"
+              >billing:discount-approve, diagnostics:authorize, psych:override</span
+            >) keep their semantics.
+          </li>
+        </ol>
+      </div>
+
+      <div class="card" id="target">
+        <h2>5. Proposed module map (target architecture)</h2>
+        <p>
+          Five healthcare-scoped modules replace one. Six generic clusters leave healthcare
+          entirely. The diagram below is logical — physical package names are suggestions following
+          the existing <span class="mono">@aspen-os/*</span> convention.
+        </p>
+        <div class="arch">
+          <div class="box">
+            <b>healthcare-core</b>patients · practitioners · facilities · appointments · encounters
+            · services + pricelists · billing · admin (branch/counter/company)
+          </div>
+          <div class="box">
+            <b>healthcare-emr</b>allopathy · dental · ayush · rehab · psych<br /><span
+              style="color: var(--muted)"
+              >depends on core (encounter gate)</span
+            >
+          </div>
+          <div class="box">
+            <b>healthcare-pharmacy</b>items · batches · Rx sales · PO/GRN/PI · transfers · ledger
+          </div>
+          <div class="box">
+            <b>healthcare-diagnostics</b>test/panel masters · orders · samples · results · radio ·
+            QC · TAT
+          </div>
+          <div class="box">
+            <b>healthcare-care</b>nursing + residents<br /><span style="color: var(--muted)"
+              >daycare &amp; long-stay</span
+            >
+          </div>
+        </div>
+        <table>
+          <tr>
+            <th>Module</th>
+            <th>Owns (tables + workflows)</th>
+            <th>Depends on</th>
+            <th>Why standalone</th>
+          </tr>
+          <tr>
+            <td><strong>healthcare-core</strong></td>
+            <td>
+              patient, practitioners, facilities, appointments, encounters, services, billing,
+              branch, counter, admin. Keeps <span class="mono">series.ts</span>,
+              <span class="mono">fetch-encounter/patient/practitioner/facility/service</span> steps,
+              scheduling + pricelist + branch + consent-read helpers.
+            </td>
+            <td>platform only (+ masters/comms/calendar as consumers of its events)</td>
+            <td>
+              Scheduling + registry kernel; every other healthcare module gates on its encounter and
+              numbering. Smallest safe dependency root.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>healthcare-emr</strong></td>
+            <td>
+              allopathy, dental, ayush, rehab, psych tables + all specialty writers. Keeps
+              psych-booking guards; consumes core encounter gate.
+            </td>
+            <td>healthcare-core</td>
+            <td>
+              Five specialties share one pattern (encounter-gated SOAP-like notes) but change for
+              clinical reasons, not front-office reasons. Isolates masked-data risk (psych) from
+              booking risk.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>healthcare-pharmacy</strong></td>
+            <td>
+              All 8 pharmacy tables + 16 actions. Owns batches, substitution records, PO/GRN/PI,
+              transfers, reorder, ledger, expiry.
+            </td>
+            <td>
+              healthcare-core (Rx link), optionally inventory if it ever gains an implementation
+            </td>
+            <td>
+              Inventory accounting with money-adjacent side effects; needs its own release cadence
+              and a clean Rx-dispense contract.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>healthcare-diagnostics</strong></td>
+            <td>
+              All 8 diagnostics tables + 22 actions (largest group). Owns barcode samples, versioned
+              results, four-eyes authorize, radio flow, QC.
+            </td>
+            <td>healthcare-core (order link)</td>
+            <td>
+              Already module-sized; four-eyes authorization and critical-ack paths deserve isolated
+              audit and ACL.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>healthcare-care</strong></td>
+            <td>
+              Nursing (12 tables, 14 actions) + residents (8 tables, 15 actions). Owns
+              tasks-from-orders consumption, boards, vitals/EWS, drug admin, handovers, stays,
+              rounds, stay-bill compilation.
+            </td>
+            <td>healthcare-core, tasks, calendar, comms</td>
+            <td>
+              Nursing + residents are one bedside workflow (the same nurse logs vitals, administers
+              drugs, and rounds on residents). Merging them removes the residents-billing and
+              residents-bed duplications.
+            </td>
+          </tr>
+        </table>
+        <div class="callout">
+          <strong>Billing placement (judgment call):</strong> keep
+          <span class="mono">billing</span> in <strong>core</strong> for phase 1 because invoices,
+          packages, and pricelists are tightly coupled to services and encounters. If revenue logic
+          keeps growing, promote it to a sixth module (<span class="mono">healthcare-revenue</span>:
+          billing + services + pricelists) in phase 3 — the report marks this as the single
+          anticipated follow-up split.
+        </div>
+      </div>
+
+      <div class="card" id="disposition">
+        <h2>6. Per-group disposition — all 21 groups</h2>
+        <p>
+          Every group below lists where it goes, what moves with it, and what gets peeled off to a
+          canonical module. "Facade" means
+          <span class="mono">p.healthcare.&lt;group&gt;.&lt;action&gt;</span> keeps working as a
+          delegate during transition.
+        </p>
+        <table>
+          <tr>
+            <th>Group (files)</th>
+            <th>Disposition</th>
+            <th>Details &amp; peel-offs</th>
+          </tr>
+          <tr>
+            <td><span class="mono">patients</span> (14)</td>
+            <td><span class="pill keep">core</span></td>
+            <td>
+              Stays whole: register, dedupe, family, allergy, flag, consent-archive, merge. Peel
+              off: <span class="mono">logCommunication/shareSlip</span> delivery →
+              <span class="mono">comms</span>; <span class="mono">enrolRecall</span> →
+              <span class="mono">calendar</span> reminder;
+              <span class="mono">timeline</span> read-model → composed with
+              <span class="mono">notes/dms</span> but owned by core.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">practitioners</span> (13)</td>
+            <td><span class="pill keep">core</span></td>
+            <td>
+              Stays: create/update, registrations/education/postings, schedules, fees, conflict,
+              next-free-slot. Peel off: leave blocks become a read-through of
+              <span class="mono">hr-leave</span> (healthcare keeps
+              <span class="mono">blockLeave</span> as a clinical overlay, not the leave ledger).
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">facilities</span> (11)</td>
+            <td><span class="pill keep">core</span></td>
+            <td>
+              Stays: rooms/chairs/equipment, schedules, blocks, occupy/release, sterilization,
+              board. Residents bed-allocation composes this instead of re-implementing it.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">appointments</span> (14)</td>
+            <td><span class="pill keep">core</span></td>
+            <td>
+              Stays: slot compute, book/reschedule/cancel/checkin, queue, video session record. Peel
+              off: <span class="mono">issueRecall</span> → <span class="mono">calendar</span>;
+              <span class="mono">captureConsent</span> → unified consent (core) with
+              <span class="mono">compliance</span> evidence link; certificate/recall
+              <em>delivery</em> → <span class="mono">comms</span> outbox.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">encounters</span> (10)</td>
+            <td><span class="pill keep">core · root entity</span></td>
+            <td>
+              Stays whole and becomes the cross-module gate. The open-encounter fetch step moves to
+              core and is consumed by emr, care, pharmacy, and diagnostics. Sign-immutability
+              unchanged.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">services</span> (11) + <span class="mono">pricelists</span> (7)
+            </td>
+            <td><span class="pill keep">core (merge the two)</span></td>
+            <td>
+              Merge into one catalog group: services + pricelists + discount rules +
+              packages-define. The billing-side package-balance (sell/redeem/expire) stays in
+              billing but consumes the same package definition — unify the dual package models here.
+              Catalog masters sync → <span class="mono">masters</span> entity/setting.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">billing</span> (17)</td>
+            <td><span class="pill keep">core (for now)</span></td>
+            <td>
+              Stays: raise/finalize, discounts (maker-checker kept), collect/settle, CNDN, advances,
+              dues-aging, GST export, interim-tab. Candidate for later promotion to
+              <span class="mono">healthcare-revenue</span>. Reports outputs (collection-report,
+              dues-aging, GST) gain a <span class="mono">reports</span>-compatible read shape.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">admin</span> (15)</td>
+            <td><span class="pill split">core + masters</span></td>
+            <td>
+              Branch/company/counters/logs stay in core. Master-versions + templates move to
+              <span class="mono">masters</span> (healthcare keeps a thin clinical-preset adapter +
+              <span class="mono">seedPresets</span> as data, not logic). Recall-rules move to
+              <span class="mono">calendar</span> reminder rules.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">allopathy</span> (10)</td>
+            <td><span class="pill split">emr</span></td>
+            <td>
+              Moves whole (SOAP/exam/chronic/immunize/triage/register). Interaction-check stays as a
+              pure clinical guard; consider sharing the checker with psych controlled-Rx later.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">dental</span> (11)</td>
+            <td><span class="pill split">emr</span></td>
+            <td>
+              Moves whole (chart/plan/quote/consent/chair/lab-job/implant). Chair booking composes
+              core facilities; lab jobs link to diagnostics only by reference.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">ayush</span> (13)</td>
+            <td><span class="pill split">emr</span></td>
+            <td>
+              Moves whole (case sheets, dual-coding, repertorization, therapy packages/sittings,
+              diet, yoga). Therapy package sell/pause composes the unified package lifecycle from
+              core.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">rehab</span> (12)</td>
+            <td><span class="pill split">emr</span></td>
+            <td>
+              Moves whole (episodes, assessments, goals, packages, sittings, exercise sheets,
+              discharge). Sittings publish to <span class="mono">calendar</span>; exercise-sheet
+              shares deliver via <span class="mono">comms</span>.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">psych</span> (15)</td>
+            <td><span class="pill split">emr (restricted)</span></td>
+            <td>
+              Moves whole with its own ACL resource + <span class="mono">override</span> semantics
+              preserved. Masked reads stay masked through the facade. Booking guards (<span
+                class="mono"
+                >psych-booking.ts</span
+              >) move with it; involuntary-hook emits <span class="mono">compliance</span> evidence.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">pharmacy</span> (16)</td>
+            <td><span class="pill split">pharmacy module</span></td>
+            <td>
+              Moves whole. <span class="mono">saleFromRx</span> keeps the encounter/Rx link as a
+              soft reference + event, not a join. Expiry/reorder stay inside; stock-transfer across
+              branches uses core branch routing.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">diagnostics</span> (22)</td>
+            <td><span class="pill split">diagnostics module</span></td>
+            <td>
+              Moves whole. Test/panel masters sync → <span class="mono">masters</span>. Four-eyes
+              authorize + critical-ack semantics unchanged; TAT/queue boards keep board-query
+              literals (moved, not forked).
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">nursing</span> (14)</td>
+            <td><span class="pill split">care module</span></td>
+            <td>
+              Moves whole. <span class="mono">tasksFromOrders</span> becomes a consumer of core
+              encounter orders producing <span class="mono">tasks</span>-compatible tasks (single
+              task surface). Escalations notify via <span class="mono">comms</span>; missed-dose
+              escalation schedules via <span class="mono">calendar</span>.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">residents</span> (15)</td>
+            <td><span class="pill split">care module</span></td>
+            <td>
+              Moves whole and is slimmed: bed allocation delegates to core facilities; stay charges
+              compile through billing (no second ledger); family summaries deliver via
+              <span class="mono">comms</span>; rounds/visits schedule via
+              <span class="mono">calendar</span>.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">records</span> (21)</td>
+            <td><span class="pill move">dissolve (largest win)</span></td>
+            <td>
+              Split by nature, not kept: docs-attach/verify →
+              <span class="mono">dms</span> (file/version/share/hold);
+              timelines/search/notes-mask/addenda → <span class="mono">notes</span> + core
+              read-model; share-print/whatsapp → <span class="mono">comms</span>;
+              registers/retention → <span class="mono">compliance</span> (+ core register tables as
+              the clinical source); consent reads → unified consent in core; merge stays in core
+              (patient identity). Net: this 21-file group disappears as a module.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">operations</span> (13)</td>
+            <td><span class="pill move">dissolve</span></td>
+            <td>
+              Masters upsert/get → <span class="mono">masters</span>; compliance evidence/list →
+              <span class="mono">compliance</span>; explorer query/grant/export → platform explorer
+              pattern (grant model kept, implementation shared); reports define/get/list/run →
+              <span class="mono">reports</span> surface when implemented, thin adapter until then;
+              audit-query → platform audit; seed-presets → data seed in core. No operations module
+              remains.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">staff</span> (10)</td>
+            <td><span class="pill move">dissolve into hr-*</span></td>
+            <td>
+              Entire group deleted from healthcare: profiles/roles →
+              <span class="mono">hr-core</span> employee/position; rosters/attendance →
+              <span class="mono">hr-attendance</span>; leave request/decide →
+              <span class="mono">hr-leave</span>; payroll export → hr payroll hook. Practitioner
+              schedules keep a clinical availability overlay in core; the HR ledgers are
+              single-sourced.
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card" id="integrations">
+        <h2>7. Functions to integrate into existing modules (with mapping)</h2>
+        <p>
+          These are the moves that actually shrink healthcare. Each row names the healthcare source,
+          the canonical target that already exists, and what "integrate" means concretely (delegate,
+          consume, or relocate — not fork).
+        </p>
+        <h3>7.1 HR — dissolve <span class="mono">staff</span> (10 actions)</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">upsertStaff, createRole, deleteRole, listRoles, disableUser</span>
+            </td>
+            <td><span class="mono">hr-core</span> employee / position / access</td>
+            <td>
+              Relocate profiles + roles; healthcare branch scoping becomes an hr-core branch
+              attribute. Practitioner ↔ employee link is a soft reference.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">rosterPlan, attendanceMark</span></td>
+            <td><span class="mono">hr-attendance</span> roster / checkin / summary</td>
+            <td>
+              Relocate; clinical day-board reads hr-attendance, it does not keep a parallel roster.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">leaveRequest, leaveDecide</span></td>
+            <td><span class="mono">hr-leave</span> application / ledger</td>
+            <td>
+              Relocate maker-checker; practitioner
+              <span class="mono">blockLeave/conflict</span> consumes hr-leave state for slot
+              computation.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">payrollExport</span></td>
+            <td>hr payroll hook</td>
+            <td>Relocate export; healthcare exposes hours/attendance facts, hr owns pay.</td>
+          </tr>
+        </table>
+        <h3>7.2 Masters — catalog single-sourcing</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">operations.mastersUpsert/mastersGet</span>, admin
+              master-versions/templates
+            </td>
+            <td><span class="mono">masters</span> entity / setting / unit-of-measure</td>
+            <td>
+              Relocate KV + versioning; existing
+              <span class="mono">integrations/masters.ts</span> intent helpers become the real sync
+              (healthcare writes publish a masters intent, masters owns the version).
+            </td>
+          </tr>
+          <tr>
+            <td>services + pricelists + diagnostics test/panel masters</td>
+            <td><span class="mono">masters</span> entity</td>
+            <td>
+              Consume: clinical modules keep price/resolve behavior; master identity lives in
+              masters.
+            </td>
+          </tr>
+        </table>
+        <h3>7.3 Compliance — regulated evidence</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">operations.complianceEvidence/complianceList</span>, records
+              retention-check, psych involuntary-hook
+            </td>
+            <td><span class="mono">compliance</span> document / obligation / verification</td>
+            <td>
+              Relocate evidence store; existing
+              <span class="mono">integrations/compliance.ts</span> ownership constants become real
+              document/verification/audit links. Healthcare keeps emitting facts; compliance owns
+              the framework controls (CEA/NABH/NABL).
+            </td>
+          </tr>
+        </table>
+        <h3>7.4 DMS + Notes — documents and narrative</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td><span class="mono">records.docsAttach/docsVerify</span>, clinical documents</td>
+            <td><span class="mono">dms</span> file / version / share / hold</td>
+            <td>
+              Relocate file lifecycle incl. four-eyes verify and holds; healthcare stores only the
+              <span class="mono">dmsFileId</span> reference (as it already does).
+            </td>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">records.timeline/search/notesMask/addendumAppend</span>, nursing
+              notes
+            </td>
+            <td><span class="mono">notes</span> note</td>
+            <td>
+              Consume/compose: clinical note writes stay encounter-gated in healthcare-emr/care, but
+              the narrative store and masked-read pattern converge on notes (masters no longer owns
+              notes — respected).
+            </td>
+          </tr>
+          <tr>
+            <td>registers append/void/export</td>
+            <td><span class="mono">compliance</span> + <span class="mono">dms</span></td>
+            <td>
+              Number-preserving void semantics kept; export delivers via comms/dms, not a new path.
+            </td>
+          </tr>
+        </table>
+        <h3>7.5 Comms — all outbound delivery</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">patients.logCommunication/shareSlip</span>,
+              <span class="mono">records.sharePrint/shareWhatsapp</span>, residents
+              family-summary/send, rehab exercise-sheet share, appointment recalls/certificates
+            </td>
+            <td>
+              <span class="mono">comms</span> message / notification / template (via message-sweeper
+              outbox)
+            </td>
+            <td>
+              Delegate delivery: healthcare creates the clinical payload + share-guard confirmation,
+              comms owns channel/template/retry/inbox. Delete every healthcare-side send path; keep
+              the audit + event.
+            </td>
+          </tr>
+        </table>
+        <h3>7.6 Calendar + Tasks — reminders and worklists</h3>
+        <table>
+          <tr>
+            <th>Healthcare source</th>
+            <th>Target</th>
+            <th>Integration</th>
+          </tr>
+          <tr>
+            <td>
+              <span class="mono">patients.enrolRecall</span>,
+              <span class="mono">appointments.issueRecall</span>, admin recall-rules, psych
+              recall-list, therapy/redux sittings, rounds/visits
+            </td>
+            <td><span class="mono">calendar</span> reminder / event</td>
+            <td>
+              Relocate scheduling: healthcare emits a recall intent; calendar owns the reminder
+              lifecycle (sole reminder surface — no parallel recall tables long-term).
+            </td>
+          </tr>
+          <tr>
+            <td><span class="mono">nursing.tasksFromOrders</span>, boards, missed-escalate</td>
+            <td>
+              <span class="mono">tasks</span> task + <span class="mono">calendar</span> bridge
+            </td>
+            <td>
+              Consume: order-derived work becomes real tasks (tasks owns status), calendar bridges
+              reminders. Boards become filtered task queries, not a parallel status machine.
+            </td>
+          </tr>
+          <tr>
+            <td>Practitioner schedules, facility blocks, chair/stage booking</td>
+            <td>
+              <span class="mono">calendar</span> event +
+              <span class="mono">workspace</span> schedule
+            </td>
+            <td>
+              Consume availability primitives; clinical overlap guards stay in core but read
+              canonical calendars.
+            </td>
+          </tr>
+        </table>
+        <div class="callout green">
+          <strong>Net deletion:</strong> <span class="mono">staff</span> (10 files),
+          <span class="mono">operations</span> (13 files), and <span class="mono">records</span> (21
+          files) dissolve —
+          <strong>44 of 293 workflow files (~15%) leave healthcare entirely</strong>, plus
+          delivery/reminder/task logic peeled out of patients, appointments, nursing, rehab, and
+          residents. The remaining ~250 files are redistributed into 5 focused modules averaging ~50
+          files each instead of one 293-file unit.
+        </div>
+      </div>
+
+      <div class="card" id="stay">
+        <h2>8. What stays healthcare-specific (and why)</h2>
+        <table>
+          <tr>
+            <th>Stays</th>
+            <th>Why it cannot be genericized</th>
+          </tr>
+          <tr>
+            <td>Encounter root + sign-immutability + open-encounter gate</td>
+            <td>
+              The single clinical invariant every specialty, pharmacy Rx, lab order, and nursing
+              task depends on. Generic task/doc modules must not own visit semantics.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Five specialty EMRs (SOAP, FDI charts, NAMASTE/TM2, physio scores, psych
+              masking/scales)
+            </td>
+            <td>
+              Regulated clinical semantics (four-eyes, masking, 24h re-admin gates, early-refill
+              gates) with statutory registers. No platform module models this.
+            </td>
+          </tr>
+          <tr>
+            <td>Slot math + clash guards + FIFO queue + video session record</td>
+            <td>
+              Clinical scheduling (practitioner × facility × leave × blocks × booked slots) is
+              stricter than generic calendaring; calendar owns reminders, core owns clinical
+              availability.
+            </td>
+          </tr>
+          <tr>
+            <td>Invoice/discount/collect + package liability + CNDN + GST-shaped export</td>
+            <td>
+              Healthcare packages (sell → redeem → expire with liability) and maker-checker
+              discounts are revenue-recognition logic, not generic reporting.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Lab sample chain (barcode → collect → receive → result-version → critical-ack →
+              authorize → deliver) + radio flow + QC
+            </td>
+            <td>
+              Specimen + result-version + four-eyes chain has no analogue in inventory/masters.
+            </td>
+          </tr>
+          <tr>
+            <td>Pharmacy batch/expiry/substitution + PO/GRN/PI/transfer ledger</td>
+            <td>
+              Drug-schedule + batch-traceability + 7-day return window; plausibly composes a future
+              real <span class="mono">inventory</span> module but today is standalone.
+            </td>
+          </tr>
+          <tr>
+            <td>
+              Bedside care (vitals/EWS, IO, pain pre/post, witnessed drug admin, handover, triage
+              tags, stays/rounds)
+            </td>
+            <td>
+              Daycare/long-stay nursing workflow with escalation semantics; tasks/comms/calendar are
+              consumed, not replaced.
+            </td>
+          </tr>
+          <tr>
+            <td>Branch/counter gapless numbering</td>
+            <td>
+              Human-readable clinical numbers (UHID, invoice, lab order) with per-branch series;
+              shared kernel, not duplicated per module.
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card" id="cross">
+        <h2>9. Cross-cutting concerns (how to split without breaking)</h2>
+        <h3>Auth (ACL): 19 resources → per-module slices</h3>
+        <ul class="tight">
+          <li>
+            Core keeps: patient, practitioner, appointment, encounter, facility, service, billing (+
+            discount-approve), branch.
+          </li>
+          <li>
+            EMR keeps: allopathy, dental, ayush, rehab, psych (+ override) — psych retains elevated
+            semantics and masked-read enforcement.
+          </li>
+          <li>
+            Pharmacy keeps: pharmacy. Diagnostics keeps: diagnostics (+ authorize). Care keeps:
+            nursing, resident.
+          </li>
+          <li>
+            Deleted: operations, and staff-equivalent resources (moved to hr-*/masters/compliance
+            ACLs). Records resource dissolves with the group (dms/comms/notes/compliance ACLs apply;
+            core keeps a narrow consent/merge permission).
+          </li>
+        </ul>
+        <h3>Events: 47 topics → dual-publish, then cut over</h3>
+        <ul class="tight">
+          <li>
+            Keep every <span class="mono">healthcare.*</span> topic publishing in phase 1–2 (same
+            <span class="mono">HealthcareEntityEvent</span> payload). New modules additionally
+            publish canonical topics (e.g. pharmacy-dispense, diagnostics-authorized) — consumers
+            migrate at leisure.
+          </li>
+          <li>
+            Fix the one mis-attribution found: staff mutations currently publish under operations
+            events; after the move they publish hr events (dual-published during transition).
+          </li>
+          <li>
+            Comms/calendar/tasks-bound actions (shares, recalls, derived tasks) emit their canonical
+            target events at the point of delegation so downstream bridges fire once.
+          </li>
+        </ul>
+        <h3>Schemas, steps, types</h3>
+        <ul class="tight">
+          <li>
+            Valibot schemas move with their workflows (one group = one schema file already). The
+            984-line schemas index splits per module; the 643-line workflow router splits per module
+            with a thin compat router re-exporting everything under
+            <span class="mono">p.healthcare.*</span>.
+          </li>
+          <li>
+            Shared steps split by ownership: encounter/patient/practitioner/facility/service fetch
+            steps + series + scheduling/pricelist/branch-consent helpers → core. Psych-booking →
+            emr. Board-query literals → move once into core and import (do not fork per board
+            reader). Package-lifecycle → core (single package model). Share-guard → comms adapter.
+          </li>
+          <li>
+            Status enums: pgEnums move with their owning module; specialty text statuses move with
+            emr/care. The split-brain convention is documented per module so it is not "fixed"
+            inconsistently.
+          </li>
+          <li>
+            DB: tables move logically first (same <span class="mono">healthcare_</span> prefix, same
+            Drizzle push). Physical rename is explicitly out of scope for phase 1 — renames break
+            push assumptions for zero behavior gain.
+          </li>
+        </ul>
+        <div class="callout red">
+          <strong>Do not fork the consent stores.</strong> The 217-line consent-unification reader
+          is the most drift-prone file in the module. It moves to core exactly once; emr/care/comms
+          read through it. Writes converge on one consent model in phase 3.
+        </div>
+      </div>
+
+      <div class="card" id="phases">
+        <h2>10. Migration phases (functionality similar throughout)</h2>
+        <table>
+          <tr>
+            <th>Phase</th>
+            <th>Scope</th>
+            <th>Compatibility</th>
+          </tr>
+          <tr>
+            <td><strong>0 — Freeze &amp; facade</strong> (days)</td>
+            <td>
+              Freeze new cross-group helpers in healthcare. Add deprecation notes to
+              staff/operations/records groups. Stand up empty sibling packages with re-exports.
+            </td>
+            <td>
+              No behavior change. <span class="mono">p.healthcare.*</span> is the only public path.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>1 — Extract clean splits</strong> (1–2 wks)</td>
+            <td>
+              Move diagnostics (22), pharmacy (16), nursing+residents → care (29) as-is behind the
+              facade. Move shared steps they need into core first.
+            </td>
+            <td>Dual-publish events; dual-register ACL. All existing imports still resolve.</td>
+          </tr>
+          <tr>
+            <td><strong>2 — Dissolve generics</strong> (2–3 wks)</td>
+            <td>
+              Staff → hr-*; operations masters/compliance/reports/explorer →
+              masters/compliance/reports; records docs → dms, timelines → notes, shares → comms;
+              recalls → calendar; nursing tasks → tasks.
+            </td>
+            <td>
+              Facade delegates (healthcare action calls the canonical action). Old topics still
+              published.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>3 — Unify &amp; slim</strong> (2–4 wks)</td>
+            <td>
+              Single package model (services+billing); single consent write-model; residents slimmed
+              onto facilities+billing+comms; services+pricelists merged; optional billing → revenue
+              promotion.
+            </td>
+            <td>
+              Facade kept; new canonical paths documented as preferred. Migrate internal callers.
+            </td>
+          </tr>
+          <tr>
+            <td><strong>4 — Cut over</strong></td>
+            <td>
+              Flip docs to canonical paths (<span class="mono">p.emr.*</span>,
+              <span class="mono">p.pharmacy.*</span>, …). Retire facade per-group with a changelog;
+              stop dual-publish after consumer ack.
+            </td>
+            <td>
+              Breaking-change window, one group at a time. Audit log proves parity (every mutation
+              still writes audit + event).
+            </td>
+          </tr>
+        </table>
+        <div class="callout">
+          <strong>Parity check per phase:</strong> (1) workflow count per group unchanged (moved,
+          not dropped); (2) audit-write + event per mutation preserved; (3) elevated guards
+          (discount-approve, four-eyes authorize, psych override) covered by tests before the move;
+          (4) docs events/access-control pages regenerated per module.
+        </div>
+      </div>
+
+      <div class="card" id="risks">
+        <h2>11. Risks &amp; what not to do</h2>
+        <table>
+          <tr>
+            <th>Risk</th>
+            <th>Mitigation</th>
+          </tr>
+          <tr>
+            <td>
+              Over-splitting EMR into 5 micro-modules (allopathy/dental/ayush/rehab/psych each
+              alone)
+            </td>
+            <td>
+              <span class="pill risk">DON'T</span> — they share the encounter gate, consent reads,
+              and package patterns. One emr module with 5 groups preserves the shared pattern; split
+              further only if a specialty gains its own release team.
+            </td>
+          </tr>
+          <tr>
+            <td>Forking boards/reminders/tasks instead of consuming calendar/tasks</td>
+            <td>
+              Enforced by repo rule (single reminder/task surfaces). Boards become queries; recalls
+              become calendar reminders; derived work becomes tasks.
+            </td>
+          </tr>
+          <tr>
+            <td>Rebuilding delivery (WhatsApp/print) inside healthcare</td>
+            <td>
+              Enforced by repo rule (comms owns delivery via outbox). Healthcare keeps payload +
+              share-guard, never the channel.
+            </td>
+          </tr>
+          <tr>
+            <td>Renaming 140 tables or event topics too early</td>
+            <td>
+              Explicitly deferred. Logical move first; physical renames only in phase 4 with a
+              compat alias window.
+            </td>
+          </tr>
+          <tr>
+            <td>Losing psych masking or four-eyes/maker-checker in the move</td>
+            <td>
+              Move the guard files with the workflows (psych-booking, authorize, discount-approve)
+              and keep ACL elevation identical; add parity tests before phase 2.
+            </td>
+          </tr>
+          <tr>
+            <td>Residents quietly becoming IPD/ADT or insurance/TPA scope</td>
+            <td>
+              Out of scope per module docs (no ADT/IPD beds, no OT, no insurance). Care module stays
+              daycare/long-stay; any ADT ambition is a new module, not scope creep here.
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div class="card" id="appendix">
+        <h2>Appendix — evidence &amp; counts</h2>
+        <h3>Sources inspected</h3>
+        <ul class="tight">
+          <li>
+            <span class="mono">src/module.ts</span> (67 lines),
+            <span class="mono">auth.ts</span> (19 resources),
+            <span class="mono">pubsub.ts</span> (47 topics, shared payload),
+            <span class="mono">runtime.ts</span>, <span class="mono">index.ts</span>,
+            <span class="mono">types.ts</span> (847 lines),
+            <span class="mono">db-schemas/index.ts</span> (140 tables),
+            <span class="mono">workflows/index.ts</span> (643 lines),
+            <span class="mono">workflows/shared/*</span> (8 files / 555 lines).
+          </li>
+          <li>
+            <span class="mono"
+              >docs/overview.mdx, workflows.mdx, events.mdx, access-control.mdx</span
+            >; <span class="mono">.working-docs/bounded-contexts/healthcare.md</span>; sibling
+            surfaces: calendar (reminder/event), comms (message/notification), compliance
+            (document/obligation/verification), dms (file/version/share/hold),
+            hr-core/hr-attendance/hr-leave, masters (entity/setting/UoM), notes, tasks, workspace.
+            <span class="mono">inventory / reports / crm / fleet</span> are placeholders (empty
+            index) — noted so billing/inventory convergence is phased, not assumed.
+          </li>
+          <li>
+            File census via <span class="mono">find src -type f | sort</span> +
+            <span class="mono">wc -l</span>: 293 workflow files; schema sizes diagnostics 363 /
+            pharmacy 359 / nursing 315 / ayush 312 / residents 306 lines (largest domain schemas);
+            db-schema sizes nursing 323 / psych 302 / pharmacy 246 lines (widest tables).
+          </li>
+        </ul>
+        <h3>Method note</h3>
+        <p>
+          No source code was written or modified for this report. All counts are measured from the
+          attached <span class="mono">packages/healthcare/</span> tree; sibling-package workflow
+          listings were used only to confirm canonical owners for the merge proposals.
+          Behavior-preservation claims rest on move-not-rewrite + facade-delegate + dual-publish
+          mechanics described in §10.
+        </p>
+        <div class="callout green">
+          <strong>Bottom line:</strong> healthcare becomes 5 focused modules averaging ~50 workflow
+          files each; ~44 files of generic logic (staff, operations, records-as-infrastructure)
+          leave healthcare for hr-*, masters, compliance, dms/notes, comms, and calendar/tasks.
+          Clinical functionality stays identical — only ownership changes.
+        </div>
+      </div>
+    </main>
+
+    <footer class="wrap">
+      <p>
+        Report: <span class="mono">packages/healthcare/healthcare-refactoring-report.html</span> ·
+        Analysis only — no code changes made. Generated from the working tree on 2026-09-16.
+      </p>
+    </footer>
+  </body>
+</html>
