@@ -1,5 +1,6 @@
 import { healthcareNursingTask } from "#/db-schemas/nursing";
 import { NursingBoardSchema } from "#/schemas/nursing";
+import { NURSING_OPEN_STATUS, boardBranchOf, boardLimitOf } from "#/workflows/shared/board-query";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -33,11 +34,11 @@ export const board = Workflow.name("healthcare.nursing.board")
       ctx.db
         .select()
         .from(healthcareNursingTask)
-        .where(eq(healthcareNursingTask.branch_id, parsed.branchId ?? "main"))
-        .limit(500),
+        .where(eq(healthcareNursingTask.branch_id, boardBranchOf(parsed.branchId)))
+        .limit(boardLimitOf(undefined, 500, 500)),
     );
     const now = Date.now();
-    const open = rows.filter((row) => row.status === "open");
+    const open = rows.filter((row) => row.status === NURSING_OPEN_STATUS);
     const overdue = open.filter((row) => row.due_at && row.due_at.getTime() < now);
     const red = open.filter((row) => row.kind === "critical");
     return {

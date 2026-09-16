@@ -1,5 +1,6 @@
 import { healthcareRehabSitting } from "#/db-schemas/rehab";
 import { RehabFiltersSchema } from "#/schemas/rehab";
+import { REHAB_BOARD_STATUSES, boardBranchOf, boardLimitOf } from "#/workflows/shared/board-query";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -11,7 +12,7 @@ export const dayBoard = Workflow.name("healthcare.rehab.dayBoard")
   .input(DayBoardInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(RehabFiltersSchema, input);
-    const branchId = parsed.branchId ?? "main";
+    const branchId = boardBranchOf(parsed.branchId);
 
     const rows = await ctx.step.run("list-rehab-sittings", async () => {
       const conditions = [eq(healthcareRehabSitting.branch_id, branchId)];
@@ -26,7 +27,7 @@ export const dayBoard = Workflow.name("healthcare.rehab.dayBoard")
         .from(healthcareRehabSitting)
         .where(and(...conditions))
         .orderBy(desc(healthcareRehabSitting.created_at))
-        .limit(parsed.limit ?? 100)
+        .limit(boardLimitOf(parsed.limit, 100, 500))
         .offset(parsed.offset ?? 0);
     });
 
@@ -56,9 +57,9 @@ export const dayBoard = Workflow.name("healthcare.rehab.dayBoard")
     }
     return {
       groups: {
-        booked: count("Booked"),
-        completed: count("Completed"),
-        inProgress: count("InProgress"),
+        booked: count(REHAB_BOARD_STATUSES.BOOKED),
+        completed: count(REHAB_BOARD_STATUSES.COMPLETED),
+        inProgress: count(REHAB_BOARD_STATUSES.IN_PROGRESS),
       },
       load,
       sittings,

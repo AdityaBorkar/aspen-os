@@ -2,14 +2,13 @@ import { healthcareAppointment } from "#/db-schemas/appointments";
 import { healthcarePractitionerSchedule } from "#/db-schemas/practitioners";
 import { NextFreeSlotQuerySchema } from "#/schemas/practitioners";
 import { fetchPractitionerStep } from "#/workflow-steps/fetch-practitioner";
+import { slotLabel, toMinutes, weekdayKeyOf } from "#/workflows/shared/scheduling";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const NextFreeSlotInputSchema = object({ input: NextFreeSlotQuerySchema });
-
-const WEEKDAYS = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"] as const;
 
 export const nextPractitionerFreeSlot = Workflow.name("healthcare.practitioners.next-free-slot")
   .input(NextFreeSlotInputSchema)
@@ -54,18 +53,16 @@ export const nextPractitionerFreeSlot = Workflow.name("healthcare.practitioners.
       const date = new Date(`${base}T00:00:00`);
       date.setDate(date.getDate() + day);
       const datePart = date.toISOString().slice(0, 10);
-      const weekday = WEEKDAYS[date.getUTCDay()] ?? "sun";
+      const weekday = weekdayKeyOf(datePart);
       for (const schedule of schedules.filter((entry) => entry.weekday === weekday)) {
-        const [startHour, startMinute] = schedule.start_time.split(":").map(Number);
-        const [endHour, endMinute] = schedule.end_time.split(":").map(Number);
-        const startMin = (startHour ?? 0) * 60 + (startMinute ?? 0);
-        const endMin = (endHour ?? 0) * 60 + (endMinute ?? 0);
+        const startMin = toMinutes(schedule.start_time);
+        const endMin = toMinutes(schedule.end_time);
         for (
           let mins = startMin;
           mins + schedule.slot_min <= endMin;
           mins += schedule.slot_min + schedule.buffer_min
         ) {
-          const slot = `${datePart}T${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}:00`;
+          const slot = slotLabel(datePart, mins);
           if (slot >= (parsed.from ?? "") && !bookedMinutes.has(slot.slice(0, 16))) {
             return {
               practitionerId: parsed.practitionerId,

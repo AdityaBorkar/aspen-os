@@ -1,10 +1,9 @@
-import { healthcareMessageLog, healthcareMessageOptout } from "#/db-schemas/records";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { SendMessageSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertRecipientOptedIn, queueOutboundMessage } from "#/workflows/shared/messaging";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const MessagingSendInputSchema = object({ input: SendMessageSchema });
@@ -15,37 +14,18 @@ export const messagingSend = Workflow.name("healthcare.operations.messaging-send
     const parsed = parse(SendMessageSchema, input);
     const branchId = parsed.branchId ?? "main";
     const channel = parsed.channel ?? "sms";
-    const blocked = await ctx.step.run("check-optout", async () =>
-      ctx.db
-        .select({ id: healthcareMessageOptout.id })
-        .from(healthcareMessageOptout)
-        .where(
-          and(
-            eq(healthcareMessageOptout.branch_id, branchId),
-            eq(healthcareMessageOptout.to, parsed.to),
-          ),
-        )
-        .limit(10),
+    await ctx.step.run("check-optout", async () => {
+      await assertRecipientOptedIn(ctx.db, branchId, parsed.to);
+    });
+    const row = await ctx.step.run("queue-message", async () =>
+      queueOutboundMessage(ctx.db, {
+        branchId,
+        channel,
+        patientId: parsed.patientId ?? null,
+        template: parsed.template,
+        to: parsed.to,
+      }),
     );
-    if (blocked.length > 0) {
-      throw new Error("Recipient has opted out; messaging is blocked for this recipient");
-    }
-    const [row] = await ctx.step.run("queue-message", async () =>
-      ctx.db
-        .insert(healthcareMessageLog)
-        .values({
-          branch_id: branchId,
-          channel,
-          patient_id: parsed.patientId ?? null,
-          status: "queued",
-          template: parsed.template,
-          to: parsed.to,
-        })
-        .returning(),
-    );
-    if (!row) {
-      throw new Error("Failed to queue message.");
-    }
     const at = new Date().toISOString();
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

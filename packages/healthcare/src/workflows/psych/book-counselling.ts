@@ -1,16 +1,12 @@
-import {
-  healthcareCaregiverConsent,
-  healthcareCounsellingSession,
-  healthcareSafetyPlan,
-} from "#/db-schemas/psych";
+import { healthcareCounsellingSession } from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { BookCounsellingSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 import { fetchLatestRiskStep } from "#/workflow-steps/fetch-risk-flag";
+import { assertMinorConsent, assertRiskCleared } from "#/workflows/shared/psych-booking";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const BookCounsellingInputSchema = object({ input: BookCounsellingSchema });
@@ -23,15 +19,10 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
     const actorId = ctx.actorId ?? "system";
 
     if (parsed.encounterId) {
-      const encounter = await ctx.step.run(fetchEncounterStep, {
+      await ctx.step.run(fetchOpenEncounterStep, {
         id: parsed.encounterId,
+        patientId: parsed.patientId,
       });
-      if (encounter.status !== "open") {
-        throw new Error("Encounter is signed and immutable; file an addendum instead of editing");
-      }
-      if (encounter.patient_id !== parsed.patientId) {
-        throw new Error("Patient does not match the parent encounter; check the selected patient");
-      }
     }
 
     // Moderate/High risk blocks further sessions until safety plan + senior alert exist.
@@ -39,49 +30,20 @@ export const bookCounselling = Workflow.name("healthcare.psych.bookCounselling")
       branchId,
       patientId: parsed.patientId,
     });
-    if (risk && (risk.level === "Moderate" || risk.level === "High")) {
-      const cleared = await ctx.step.run("check-risk-clearance", async () => {
-        const [plan] = await ctx.db
-          .select({ id: healthcareSafetyPlan.id })
-          .from(healthcareSafetyPlan)
-          .where(
-            and(
-              eq(healthcareSafetyPlan.patient_id, parsed.patientId),
-              eq(healthcareSafetyPlan.branch_id, branchId),
-            ),
-          )
-          .limit(1);
-        const { alerts } = risk.payload;
-        const alerted = Array.isArray(alerts) && alerts.length > 0;
-        return Boolean(plan) && alerted;
-      });
-      if (!cleared) {
-        throw new Error(
-          `${risk.level} risk on file: complete a safety plan and alert a senior before further sessions`,
-        );
-      }
-    }
+    await ctx.step.run("check-risk-clearance", async () => {
+      await assertRiskCleared(ctx.db, { branchId, patientId: parsed.patientId }, risk);
+    });
 
     // Minor gate: patients flagged minor need a signed caregiver consent
     // before counselling starts.
     if (parsed.patientIsMinor) {
-      const consented = await ctx.step.run("check-minor-consent", async () => {
-        const [consent] = await ctx.db
-          .select({ id: healthcareCaregiverConsent.id })
-          .from(healthcareCaregiverConsent)
-          .where(
-            and(
-              eq(healthcareCaregiverConsent.patient_id, parsed.patientId),
-              eq(healthcareCaregiverConsent.branch_id, branchId),
-              eq(healthcareCaregiverConsent.status, "Signed"),
-            ),
-          )
-          .limit(1);
-        return Boolean(consent);
+      await ctx.step.run("check-minor-consent", async () => {
+        await assertMinorConsent(
+          ctx.db,
+          { branchId, patientId: parsed.patientId },
+          "Minor patient needs a signed caregiver consent before counselling starts",
+        );
       });
-      if (!consented) {
-        throw new Error("Minor patient needs a signed caregiver consent before counselling starts");
-      }
     }
 
     const [row] = await ctx.step.run("insert-counselling-session", async () =>

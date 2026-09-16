@@ -1,8 +1,9 @@
 import { healthcareCaregiverConsent } from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { CreateCaregiverConsentSchema } from "#/schemas/psych";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { signedAuditAction } from "#/workflows/shared/consent-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -19,15 +20,10 @@ export const caregiverConsent = Workflow.name("healthcare.psych.caregiverConsent
     const actorId = ctx.actorId ?? "system";
 
     if (parsed.encounterId) {
-      const encounter = await ctx.step.run(fetchEncounterStep, {
+      await ctx.step.run(fetchOpenEncounterStep, {
         id: parsed.encounterId,
+        patientId: parsed.patientId,
       });
-      if (encounter.status !== "open") {
-        throw new Error("Encounter is signed and immutable; file an addendum instead of editing");
-      }
-      if (encounter.patient_id !== parsed.patientId) {
-        throw new Error("Patient does not match the parent encounter; check the selected patient");
-      }
     }
 
     const [row] = await ctx.step.run("insert-caregiver-consent", async () =>
@@ -55,7 +51,7 @@ export const caregiverConsent = Workflow.name("healthcare.psych.caregiverConsent
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
-        action: row.status === "Signed" ? AUDIT_ACTION.SIGNED : AUDIT_ACTION.CREATED,
+        action: signedAuditAction(row.status),
         crudAction: "create",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.PSYCH,

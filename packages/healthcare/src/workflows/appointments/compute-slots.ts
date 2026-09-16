@@ -2,21 +2,20 @@ import { healthcareAppointment } from "#/db-schemas/appointments";
 import { healthcareFacilityBlock } from "#/db-schemas/facilities";
 import { healthcareLeaveBlock, healthcarePractitionerSchedule } from "#/db-schemas/practitioners";
 import { ComputeSlotsSchema } from "#/schemas/appointments";
+import {
+  assertDateString,
+  dateWithinRange,
+  intervalsOverlap,
+  toHHMM,
+  toMinutes,
+  weekdayKeyOf,
+} from "#/workflows/shared/scheduling";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const ComputeSlotsInputSchema = object({ input: ComputeSlotsSchema });
-
-function toMinutes(hhmm: string): number {
-  const [hours, minutes] = hhmm.split(":").map(Number);
-  return (hours ?? 0) * 60 + (minutes ?? 0);
-}
-
-function toHHMM(mins: number): string {
-  return `${String(Math.floor(mins / 60)).padStart(2, "0")}:${String(mins % 60).padStart(2, "0")}`;
-}
 
 export interface ComputedSlot {
   reserved: boolean;
@@ -29,13 +28,8 @@ export const computeSlots = Workflow.name("healthcare.appointments.compute-slots
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ComputeSlotsSchema, input);
     const branchId = parsed.branchId ?? "main";
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(parsed.date)) {
-      throw new Error(`Date "${parsed.date}" must be YYYY-MM-DD.`);
-    }
-    // SAFETY: getUTCDay() returns 0-6 and the lookup covers all seven weekdays in order.
-    const weekday = ["sun", "mon", "tue", "wed", "thu", "fri", "sat"][
-      new Date(`${parsed.date}T00:00:00Z`).getUTCDay()
-    ] as string;
+    assertDateString(parsed.date);
+    const weekday = weekdayKeyOf(parsed.date);
     const dayStart = new Date(`${parsed.date}T00:00:00Z`);
     const dayEnd = new Date(`${parsed.date}T00:00:00Z`);
     dayEnd.setUTCDate(dayEnd.getUTCDate() + 1);
@@ -81,8 +75,8 @@ export const computeSlots = Workflow.name("healthcare.appointments.compute-slots
       return { blocks, booked, leaves, schedules };
     });
 
-    const onLeave = data.leaves.some(
-      (leave) => leave.from_date <= parsed.date && parsed.date <= leave.to_date,
+    const onLeave = data.leaves.some((leave) =>
+      dateWithinRange(parsed.date, leave.from_date, leave.to_date),
     );
     const bookedSet = new Set(
       data.booked
@@ -112,7 +106,12 @@ export const computeSlots = Workflow.name("healthcare.appointments.compute-slots
           if (parsed.facilityId && block.facility_id && block.facility_id !== parsed.facilityId) {
             continue;
           }
-          if (block.from_at < slotEnd && slotStart < block.to_at) {
+          if (
+            intervalsOverlap(
+              { from: block.from_at, to: block.to_at },
+              { from: slotStart, to: slotEnd },
+            )
+          ) {
             if ((block.reason ?? "").toLowerCase().includes("reserve")) {
               reserved = true;
             } else {

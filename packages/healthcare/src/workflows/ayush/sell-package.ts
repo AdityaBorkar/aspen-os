@@ -2,6 +2,11 @@ import { healthcareTherapyPackage } from "#/db-schemas/ayush";
 import { AYUSH_EVENTS } from "#/pubsub";
 import { CreateTherapyPackageSchema } from "#/schemas/ayush";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import {
+  AYUSH_PACKAGE_DEFAULT_VALIDITY_DAYS,
+  packageExpiryAt,
+  remainingSessions,
+} from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -16,7 +21,7 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
     const branchId = parsed.branchId ?? "main";
     const actorId = ctx.actorId ?? "system";
 
-    const validDays = parsed.validDays ?? 90;
+    const validDays = parsed.validDays ?? AYUSH_PACKAGE_DEFAULT_VALIDITY_DAYS;
     const packagePayload: Record<string, JsonValue> = {};
     if (parsed.procedures) {
       packagePayload.procedures = parsed.procedures;
@@ -37,7 +42,7 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
           status: parsed.status,
           total_sittings: parsed.totalSittings,
           used_sittings: 0,
-          valid_till: new Date(Date.now() + validDays * 24 * 60 * 60 * 1000),
+          valid_till: packageExpiryAt(validDays),
         })
         .returning(),
     );
@@ -69,7 +74,7 @@ export const sellPackage = Workflow.name("healthcare.ayush.sellPackage")
 
     const sellSpec: Record<string, JsonValue> = row.payload;
     const attended = row.used_sittings ?? 0;
-    const remaining = Math.max(0, row.total_sittings - attended);
+    const remaining = remainingSessions(row.total_sittings, attended);
     return {
       attended,
       branchId: row.branch_id,

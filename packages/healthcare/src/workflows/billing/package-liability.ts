@@ -1,5 +1,6 @@
 import { healthcarePackageBalance } from "#/db-schemas/billing";
 import { PackageLiabilitySchema } from "#/schemas/billing";
+import { packageIsLapsed } from "#/workflows/shared/package-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -26,8 +27,7 @@ export const packageLiability = Workflow.name("healthcare.billing.package-liabil
     let expiredSessions = 0;
     for (const row of rows) {
       const sessions = Object.values(row.balance).reduce((sum, qty) => sum + qty, 0);
-      const expired =
-        row.status === "expired" || (row.expires_at !== null && row.expires_at.getTime() < now);
+      const expired = packageIsLapsed(row.status, row.expires_at, now);
       if (expired) {
         expiredSessions += sessions;
       } else if (row.status === "active") {

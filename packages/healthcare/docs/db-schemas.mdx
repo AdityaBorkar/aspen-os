@@ -2164,7 +2164,7 @@ Indexes: `branch_id`, `encounter_id`.
 
 #### `healthcare_consent_grant`
 
-Consent store backing consents-get and the sittings consent guard.
+Generic grant store; `consents-get` now returns a unified list across this store plus the patient, dental, and caregiver consent stores.
 
 | Column                      | Type        | Description |
 | --------------------------- | ----------- | ----------- |

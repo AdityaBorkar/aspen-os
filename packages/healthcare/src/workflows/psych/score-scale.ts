@@ -2,7 +2,7 @@ import { healthcareScaleResult } from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { CreateScaleResultSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -28,15 +28,10 @@ export const scoreScale = Workflow.name("healthcare.psych.scoreScale")
     const branchId = parsed.branchId ?? "main";
     const actorId = ctx.actorId ?? "system";
 
-    const encounter = await ctx.step.run(fetchEncounterStep, {
+    await ctx.step.run(fetchOpenEncounterStep, {
       id: parsed.encounterId,
+      patientId: parsed.patientId,
     });
-    if (encounter.status !== "open") {
-      throw new Error("Encounter is signed and immutable; file an addendum instead of editing");
-    }
-    if (encounter.patient_id !== parsed.patientId) {
-      throw new Error("Patient does not match the parent encounter; check the selected patient");
-    }
 
     // Re-administration guard: same scale within 24h needs an override reason.
     const recent = await ctx.step.run("check-recent-scale", async () => {

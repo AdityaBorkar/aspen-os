@@ -32,11 +32,11 @@ The Healthcare module publishes domain events as plain string topics via `PubSub
 
 ### Service
 
-| Event                         | Payload                 | Trigger                                                                                 |
-| ----------------------------- | ----------------------- | --------------------------------------------------------------------------------------- |
-| `healthcare.service_created`  | `HealthcareEntityEvent` | `services.create`, `definePackage`                                                      |
-| `healthcare.service_updated`  | `HealthcareEntityEvent` | `update`, `publish`, `retire`, `mapFacilities`, `setPrice`, `addDiscountRule`, `redeem` |
-| `healthcare.service_redeemed` | `HealthcareEntityEvent` | Reserved — no publisher yet; `redeem` currently publishes `service_updated`             |
+| Event                         | Payload                 | Trigger                                                                       |
+| ----------------------------- | ----------------------- | ----------------------------------------------------------------------------- |
+| `healthcare.service_created`  | `HealthcareEntityEvent` | `services.create`, `definePackage`                                            |
+| `healthcare.service_updated`  | `HealthcareEntityEvent` | `update`, `publish`, `retire`, `mapFacilities`, `setPrice`, `addDiscountRule` |
+| `healthcare.service_redeemed` | `HealthcareEntityEvent` | `redeem`                                                                      |
 
 ### Appointment
 

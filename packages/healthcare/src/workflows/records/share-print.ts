@@ -2,6 +2,7 @@ import { healthcareShareLog } from "#/db-schemas/records";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { ShareRecordSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertShareConfirmed } from "#/workflows/shared/messaging";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -13,9 +14,7 @@ export const sharePrint = Workflow.name("healthcare.records.share-print")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ShareRecordSchema, input);
     const branchId = parsed.branchId ?? "main";
-    if (parsed.recipientConfirm !== "yes") {
-      throw new Error("Recipient must confirm before sharing; obtain confirmation and retry");
-    }
+    assertShareConfirmed(parsed.recipientConfirm);
     const [row] = await ctx.step.run("insert-share", async () =>
       ctx.db
         .insert(healthcareShareLog)

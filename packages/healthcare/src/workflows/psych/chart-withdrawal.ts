@@ -2,7 +2,7 @@ import { healthcareAddictionChart } from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { CreateWithdrawalChartSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -67,15 +67,10 @@ export const chartWithdrawal = Workflow.name("healthcare.psych.chartWithdrawal")
     const actorId = ctx.actorId ?? "system";
 
     if (parsed.encounterId) {
-      const encounter = await ctx.step.run(fetchEncounterStep, {
+      await ctx.step.run(fetchOpenEncounterStep, {
         id: parsed.encounterId,
+        patientId: parsed.patientId,
       });
-      if (encounter.status !== "open") {
-        throw new Error("Encounter is signed and immutable; file an addendum instead of editing");
-      }
-      if (encounter.patient_id !== parsed.patientId) {
-        throw new Error("Patient does not match the parent encounter; check the selected patient");
-      }
     }
 
     const { band, prompt } = withdrawalBand(parsed.tool, parsed.score);

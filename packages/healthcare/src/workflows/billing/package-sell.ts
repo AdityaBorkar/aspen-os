@@ -2,6 +2,10 @@ import { healthcarePackageBalance } from "#/db-schemas/billing";
 import { BILLING_EVENTS } from "#/pubsub";
 import { CreatePackageBalanceSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import {
+  BILLING_PACKAGE_DEFAULT_VALIDITY_DAYS,
+  packageExpiryAt,
+} from "#/workflows/shared/package-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -13,14 +17,14 @@ export const packageSell = Workflow.name("healthcare.billing.package-sell")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreatePackageBalanceSchema, input);
     const branchId = parsed.branchId ?? "main";
-    const validityDays = parsed.validityDays ?? 180;
+    const validityDays = parsed.validityDays ?? BILLING_PACKAGE_DEFAULT_VALIDITY_DAYS;
     const [row] = await ctx.step.run("insert-package", async () =>
       ctx.db
         .insert(healthcarePackageBalance)
         .values({
           balance: {},
           branch_id: branchId,
-          expires_at: new Date(Date.now() + validityDays * 86_400_000),
+          expires_at: packageExpiryAt(validityDays),
           package_id: parsed.packageId,
           patient_id: parsed.patientId,
           price: String(parsed.price),

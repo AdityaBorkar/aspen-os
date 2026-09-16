@@ -3,6 +3,7 @@ import { REHAB_EVENTS } from "#/pubsub";
 import { CreateRehabPackageSchema } from "#/schemas/rehab";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchRehabEpisodeStep } from "#/workflow-steps/fetch-rehab-episode";
+import { packageExpiryDateOnly } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -73,7 +74,7 @@ export const buildPackage = Workflow.name("healthcare.rehab.buildPackage")
     return {
       branchId: row.branch_id,
       episodeId: row.id,
-      expiry: expiryOf(rehabPackage),
+      expiry: packageExpiryDateOnly(rehabPackage.soldAt, rehabPackage.validityDays),
       frequency: parsed.frequency,
       id: row.id,
       modalities: parsed.modalities ?? [],
@@ -85,11 +86,3 @@ export const buildPackage = Workflow.name("healthcare.rehab.buildPackage")
       validityDays: parsed.validityDays ?? null,
     };
   });
-
-function expiryOf(pkg: { soldAt: string; validityDays: number | null }): string | null {
-  if (pkg.validityDays === null) {
-    return null;
-  }
-  const expiry = new Date(pkg.soldAt).getTime() + pkg.validityDays * 86_400_000;
-  return new Date(expiry).toISOString().slice(0, 10);
-}

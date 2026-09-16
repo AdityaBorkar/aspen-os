@@ -3,6 +3,7 @@ import { BRANCH_EVENTS } from "#/pubsub";
 import { UpdateBranchSchema } from "#/schemas/admin";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchBranchStep, toBranchDto } from "#/workflow-steps/fetch-admin";
+import { branchEventScope } from "#/workflows/shared/branch-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -44,7 +45,7 @@ export const updateBranch = Workflow.name("healthcare.admin.update-branch")
       await ctx.pubsub.publish(BRANCH_EVENTS.UPDATED, {
         actorId: ctx.actorId,
         at: new Date().toISOString(),
-        branchId: row.id,
+        branchId: branchEventScope(row),
         id: row.id,
       });
     });

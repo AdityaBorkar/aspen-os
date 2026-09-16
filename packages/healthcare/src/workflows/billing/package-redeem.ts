@@ -2,6 +2,7 @@ import { healthcarePackageBalance } from "#/db-schemas/billing";
 import { BILLING_EVENTS } from "#/pubsub";
 import { RedeemPackageSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { applyBalanceRedemption, packageIsLapsed } from "#/workflows/shared/package-lifecycle";
 
 import type { JsonValue } from "@aspen-os/platform/server";
 import { Workflow } from "@aspen-os/platform/server";
@@ -28,7 +29,7 @@ export const packageRedeem = Workflow.name("healthcare.billing.package-redeem")
     if (sale.status !== "active") {
       throw new Error("Package is not active; only active packages can be redeemed");
     }
-    if (sale.expires_at && sale.expires_at.getTime() < Date.now()) {
+    if (packageIsLapsed(sale.status, sale.expires_at)) {
       await ctx.step.run("lapse-package", async () =>
         ctx.db
           .update(healthcarePackageBalance)
@@ -38,20 +39,16 @@ export const packageRedeem = Workflow.name("healthcare.billing.package-redeem")
       throw new Error("Package has expired; the balance has lapsed — sell a new package");
     }
     const qty = parsed.qty ?? 1;
-    const left = (sale.balance[parsed.serviceId] ?? qty) - qty;
-    if (left < 0) {
-      throw new Error("Redeem would make balance negative; check the remaining sessions and retry");
-    }
-    const nextStatus = Object.values({ ...sale.balance, [parsed.serviceId]: left }).every(
-      (value) => value <= 0,
-    )
-      ? "exhausted"
-      : sale.status;
+    const { left, nextBalance, nextStatus } = applyBalanceRedemption(
+      sale.balance,
+      { qty, serviceId: parsed.serviceId },
+      sale.status,
+    );
     const [row] = await ctx.step.run("redeem-package", async () =>
       ctx.db
         .update(healthcarePackageBalance)
         .set({
-          balance: { ...sale.balance, [parsed.serviceId]: left },
+          balance: nextBalance,
           payload: (() => {
             // SAFETY: redemptions are written by this workflow as plain JSON objects, so
             // reading them back as JsonValue only satisfies the jsonb element check.

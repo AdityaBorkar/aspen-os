@@ -2,6 +2,7 @@ import { healthcareMessageLog } from "#/db-schemas/records";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { RetryMessageSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertRecipientOptedIn } from "#/workflows/shared/messaging";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -27,6 +28,9 @@ export const messagingRetry = Workflow.name("healthcare.operations.messaging-ret
     if (msg.status === "delivered") {
       throw new Error("Message already delivered; retry applies to queued/failed messages only");
     }
+    await ctx.step.run("check-optout", async () => {
+      await assertRecipientOptedIn(ctx.db, branchId, msg.to);
+    });
     const [row] = await ctx.step.run("requeue-message", async () =>
       ctx.db
         .update(healthcareMessageLog)

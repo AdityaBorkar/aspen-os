@@ -3,6 +3,10 @@ import { SERVICE_EVENTS } from "#/pubsub";
 import { CreatePricelistSchema } from "#/schemas/services";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { toPricelistDto } from "#/workflow-steps/fetch-service";
+import {
+  assertPricelistCodeAllowed,
+  nextPricelistVersion,
+} from "#/workflows/shared/pricelist-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq } from "drizzle-orm";
@@ -14,11 +18,7 @@ export const createPricelist = Workflow.name("healthcare.pricelists.create")
   .input(CreatePricelistInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreatePricelistSchema, input);
-    if (parsed.code.toUpperCase() === "DEFAULT") {
-      throw new Error(
-        'The "DEFAULT" code is reserved for the seeded fallback pricelist; pick another code.',
-      );
-    }
+    assertPricelistCodeAllowed(parsed.code);
     const [prior] = await ctx.step.run("load-prior-version", async () =>
       ctx.db
         .select({ version: healthcarePricelist.version })
@@ -45,7 +45,7 @@ export const createPricelist = Workflow.name("healthcare.pricelists.create")
           scope: parsed.scope ?? "branch",
           status: "draft",
           tax_inclusive: parsed.taxInclusive ?? true,
-          version: (prior?.version ?? 0) + 1,
+          version: nextPricelistVersion(prior?.version),
         })
         .returning(),
     );

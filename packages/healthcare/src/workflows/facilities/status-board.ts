@@ -1,6 +1,7 @@
 import { healthcareFacility } from "#/db-schemas/facilities";
 import { FacilityStatusQuerySchema } from "#/schemas/facilities";
 import { toFacilityDto } from "#/workflow-steps/fetch-facility";
+import { boardBranchOf, boardLimitOf } from "#/workflows/shared/board-query";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -16,8 +17,8 @@ export const facilityStatusBoard = Workflow.name("healthcare.facilities.status-b
       ctx.db
         .select()
         .from(healthcareFacility)
-        .where(eq(healthcareFacility.branch_id, parsed.branchId))
-        .limit(200),
+        .where(eq(healthcareFacility.branch_id, boardBranchOf(parsed.branchId)))
+        .limit(boardLimitOf(undefined, 200, 500)),
     );
     return {
       facilities: rows.map((row) => {

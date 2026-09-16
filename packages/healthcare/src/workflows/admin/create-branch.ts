@@ -3,9 +3,13 @@ import { BRANCH_EVENTS } from "#/pubsub";
 import { CreateBranchSchema } from "#/schemas/admin";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { toBranchDto } from "#/workflow-steps/fetch-admin";
+import {
+  assertSubdomainFree,
+  branchEventScope,
+  branchInsertValues,
+} from "#/workflows/shared/branch-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
 
 const CreateBranchInputSchema = object({ input: CreateBranchSchema });
@@ -14,28 +18,16 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
   .input(CreateBranchInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateBranchSchema, input);
-    const taken = await ctx.step.run("check-subdomain", async () => {
-      const [row] = await ctx.db
-        .select({ id: healthcareBranch.id })
-        .from(healthcareBranch)
-        .where(eq(healthcareBranch.subdomain, parsed.subdomain))
-        .limit(1);
-      return row ?? null;
+    await ctx.step.run("check-subdomain", async () => {
+      await assertSubdomainFree(ctx.db, parsed.subdomain);
     });
-    if (taken) {
-      throw new Error(`Subdomain "${parsed.subdomain}" is already taken by branch ${taken.id}.`);
-    }
     const [row] = await ctx.step.run("insert-branch", async () =>
       ctx.db
         .insert(healthcareBranch)
         .values({
-          branch_id: "main",
+          ...branchInsertValues(parsed.name, parsed.address, parsed.subdomain),
           id: crypto.randomUUID(),
           kind: "branch",
-          name: parsed.name,
-          payload: parsed.address ? { address: parsed.address } : {},
-          status: "active",
-          subdomain: parsed.subdomain,
         })
         .returning(),
     );
@@ -53,7 +45,7 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
       await ctx.pubsub.publish(BRANCH_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at: new Date().toISOString(),
-        branchId: row.id,
+        branchId: branchEventScope(row),
         id: row.id,
       });
     });

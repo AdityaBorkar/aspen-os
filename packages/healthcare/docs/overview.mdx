@@ -73,9 +73,8 @@ Writers call `ctx.audit.write()` then `ctx.pubsub.publish()`; reads publish noth
 
 ### Status representation
 
-Shared lifecycles use `pgEnum`s (`healthcare_appointment_status`, `healthcare_encounter_status`, `healthcare_lab_order_status`, …). Specialty-domain statuses stay clinic-capitalized text columns (`Open`, `Booked`, `Completed`) so ported guards keep their exact semantics.
+Shared lifecycles use `pgEnum`s (`healthcare_appointment_status`, `healthcare_encounter_status`, `healthcare_lab_order_status`, …). Specialty-domain statuses stay clinic-capitalized text columns (`Open`, `Booked`, `Completed`) so ported guards keep their exact semantics. Board status literals live in one place (`workflows/shared/board-query.ts`) so the five queue/board readers cannot drift apart again.
 
-<Callout type="warn">
-  `SERVICE_EVENTS.REDEEMED` (`healthcare.service_redeemed`) is declared for future use; package
-  redemption currently publishes `SERVICE_EVENTS.UPDATED`, matching the ported call sites.
-</Callout>
+### Shared workflow helpers
+
+Cross-cutting logic shared by `workflows/*` lives in `workflows/shared/`: slot math and interval overlap (`scheduling`), package sell/redeem/expiry (`package-lifecycle`), pricelist codes and versioning (`pricelist-lifecycle`), branch slug/subdomain handling (`branch-lifecycle`), opt-out-gated outbound messaging (`messaging`), unified consent reads across the four consent stores (`consent-lifecycle`), and psych session guards (`psych-booking`). The open-encounter gate all specialty writers use is the shared `fetchOpenEncounterStep`.

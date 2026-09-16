@@ -2,6 +2,13 @@ import { healthcareBranch } from "#/db-schemas/branch";
 import { BRANCH_EVENTS } from "#/pubsub";
 import { CreateBranchSchema } from "#/schemas/operations";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { toBranchDto } from "#/workflow-steps/fetch-admin";
+import {
+  assertSubdomainFree,
+  branchEventScope,
+  branchInsertValues,
+  resolveBranchSubdomain,
+} from "#/workflows/shared/branch-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -12,22 +19,14 @@ export const branchesCreate = Workflow.name("healthcare.operations.branches-crea
   .input(BranchesCreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateBranchSchema, input);
-    const subdomain = (
-      parsed.slug ?? parsed.name.toLowerCase().replace(/[^a-z0-9]+/g, "-")
-    ).replace(/^-+|-+$/g, "");
-    if (!subdomain) {
-      throw new Error("Branch needs a usable slug; check the name and retry");
-    }
+    const subdomain = resolveBranchSubdomain(parsed.name, parsed.slug);
+    await ctx.step.run("check-subdomain", async () => {
+      await assertSubdomainFree(ctx.db, subdomain);
+    });
     const [row] = await ctx.step.run("insert-branch", async () =>
       ctx.db
         .insert(healthcareBranch)
-        .values({
-          branch_id: "main",
-          name: parsed.name,
-          payload: parsed.address ? { address: parsed.address } : {},
-          status: "active",
-          subdomain,
-        })
+        .values(branchInsertValues(parsed.name, parsed.address, subdomain))
         .returning(),
     );
     if (!row) {
@@ -45,9 +44,9 @@ export const branchesCreate = Workflow.name("healthcare.operations.branches-crea
       await ctx.pubsub.publish(BRANCH_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
-        branchId: "main",
+        branchId: branchEventScope(row),
         id: row.id,
       });
     });
-    return { id: row.id, name: row.name, subdomain: row.subdomain };
+    return toBranchDto(row);
   });

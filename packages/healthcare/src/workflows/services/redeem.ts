@@ -3,6 +3,7 @@ import { SERVICE_EVENTS } from "#/pubsub";
 import { RedeemPackageSchema } from "#/schemas/services";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPackageStep, readPackageCounters } from "#/workflow-steps/fetch-service";
+import { remainingSessions } from "#/workflows/shared/package-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -18,7 +19,7 @@ export const redeemPackage = Workflow.name("healthcare.services.redeem")
       id: parsed.packageId,
     });
     const counters = readPackageCounters(existing.payload);
-    const remaining = counters.totalRedemptions - counters.redeemedCount;
+    const remaining = remainingSessions(counters.totalRedemptions, counters.redeemedCount);
     if (remaining <= 0) {
       throw new Error(
         `Package "${parsed.packageId}" is exhausted (${counters.redeemedCount}/${counters.totalRedemptions} redeemed); balance cannot go negative.`,
@@ -49,13 +50,13 @@ export const redeemPackage = Workflow.name("healthcare.services.redeem")
     }
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
+        action: AUDIT_ACTION.REDEEM,
         changes: { redeemedCount: counters.redeemedCount + 1 },
         crudAction: "update",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.SERVICE,
       });
-      await ctx.pubsub.publish(SERVICE_EVENTS.UPDATED, {
+      await ctx.pubsub.publish(SERVICE_EVENTS.REDEEMED, {
         actorId: ctx.actorId,
         at: redeemedAt,
         branchId: row.branch_id,

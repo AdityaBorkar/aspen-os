@@ -1,7 +1,12 @@
-import { healthcareMessageLog, healthcareShareLog } from "#/db-schemas/records";
+import { healthcareShareLog } from "#/db-schemas/records";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { ShareRecordSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import {
+  assertRecipientOptedIn,
+  assertShareConfirmed,
+  queueOutboundMessage,
+} from "#/workflows/shared/messaging";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -13,9 +18,10 @@ export const shareWhatsapp = Workflow.name("healthcare.records.share-whatsapp")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ShareRecordSchema, input);
     const branchId = parsed.branchId ?? "main";
-    if (parsed.recipientConfirm !== "yes") {
-      throw new Error("Recipient must confirm before sharing; obtain confirmation and retry");
-    }
+    assertShareConfirmed(parsed.recipientConfirm);
+    await ctx.step.run("check-optout", async () => {
+      await assertRecipientOptedIn(ctx.db, branchId, parsed.recipient);
+    });
     const [row] = await ctx.step.run("insert-share", async () =>
       ctx.db
         .insert(healthcareShareLog)
@@ -33,11 +39,10 @@ export const shareWhatsapp = Workflow.name("healthcare.records.share-whatsapp")
       throw new Error("Failed to log whatsapp share.");
     }
     await ctx.step.run("queue-message", async () =>
-      ctx.db.insert(healthcareMessageLog).values({
-        branch_id: branchId,
+      queueOutboundMessage(ctx.db, {
+        branchId,
         channel: "whatsapp",
-        patient_id: parsed.patientId ?? null,
-        status: "queued",
+        patientId: parsed.patientId ?? null,
         to: parsed.recipient,
       }),
     );

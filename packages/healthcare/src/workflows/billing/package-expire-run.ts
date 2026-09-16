@@ -2,6 +2,7 @@ import { healthcarePackageBalance } from "#/db-schemas/billing";
 import { BILLING_EVENTS } from "#/pubsub";
 import { DuesAgingFiltersSchema } from "#/schemas/billing";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { packageIsLapsed } from "#/workflows/shared/package-lifecycle";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -30,7 +31,7 @@ export const packageExpireRun = Workflow.name("healthcare.billing.package-expire
     const lapsed: string[] = [];
     // oxlint-disable eslint/no-await-in-loop
     for (const sale of sales) {
-      if (sale.expires_at && sale.expires_at.getTime() < now) {
+      if (packageIsLapsed(sale.status, sale.expires_at, now)) {
         await ctx.step.run(`lapse-${sale.id}`, async () =>
           ctx.db
             .update(healthcarePackageBalance)

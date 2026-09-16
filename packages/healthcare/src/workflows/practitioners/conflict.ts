@@ -65,7 +65,7 @@ export const checkPractitionerConflict = Workflow.name("healthcare.practitioners
     return {
       appointments,
       from: parsed.from,
-      hasConflict: leaves.length > 0,
+      hasConflict: leaves.length > 0 || appointments.length > 0,
       leaves: leaves.map(toLeaveBlockDto),
       practitionerId: parsed.practitionerId,
       to: parsed.to,

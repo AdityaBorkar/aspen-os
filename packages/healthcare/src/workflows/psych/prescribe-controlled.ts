@@ -2,7 +2,7 @@ import { healthcareControlledPrescription } from "#/db-schemas/psych";
 import { PSYCH_EVENTS } from "#/pubsub";
 import { CreateControlledPrescriptionSchema } from "#/schemas/psych";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchEncounterStep } from "#/workflow-steps/fetch-encounter";
+import { fetchOpenEncounterStep } from "#/workflow-steps/fetch-encounter";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -18,15 +18,10 @@ export const prescribeControlled = Workflow.name("healthcare.psych.prescribeCont
     const branchId = parsed.branchId ?? "main";
     const actorId = ctx.actorId ?? "system";
 
-    const encounter = await ctx.step.run(fetchEncounterStep, {
+    await ctx.step.run(fetchOpenEncounterStep, {
       id: parsed.encounterId,
+      patientId: parsed.patientId,
     });
-    if (encounter.status !== "open") {
-      throw new Error("Encounter is signed and immutable; file an addendum instead of editing");
-    }
-    if (encounter.patient_id !== parsed.patientId) {
-      throw new Error("Patient does not match the parent encounter; check the selected patient");
-    }
 
     // Max-days cap: controlled supply beyond the cap needs a psychiatrist
     // override with a reason.
