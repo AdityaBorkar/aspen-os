@@ -38,3 +38,10 @@ export const LeaveBlockListScopeSchema = enum_({
   company: "company",
   department: "department",
 });
+
+export const HolidayTypeSchema = enum_({
+  company: "company",
+  optional: "optional",
+  public: "public",
+  weekly_off: "weekly_off",
+});

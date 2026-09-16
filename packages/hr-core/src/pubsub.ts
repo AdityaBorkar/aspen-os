@@ -169,7 +169,6 @@ export const SETUP_EVENTS = {
   DEPARTMENT_HEAD_CHANGED: "setup.department_head_changed",
   DEPARTMENT_MOVED: "setup.department_moved",
   DESIGNATION_CREATED: "setup.designation_created",
-  HOLIDAY_LIST_CREATED: "setup.holiday_list_created",
   SETTINGS_UPDATED: "setup.settings_updated",
 } as const;
 
@@ -190,10 +189,6 @@ export interface DepartmentMovedEvent {
 
 export interface DesignationCreatedEvent {
   designation: { id: string; name: string };
-}
-
-export interface HolidayListCreatedEvent {
-  holidayList: { id: string; name: string; year: number };
 }
 
 export interface HrSettingsUpdatedEvent {
@@ -296,7 +291,6 @@ export interface SetupEventMap {
   [SETUP_EVENTS.DEPARTMENT_HEAD_CHANGED]: DepartmentHeadChangedEvent;
   [SETUP_EVENTS.DEPARTMENT_MOVED]: DepartmentMovedEvent;
   [SETUP_EVENTS.DESIGNATION_CREATED]: DesignationCreatedEvent;
-  [SETUP_EVENTS.HOLIDAY_LIST_CREATED]: HolidayListCreatedEvent;
   [SETUP_EVENTS.SETTINGS_UPDATED]: HrSettingsUpdatedEvent;
 }
 

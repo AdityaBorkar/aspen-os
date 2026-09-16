@@ -16,3 +16,4 @@ The hr-leave module defines domain events for leave. Events are type-level contr
 | `leave.application_cancelled` | `{ applicationId }`                                                           | `leave.cancelLeaveApplication`  |
 | `leave.allocation_created`    | `{ allocation: { id, employeeId, leaveType, totalDays } }`                    | `leave.createLeaveAllocation`   |
 | `leave.encashment_requested`  | `{ encashment: { id, employeeId, leaveType, encashableDays } }`               | `leave.createLeaveEncashment`   |
+| `leave.holiday_list_created`  | `{ holidayList: { id, name, year } }`                                         | `config.holidayLists.create`    |

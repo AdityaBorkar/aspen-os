@@ -4,7 +4,7 @@ description: Architecture and concepts for the HR Leave domain module.
 icon: IconInfoCircle
 ---
 
-The hr-leave module owns leave types, policies, allocations, applications, encashment, compensatory leave, block lists, adjustments, and the append-only ledger — all tenant-scoped and linked to hr-core employees via soft `employee_id`.
+The hr-leave module owns leave types, policies, allocations, applications, encashment, compensatory leave, block lists, adjustments, the append-only ledger, and holiday lists/holidays — all tenant-scoped and linked to hr-core employees via soft `employee_id`.
 
 ## Module
 
@@ -49,13 +49,13 @@ flowchart TB
     PR[$prepareRuntime]
   end
 
-  PI --> ACL[auth.acl\nleave]
-  PI --> TS[tenant_schemas\nleave_type, leave_period, leave_policy, leave_allocation, leave_application, leave_encashment, leave_ledger_entry...]
+  PI --> ACL[auth.acl\nleave, config]
+  PI --> TS[tenant_schemas\nleave_type, leave_period, leave_policy, leave_allocation, leave_application, leave_encashment, leave_ledger_entry, holiday_list, holiday...]
   PI --> EV[events\nleave]
 
   PR -->|schedule 0 0 * * *| CRON[hr.daily-leave-accrual]
 
-  WF[workflows\nleave] --> DB
+  WF[workflows\nleave, config] --> DB
   WF --> PS
   DB --- TS
 ```
@@ -78,6 +78,10 @@ flowchart TB
 
 `leave_encashment` claims encashment of unused days (`leave_type`, `leave_period`, `encashable_days`/`encashed_days`, `amount`, `hr_leave_encashment_status`; paid is terminal via `markLeaveEncashmentPaid`). `compensatory_leave_request` compensates a worked-off `work_date` (`leave_type`, `number_of_days`, `hr_compensatory_leave_status`; approval creates a `leave_allocation` and a `transaction_type: compensatory` ledger entry). `leave_block_list` is a blackout window (`scope` company/department, `from_date`/`to_date`, blocks `createLeaveApplication` when overlapped). `leave_adjustment` is a manual correction (`employee_id`, `leave_type`, `days`, `adjusted_by`, `reason`, backing `leave_ledger_entry`).
 
+## Holidays
+
+`holiday_list` is a named yearly calendar (`name`, `year`, `weekly_off_days` pattern, soft-delete via `is_active`); `holiday` is a dated entry within a list (`holiday_list_id`, `name`, `date`, `hr_holiday_type`). Served by the `config` workflow group (`p.hrLeave.config.holidayLists` / `p.hrLeave.config.holidays`); `createHoliday` validates the owning list exists.
+
 ## Relationships
 
 ```mermaid
@@ -99,7 +103,11 @@ flowchart LR
     LADJ[leave_adjustment]
     LLE[leave_ledger_entry]
     CLR[compensatory_leave_request]
+    HL[holiday_list]
+    HOL[holiday]
   end
+
+  HOL -->|holiday_list_id| HL
 
   LPD -->|leave_policy_id| LPO
   LPA -->|leave_policy| LPO
@@ -126,6 +134,7 @@ All links are soft text FKs (no DB constraints); `leave_type`/`leave_period`/`le
 
 ```ts title="src/auth.ts"
 export const acl = defineAcl({
+  config: ["create", "delete", "read", "update"],
   leave: ["approve", "create", "read", "reject", "update"],
 });
 ```

@@ -217,6 +217,32 @@ Compensatory leave for a worked-off day.
 
 Indexes: `idx_compensatory_leave_request_employee_id` (`employee_id`), `idx_compensatory_leave_request_status` (`status`).
 
+### `holiday_list`
+
+Named holiday calendar; `delete` soft-deletes via `is_active`.
+
+| Column            | Type    | Description        |
+| ----------------- | ------- | ------------------ |
+| `name`            | text    | List name          |
+| `description`     | text    | Optional           |
+| `year`            | integer | Calendar year      |
+| `weekly_off_days` | jsonb   | Weekly off pattern |
+| `is_active`       | boolean | Default true       |
+
+### `holiday`
+
+Single holiday within a list; `delete` hard-deletes.
+
+| Column            | Type              | Description      |
+| ----------------- | ----------------- | ---------------- |
+| `holiday_list_id` | text (FK → list)  | Owning list      |
+| `name`            | text              | Holiday name     |
+| `date`            | date              | Holiday date     |
+| `type`            | `hr_holiday_type` | Default `public` |
+| `description`     | text              | Optional         |
+
+Indexes: `idx_holiday_holiday_list_id` (`holiday_list_id`).
+
 ## Relationships
 
 All FKs are soft (logical, no DB constraints); type/period/policy existence is workflow-enforced.
@@ -237,4 +263,5 @@ flowchart LR
   CLR[compensatory_leave_request] -->|employee_id| EMP
   LADJ[leave_adjustment] -->|leave_ledger_entry| LLE[leave_ledger_entry]
   LLE -->|employee_id| EMP
+  HOL[holiday] -->|holiday_list_id| HL[holiday_list]
 ```

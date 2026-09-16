@@ -101,7 +101,7 @@ export const acl = defineAcl({
 
 ## Organizational Setup
 
-Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `holiday_list`/`holiday` (list owns weekly off pattern, holidays reference `hr_holiday_type`), `hr_settings` and `payroll_settings` (singleton upserts). Department moves and head changes emit `setup.department_moved` / `setup.department_head_changed`; ancestor walk (depth 10) prevents cycles.
+Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `hr_settings` and `payroll_settings` (singleton upserts). Holiday lists/holidays live in `@aspen-os/hr-leave`; `employee.holiday_list` and `hr_settings.default_holiday_list` stay as soft text refs. Department moves and head changes emit `setup.department_moved` / `setup.department_head_changed`; ancestor walk (depth 10) prevents cycles.
 
 ## Relationships
 
@@ -117,7 +117,6 @@ flowchart LR
     DEPT[department]
     DESIG[designation]
     GRADE[employee_grade]
-    HRLIST[holiday_list]
     HRU[hr_user]
     ROLE[hr_role]
   end

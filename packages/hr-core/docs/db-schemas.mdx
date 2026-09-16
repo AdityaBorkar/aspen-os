@@ -146,28 +146,6 @@ Indexes: `idx_department_is_active` (`is_active`), `idx_department_parent_depart
 | `default_salary_structure` | text    | Linked salary structure |
 | `is_active`                | boolean | Soft-delete flag        |
 
-### `holiday_list` — control-plane
-
-| Column            | Type    | Description        |
-| ----------------- | ------- | ------------------ |
-| `name`            | text    | List name          |
-| `description`     | text    | Optional           |
-| `year`            | integer | Calendar year      |
-| `weekly_off_days` | jsonb   | Weekly off pattern |
-| `is_active`       | boolean | Soft-delete flag   |
-
-### `holiday` — control-plane
-
-| Column            | Type                     | Description      |
-| ----------------- | ------------------------ | ---------------- |
-| `holiday_list_id` | text (FK → holiday_list) | Owning list      |
-| `name`            | text                     | Holiday name     |
-| `date`            | date                     | Holiday date     |
-| `type`            | `hr_holiday_type`        | Default `public` |
-| `description`     | text                     | Optional         |
-
-Indexes: `idx_holiday_holiday_list_id` (`holiday_list_id`).
-
 ### `employee` — tenant
 
 Core employee record; `employee_id` is the unique business id.
@@ -469,7 +447,6 @@ flowchart LR
   HRA[hr_position_assignment] -->|position_id| HRP
   HRA -->|employee_id| EMP
   HRA -. is_primary unique per employee .-> EMP
-  HOL[holiday] -->|holiday_list_id| HL[holiday_list]
   HUR[hr_user_role] -->|hr_user_id| HRU[hr_user]
   HUR -->|role_id| HRROLE[hr_role]
   HRP2[hr_role_permission] -->|role_id| HRROLE

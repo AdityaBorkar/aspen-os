@@ -38,3 +38,10 @@ export const leaveBlockListScopeEnum = pgEnum("hr_leave_block_list_scope", [
   "company",
   "department",
 ]);
+
+export const holidayTypeEnum = pgEnum("hr_holiday_type", [
+  "company",
+  "optional",
+  "public",
+  "weekly_off",
+]);

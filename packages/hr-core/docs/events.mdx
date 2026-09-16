@@ -8,38 +8,38 @@ The hr-core module defines domain events by group. Events are type-level contrac
 
 ## Employee
 
-| Event                     | Payload                                                 | Trigger                |
-| ------------------------- | ------------------------------------------------------- | ---------------------- |
-| `employee.created`        | `{ employee: { id, employeeId, firstName, lastName } }` | `employee.create`      |
-| `employee.updated`        | `{ employee: { id, name }, changes }`                   | `employee.update`      |
-| `employee.status_changed` | `{ employeeId, fromStatus, toStatus }`                  | status mutation        |
-| `employee.group_created`  | `{ group: { id, name } }`                               | `employee.createGroup` |
+| Event                     | Payload                                                 | Trigger                     |
+| ------------------------- | ------------------------------------------------------- | --------------------------- |
+| `employee.created`        | `{ employee: { id, employeeId, firstName, lastName } }` | `employee.employees.create` |
+| `employee.updated`        | `{ employee: { id, name }, changes }`                   | `employee.employees.update` |
+| `employee.status_changed` | `{ employeeId, fromStatus, toStatus }`                  | status mutation             |
+| `employee.group_created`  | `{ group: { id, name } }`                               | `employee.groups.create`    |
 
 ## Lifecycle
 
-| Event                                | Payload                                                                 | Trigger                                           |
-| ------------------------------------ | ----------------------------------------------------------------------- | ------------------------------------------------- |
-| `lifecycle.onboarding_started`       | `{ onboarding: { id, employeeId, startDate } }`                         | `lifecycle.createOnboarding`                      |
-| `lifecycle.onboarding_completed`     | `{ employeeId, onboardingId }`                                          | onboarding completion                             |
-| `lifecycle.promotion_requested`      | `{ promotion: { id, employeeId, currentDesignation, newDesignation } }` | `lifecycle.createPromotion`                       |
-| `lifecycle.promotion_approved`       | `{ promotionId, employeeId, approvedBy }`                               | `lifecycle.approvePromotion`                      |
-| `lifecycle.transfer_requested`       | `{ transfer: { id, employeeId, fromDepartment, toDepartment } }`        | `lifecycle.createTransfer`                        |
-| `lifecycle.transfer_approved`        | `{ transferId, employeeId, approvedBy }`                                | `lifecycle.approveTransfer`                       |
-| `lifecycle.separation_initiated`     | `{ separation: { id, employeeId, exitDate } }`                          | `lifecycle.createSeparation`                      |
-| `lifecycle.separation_completed`     | `{ separationId, employeeId }`                                          | `lifecycle.updateSeparation` status → `completed` |
-| `lifecycle.exit_interview_scheduled` | `{ exitInterviewId, employeeId, scheduledDate }`                        | `lifecycle.createExitInterview`                   |
+| Event                                | Payload                                                                 | Trigger                                             |
+| ------------------------------------ | ----------------------------------------------------------------------- | --------------------------------------------------- |
+| `lifecycle.onboarding_started`       | `{ onboarding: { id, employeeId, startDate } }`                         | `lifecycle.onboardings.create`                      |
+| `lifecycle.onboarding_completed`     | `{ employeeId, onboardingId }`                                          | onboarding completion                               |
+| `lifecycle.promotion_requested`      | `{ promotion: { id, employeeId, currentDesignation, newDesignation } }` | `lifecycle.promotions.create`                       |
+| `lifecycle.promotion_approved`       | `{ promotionId, employeeId, approvedBy }`                               | `lifecycle.promotions.approve`                      |
+| `lifecycle.transfer_requested`       | `{ transfer: { id, employeeId, fromDepartment, toDepartment } }`        | `lifecycle.transfers.create`                        |
+| `lifecycle.transfer_approved`        | `{ transferId, employeeId, approvedBy }`                                | `lifecycle.transfers.approve`                       |
+| `lifecycle.separation_initiated`     | `{ separation: { id, employeeId, exitDate } }`                          | `lifecycle.separations.create`                      |
+| `lifecycle.separation_completed`     | `{ separationId, employeeId }`                                          | `lifecycle.separations.update` status → `completed` |
+| `lifecycle.exit_interview_scheduled` | `{ exitInterviewId, employeeId, scheduledDate }`                        | `lifecycle.exitInterviews.create`                   |
 
 ## Position
 
-| Event                  | Payload                                                | Trigger                                                                    |
-| ---------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------- |
-| `position.created`     | `{ position: { id, name, department } }`               | `position.create`                                                          |
-| `position.updated`     | `{ position: { id }, changes }`                        | `position.update`                                                          |
-| `position.deactivated` | `{ positionId }`                                       | `position.deactivate`                                                      |
-| `position.activated`   | `{ positionId }`                                       | `position.activate`                                                        |
-| `position.assigned`    | `{ assignment: { positionId, employeeId, fromDate } }` | `position.assignEmployee`                                                  |
-| `position.unassigned`  | `{ positionId, employeeId, toDate }`                   | `position.unassignEmployee`, `position.transferAssignment`, reconciliation |
-| `position.reassigned`  | `{ employeeId, fromPositionId, toPositionId }`         | `position.transferAssignment`                                              |
+| Event                  | Payload                                                | Trigger                                                                          |
+| ---------------------- | ------------------------------------------------------ | -------------------------------------------------------------------------------- |
+| `position.created`     | `{ position: { id, name, department } }`               | `position.positions.create`                                                      |
+| `position.updated`     | `{ position: { id }, changes }`                        | `position.positions.update`                                                      |
+| `position.deactivated` | `{ positionId }`                                       | `position.positions.deactivate`                                                  |
+| `position.activated`   | `{ positionId }`                                       | `position.positions.activate`                                                    |
+| `position.assigned`    | `{ assignment: { positionId, employeeId, fromDate } }` | `position.assignments.assign`                                                    |
+| `position.unassigned`  | `{ positionId, employeeId, toDate }`                   | `position.assignments.unassign`, `position.assignments.transfer`, reconciliation |
+| `position.reassigned`  | `{ employeeId, fromPositionId, toPositionId }`         | `position.assignments.transfer`                                                  |
 
 ## Setup
 
@@ -49,21 +49,20 @@ The hr-core module defines domain events by group. Events are type-level contrac
 | `setup.department_moved`        | `{ departmentId, fromParentId, toParentId }` | `config.departments.move`    |
 | `setup.department_head_changed` | `{ departmentId, headEmployeeId }`           | `config.departments.setHead` |
 | `setup.designation_created`     | `{ designation: { id, name } }`              | `config.designations.create` |
-| `setup.holiday_list_created`    | `{ holidayList: { id, name, year } }`        | `config.holidayLists.create` |
 | `setup.settings_updated`        | `{ changes }`                                | `config.hr.update`           |
 
 ## Access
 
-| Event                          | Payload                                           | Trigger                     |
-| ------------------------------ | ------------------------------------------------- | --------------------------- |
-| `access.user_created`          | `{ user: { id, employeeId, userId } }`            | `access.createUser`         |
-| `access.user_activated`        | `{ hrUserId }`                                    | user activation             |
-| `access.user_deactivated`      | `{ hrUserId }`                                    | user deactivation           |
-| `access.role_created`          | `{ role: { id, name, isSystem } }`                | `access.createRole`         |
-| `access.role_assigned`         | `{ assignment: { hrUserId, roleId, branchId } }`  | `access.assignRoleToUser`   |
-| `access.role_revoked`          | `{ hrUserId, roleId, branchId }`                  | `access.removeRoleFromUser` |
-| `access.branch_access_granted` | `{ access: { hrUserId, branchId, accessLevel } }` | `access.grantBranchAccess`  |
-| `access.branch_access_revoked` | `{ hrUserId, branchId }`                          | `access.revokeBranchAccess` |
+| Event                          | Payload                                           | Trigger                   |
+| ------------------------------ | ------------------------------------------------- | ------------------------- |
+| `access.user_created`          | `{ user: { id, employeeId, userId } }`            | `access.users.create`     |
+| `access.user_activated`        | `{ hrUserId }`                                    | user activation           |
+| `access.user_deactivated`      | `{ hrUserId }`                                    | user deactivation         |
+| `access.role_created`          | `{ role: { id, name, isSystem } }`                | `access.roles.create`     |
+| `access.role_assigned`         | `{ assignment: { hrUserId, roleId, branchId } }`  | `access.users.assignRole` |
+| `access.role_revoked`          | `{ hrUserId, roleId, branchId }`                  | `access.users.removeRole` |
+| `access.branch_access_granted` | `{ access: { hrUserId, branchId, accessLevel } }` | `access.branches.grant`   |
+| `access.branch_access_revoked` | `{ hrUserId, branchId }`                          | `access.branches.revoke`  |
 
 <Callout type="info">
   `lifecycle.separation_completed` and `lifecycle.transfer_approved` are consumed internally for

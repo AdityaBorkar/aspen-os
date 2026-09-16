@@ -59,4 +59,6 @@ export class HrLeave implements Module {
   }
 
   readonly leave = wf.leave;
+
+  readonly config = wf.config;
 }

@@ -1,3 +1,13 @@
+import { createHolidayList } from "#/workflows/config/holiday-list/create";
+import { deleteHolidayList } from "#/workflows/config/holiday-list/delete";
+import { getHolidayListById } from "#/workflows/config/holiday-list/get";
+import { listHolidayLists } from "#/workflows/config/holiday-list/list";
+import { updateHolidayList } from "#/workflows/config/holiday-list/update";
+import { listHolidaysByList } from "#/workflows/config/holiday/by-list/list";
+import { createHoliday } from "#/workflows/config/holiday/create";
+import { deleteHoliday } from "#/workflows/config/holiday/delete";
+import { getHolidayById } from "#/workflows/config/holiday/get";
+import { updateHoliday } from "#/workflows/config/holiday/update";
 import { createLeaveAdjustment } from "#/workflows/leave/adjustment/create";
 import { listLeaveAdjustments } from "#/workflows/leave/adjustments/list";
 import { getLeaveAllocationById } from "#/workflows/leave/allocation/by-id/get";
@@ -120,4 +130,21 @@ export const leave = {
   updateLeavePolicy,
   updateLeavePolicyAssignment,
   updateLeaveType,
+} as const;
+
+export const config = {
+  holidayLists: {
+    create: createHolidayList,
+    delete: deleteHolidayList,
+    get: getHolidayListById,
+    list: listHolidayLists,
+    update: updateHolidayList,
+  },
+  holidays: {
+    create: createHoliday,
+    delete: deleteHoliday,
+    get: getHolidayById,
+    listByList: listHolidaysByList,
+    update: updateHoliday,
+  },
 } as const;

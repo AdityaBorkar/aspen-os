@@ -79,13 +79,6 @@ export const FullAndFinalStatusSchema = enum_({
   pending: "pending",
 });
 
-export const HolidayTypeSchema = enum_({
-  company: "company",
-  optional: "optional",
-  public: "public",
-  weekly_off: "weekly_off",
-});
-
 export const AccessLevelSchema = enum_({
   full: "full",
   manage: "manage",

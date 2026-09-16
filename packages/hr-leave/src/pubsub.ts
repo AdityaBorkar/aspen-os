@@ -7,6 +7,7 @@ export const LEAVE_EVENTS = {
   APPLICATION_REJECTED: "leave.application_rejected",
   APPLICATION_SUBMITTED: "leave.application_submitted",
   ENCASHMENT_REQUESTED: "leave.encashment_requested",
+  HOLIDAY_LIST_CREATED: "leave.holiday_list_created",
 } as const;
 
 export interface LeaveApplicationSubmittedEvent {
@@ -52,6 +53,10 @@ export interface LeaveEncashmentRequestedEvent {
   };
 }
 
+export interface HolidayListCreatedEvent {
+  holidayList: { id: string; name: string; year: number };
+}
+
 // ─── Event Maps ───────────────────────────────────────────────────────────
 
 export interface LeaveEventMap {
@@ -61,6 +66,7 @@ export interface LeaveEventMap {
   [LEAVE_EVENTS.APPLICATION_REJECTED]: LeaveApplicationRejectedEvent;
   [LEAVE_EVENTS.APPLICATION_SUBMITTED]: LeaveApplicationSubmittedEvent;
   [LEAVE_EVENTS.ENCASHMENT_REQUESTED]: LeaveEncashmentRequestedEvent;
+  [LEAVE_EVENTS.HOLIDAY_LIST_CREATED]: HolidayListCreatedEvent;
 }
 
 export type HrLeaveEventMap = LeaveEventMap;

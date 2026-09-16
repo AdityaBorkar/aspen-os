@@ -74,13 +74,6 @@ export const fullAndFinalStatusEnum = pgEnum("hr_full_and_final_status", [
   "pending",
 ]);
 
-export const holidayTypeEnum = pgEnum("hr_holiday_type", [
-  "company",
-  "optional",
-  "public",
-  "weekly_off",
-]);
-
 export const accessLevelEnum = pgEnum("hr_access_level", ["full", "manage", "read_only"]);
 
 export const permissionActionEnum = pgEnum("hr_permission_action", [

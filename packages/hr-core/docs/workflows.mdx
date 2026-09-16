@@ -14,44 +14,49 @@ Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, 
 
 Access: `p.hrCore.access`
 
-HR users, RBAC roles, permissions, and branch-scoped grants. `deleteRole` refuses system roles; `getAccessibleBranches` merges direct `hr_user_branch_access` with branch-scoped `hr_user_role` grants; `getUserPermissions` de-duplicates `module:action` pairs.
+HR users, RBAC roles, permissions, and branch-scoped grants. Each resource is a nested REST-style group (`users`, `roles`, `permissions`, `branches`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras. `roles.remove` refuses system roles; `branches.listAccessible` merges direct `hr_user_branch_access` with branch-scoped `hr_user_role` grants; `users.listPermissions` de-duplicates `module:action` pairs.
 
-```ts title="access — user and role"
+```ts title="access — users and roles"
 import { HrCore } from "@aspen-os/hr-core";
 
-await p.hrCore.access.createUser({ input: { employeeId: "EMP-001", userId: "auth-123" } });
-await p.hrCore.access.getUserById({ id });
-await p.hrCore.access.getUserByEmployeeId({ employeeId: "EMP-001" });
-await p.hrCore.access.listUsers({ filters: {} });
+await p.hrCore.access.users.create({ input: { employeeId: "EMP-001", userId: "auth-123" } });
+await p.hrCore.access.users.get({ id });
+await p.hrCore.access.users.getByEmployeeId({ employeeId: "EMP-001" });
+await p.hrCore.access.users.list({ filters: {} });
 
-await p.hrCore.access.createRole({ input: { name: "HR Manager", description: "Manages HR" } });
-await p.hrCore.access.getRoleByName({ name: "HR Manager" });
-await p.hrCore.access.assignRoleToUser({ input: { hrUserId, roleId, branchId: null } });
-await p.hrCore.access.removeRoleFromUser({ hrUserId, roleId, branchId });
-await p.hrCore.access.getUserRoles({ hrUserId });
-await p.hrCore.access.getUserRolesForBranch({ hrUserId, branchId });
+await p.hrCore.access.roles.create({ input: { name: "HR Manager", description: "Manages HR" } });
+await p.hrCore.access.roles.getByName({ name: "HR Manager" });
+await p.hrCore.access.users.assignRole({ input: { hrUserId, roleId, branchId: null } });
+await p.hrCore.access.users.removeRole({ hrUserId, roleId, branchId });
+await p.hrCore.access.users.listRoles({ hrUserId });
+await p.hrCore.access.users.listRolesForBranch({ hrUserId, branchId });
 ```
 
 ```ts title="access — permissions and branch access"
-await p.hrCore.access.createPermission({ input: { module: "employee", action: "view" } });
-await p.hrCore.access.listPermissionsByModule({ module: "employee" });
-await p.hrCore.access.assignPermissionToRole({ input: { roleId, permissionId } });
-await p.hrCore.access.getRolePermissions({ roleId });
+await p.hrCore.access.permissions.create({ input: { module: "employee", action: "view" } });
+await p.hrCore.access.permissions.listByModule({ module: "employee" });
+await p.hrCore.access.roles.assignPermission({ input: { roleId, permissionId } });
+await p.hrCore.access.roles.listPermissions({ roleId });
 
-await p.hrCore.access.grantBranchAccess({ input: { hrUserId, branchId, accessLevel: "manage" } });
-await p.hrCore.access.revokeBranchAccess({ hrUserId, branchId });
-await p.hrCore.access.hasBranchAccess({ hrUserId, branchId });
-await p.hrCore.access.hasPermission({ hrUserId, module: "employee", action: "view", branchId });
+await p.hrCore.access.branches.grant({ input: { hrUserId, branchId, accessLevel: "manage" } });
+await p.hrCore.access.branches.revoke({ hrUserId, branchId });
+await p.hrCore.access.branches.hasAccess({ hrUserId, branchId });
+await p.hrCore.access.branches.hasPermission({
+  hrUserId,
+  module: "employee",
+  action: "view",
+  branchId,
+});
 ```
 
 ### Employee
 
 Access: `p.hrCore.employee`
 
-Employee records, groups, health insurance, and skill maps.
+Employee records, groups, health insurance, and skill maps. Each resource is a nested REST-style group (`employees`, `groups`, `healthInsurance`, `skillMaps`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`activate`, `deactivate`, `markAsLeft`, `getOrgChart`, `addMember`, `removeMember`, `listMembers`, `listByEmployee`).
 
 ```ts title="employee — CRUD and groups"
-await p.hrCore.employee.create({
+await p.hrCore.employee.employees.create({
   input: {
     employeeId: "EMP-001",
     firstName: "Aarav",
@@ -63,23 +68,23 @@ await p.hrCore.employee.create({
     dateOfJoining: "2024-01-15",
   },
 });
-await p.hrCore.employee.update({ id, patch: { department: "dept-prod" } });
-await p.hrCore.employee.getById({ id });
-await p.hrCore.employee.getByEmployeeId({ employeeId: "EMP-001" });
-await p.hrCore.employee.list({ filters: { department: "dept-eng", status: "active" } });
-await p.hrCore.employee.deactivate({ id });
-await p.hrCore.employee.activate({ id });
-await p.hrCore.employee.markAsLeft({ id, dateOfLeaving: "2026-03-31" });
-await p.hrCore.employee.getOrganizationalChart({ company: "ACME" });
+await p.hrCore.employee.employees.update({ id, patch: { department: "dept-prod" } });
+await p.hrCore.employee.employees.get({ id });
+await p.hrCore.employee.employees.getByEmployeeId({ employeeId: "EMP-001" });
+await p.hrCore.employee.employees.list({ filters: { department: "dept-eng", status: "active" } });
+await p.hrCore.employee.employees.deactivate({ id });
+await p.hrCore.employee.employees.activate({ id });
+await p.hrCore.employee.employees.markAsLeft({ id, dateOfLeaving: "2026-03-31" });
+await p.hrCore.employee.employees.getOrgChart({ company: "ACME" });
 
-await p.hrCore.employee.createGroup({ input: { name: "Engineering" } });
-await p.hrCore.employee.addGroupMember({ input: { groupId, employeeId: "EMP-001" } });
-await p.hrCore.employee.removeGroupMember({ groupId, employeeId: "EMP-001" });
-await p.hrCore.employee.listGroupMembers({ groupId });
+await p.hrCore.employee.groups.create({ input: { name: "Engineering" } });
+await p.hrCore.employee.groups.addMember({ input: { groupId, employeeId: "EMP-001" } });
+await p.hrCore.employee.groups.removeMember({ groupId, employeeId: "EMP-001" });
+await p.hrCore.employee.groups.listMembers({ groupId });
 ```
 
 ```ts title="employee — health insurance and skills"
-await p.hrCore.employee.createHealthInsurance({
+await p.hrCore.employee.healthInsurance.create({
   input: {
     employeeId: "EMP-001",
     insurer: "ICICI Lombard",
@@ -87,35 +92,35 @@ await p.hrCore.employee.createHealthInsurance({
     startDate: "2024-01-01",
   },
 });
-await p.hrCore.employee.listHealthInsuranceByEmployee({ employeeId: "EMP-001" });
+await p.hrCore.employee.healthInsurance.listByEmployee({ employeeId: "EMP-001" });
 
-await p.hrCore.employee.createSkillMap({
+await p.hrCore.employee.skillMaps.create({
   input: { employeeId: "EMP-001", skill: "TypeScript", proficiency: "advanced" },
 });
-await p.hrCore.employee.listSkillMapByEmployee({ employeeId: "EMP-001" });
+await p.hrCore.employee.skillMaps.listByEmployee({ employeeId: "EMP-001" });
 ```
 
 ### Lifecycle
 
 Access: `p.hrCore.lifecycle`
 
-Onboarding, promotions, transfers, separations, exit interviews, and full-and-final settlements.
+Onboarding, promotions, transfers, separations, exit interviews, and full-and-final settlements. Each resource is a nested REST-style group (`onboardings`, `onboardingTasks`, `promotions`, `transfers`, `separations`, `separationTasks`, `exitInterviews`, `fullAndFinal`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`approve`, `reject`, `complete`, `markPaid`).
 
 ```ts title="lifecycle — onboarding and tasks"
-await p.hrCore.lifecycle.createOnboarding({
+await p.hrCore.lifecycle.onboardings.create({
   input: { employeeId: "EMP-001", startDate: "2024-01-15" },
 });
-await p.hrCore.lifecycle.getOnboardingById({ id });
-await p.hrCore.lifecycle.listOnboardings({ filters: {} });
-await p.hrCore.lifecycle.createOnboardingTask({
+await p.hrCore.lifecycle.onboardings.get({ id });
+await p.hrCore.lifecycle.onboardings.list({ filters: {} });
+await p.hrCore.lifecycle.onboardingTasks.create({
   input: { onboardingId: id, title: "Complete paperwork" },
 });
-await p.hrCore.lifecycle.completeOnboardingTask({ id, completedBy: "mgr-1" });
-await p.hrCore.lifecycle.listOnboardingTasks({ onboardingId: id });
+await p.hrCore.lifecycle.onboardingTasks.complete({ id, completedBy: "mgr-1" });
+await p.hrCore.lifecycle.onboardingTasks.list({ onboardingId: id });
 ```
 
 ```ts title="lifecycle — promotion, transfer, separation"
-await p.hrCore.lifecycle.createPromotion({
+await p.hrCore.lifecycle.promotions.create({
   input: {
     employeeId: "EMP-001",
     currentDesignation: "SWE-1",
@@ -123,15 +128,15 @@ await p.hrCore.lifecycle.createPromotion({
     effectiveDate: "2026-04-01",
   },
 });
-await p.hrCore.lifecycle.approvePromotion({ id, approvedBy: "mgr-1" });
-await p.hrCore.lifecycle.rejectPromotion({
+await p.hrCore.lifecycle.promotions.approve({ id, approvedBy: "mgr-1" });
+await p.hrCore.lifecycle.promotions.reject({
   id,
   rejectedBy: "mgr-1",
   rejectionReason: "Not yet eligible",
 });
-await p.hrCore.lifecycle.completePromotion({ id });
+await p.hrCore.lifecycle.promotions.complete({ id });
 
-await p.hrCore.lifecycle.createTransfer({
+await p.hrCore.lifecycle.transfers.create({
   input: {
     employeeId: "EMP-001",
     fromDepartment: "dept-eng",
@@ -139,15 +144,15 @@ await p.hrCore.lifecycle.createTransfer({
     effectiveDate: "2026-04-01",
   },
 });
-await p.hrCore.lifecycle.approveTransfer({ id, approvedBy: "mgr-1" });
+await p.hrCore.lifecycle.transfers.approve({ id, approvedBy: "mgr-1" });
 
-await p.hrCore.lifecycle.createSeparation({
+await p.hrCore.lifecycle.separations.create({
   input: { employeeId: "EMP-001", exitDate: "2026-06-30" },
 });
-await p.hrCore.lifecycle.createExitInterview({
+await p.hrCore.lifecycle.exitInterviews.create({
   input: { employeeId: "EMP-001", separationId: id, scheduledDate: "2026-06-15T10:00:00Z" },
 });
-await p.hrCore.lifecycle.createFullAndFinal({
+await p.hrCore.lifecycle.fullAndFinal.create({
   input: {
     employeeId: "EMP-001",
     separationId: id,
@@ -155,50 +160,50 @@ await p.hrCore.lifecycle.createFullAndFinal({
     leaveEncashment: "10000",
   },
 });
-await p.hrCore.lifecycle.approveFullAndFinal({ id, approvedBy: "mgr-1" });
-await p.hrCore.lifecycle.markFullAndFinalPaid({ id, paymentEntry: "PE-001" });
+await p.hrCore.lifecycle.fullAndFinal.approve({ id, approvedBy: "mgr-1" });
+await p.hrCore.lifecycle.fullAndFinal.markPaid({ id, paymentEntry: "PE-001" });
 ```
 
-`deleteOnboarding` and `deleteSeparation` cascade-delete their tasks first.
+`onboardings.remove` and `separations.remove` cascade-delete their tasks first.
 
 ### Position
 
 Access: `p.hrCore.position`
 
-Job slots, dated assignments with history, and structure views.
+Job slots, dated assignments with history, and structure views. Each resource is a nested REST-style group (`positions`, `assignments`, `org`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`activate`, `deactivate`, `assign`, `unassign`, `transfer`, `getCurrent`, `listCurrent`, `listHistoryByEmployee`, `listHistoryByPosition`).
 
 ```ts title="position — slots and assignments"
-await p.hrCore.position.create({
+await p.hrCore.position.positions.create({
   input: { name: "Tech Lead", department: "dept-eng", branch: "branch-hq", headcount: 2 },
 });
-await p.hrCore.position.assignEmployee({
+await p.hrCore.position.assignments.assign({
   positionId,
   employeeId: "EMP-001",
   input: { fromDate: "2024-01-15", isPrimary: true },
 });
-await p.hrCore.position.transferAssignment({ assignmentId, input: { toPositionId: "pos-2" } });
-await p.hrCore.position.unassignEmployee({ assignmentId, toDate: "2026-03-31" });
-await p.hrCore.position.getPositionHistory({ positionId });
-await p.hrCore.position.getEmployeePositionHistory({ employeeId: "EMP-001" });
-await p.hrCore.position.getCurrentPositions({ employeeId: "EMP-001" });
-await p.hrCore.position.deactivate({ id });
-await p.hrCore.position.activate({ id });
+await p.hrCore.position.assignments.transfer({ assignmentId, input: { toPositionId: "pos-2" } });
+await p.hrCore.position.assignments.unassign({ assignmentId, toDate: "2026-03-31" });
+await p.hrCore.position.assignments.listHistoryByPosition({ positionId });
+await p.hrCore.position.assignments.listHistoryByEmployee({ employeeId: "EMP-001" });
+await p.hrCore.position.assignments.listCurrent({ employeeId: "EMP-001" });
+await p.hrCore.position.positions.deactivate({ id });
+await p.hrCore.position.positions.activate({ id });
 ```
 
 ```ts title="position — structure views"
-await p.hrCore.position.getOrgTree({ company: "ACME" });
-await p.hrCore.position.getPositionTree({ positionId });
-await p.hrCore.position.getDirectReports({ managerId: "EMP-001" });
-await p.hrCore.position.getSubordinates({ managerId: "EMP-001", depth: 3 });
-await p.hrCore.position.getPeers({ employeeId: "EMP-001" });
-await p.hrCore.position.getTeam({ employeeId: "EMP-001" });
+await p.hrCore.position.org.getTree({ company: "ACME" });
+await p.hrCore.position.org.getPositionTree({ positionId });
+await p.hrCore.position.org.getDirectReports({ managerId: "EMP-001" });
+await p.hrCore.position.org.getSubordinates({ managerId: "EMP-001", depth: 3 });
+await p.hrCore.position.org.getPeers({ employeeId: "EMP-001" });
+await p.hrCore.position.org.getTeam({ employeeId: "EMP-001" });
 ```
 
 ### Config
 
 Access: `p.hrCore.config`
 
-HR/payroll settings, employment types, departments (tree ops), designations, grades, and holiday lists. Each resource is a nested REST-style group (`departments`, `designations`, `employeeGrades`, `employmentTypes`, `holidayLists`, `holidays`, `hr`, `payroll`) with `get`/`list`/`create`/`update`/`delete` verbs plus domain extras (`move`, `setHead`, `tree`, `subtree`, `listPositions`, `listByList`).
+HR/payroll settings, employment types, departments (tree ops), designations, and grades. Each resource is a nested REST-style group (`departments`, `designations`, `employeeGrades`, `employmentTypes`, `hr`, `payroll`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`move`, `setHead`, `tree`, `subtree`, `listPositions`). Holiday lists/holidays moved to `p.hrLeave.config`.
 
 ```ts title="config — settings and departments"
 await p.hrCore.config.hr.get({});
@@ -212,20 +217,15 @@ await p.hrCore.config.departments.setHead({ id, employeeId: "EMP-001" });
 await p.hrCore.config.departments.tree({});
 await p.hrCore.config.departments.subtree({ id, depth: 2 });
 await p.hrCore.config.departments.listPositions({ departmentId: "dept-eng", includeSubtree: true });
-await p.hrCore.config.departments.delete({ id });
+await p.hrCore.config.departments.remove({ id });
 ```
 
-```ts title="config — catalog and holidays"
+```ts title="config — catalog"
 await p.hrCore.config.designations.create({ input: { name: "Software Engineer" } });
 await p.hrCore.config.employmentTypes.create({ input: { name: "Permanent" } });
 await p.hrCore.config.employeeGrades.create({ input: { name: "G7" } });
-await p.hrCore.config.holidayLists.create({ input: { name: "India 2026", year: 2026 } });
-await p.hrCore.config.holidays.create({
-  input: { holidayListId: "hl-1", name: "Republic Day", date: "2026-01-26", type: "public" },
-});
-await p.hrCore.config.holidays.listByList({ holidayListId: "hl-1" });
 ```
 
-`updateHrSettings` and `updatePayrollSettings` are upserts; department codes are uppercased on write.
+`hr.update` and `payroll.update` are upserts; department codes are uppercased on write.
 
 Events emitted by these workflows: [Events](/docs/hr-core/events). Tables touched: [DB Schemas](/docs/hr-core/db-schemas).

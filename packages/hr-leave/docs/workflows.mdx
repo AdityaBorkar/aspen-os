@@ -4,7 +4,7 @@ description: API reference for the workflow group exposed by the hr-leave module
 icon: IconListCheck
 ---
 
-The hr-leave module exposes the `leave` workflow group via `p.hrLeave`.
+The hr-leave module exposes the `leave` and `config` workflow groups via `p.hrLeave`.
 
 Create inputs are Valibot-validated `{ input: Create*Input }`, update is `{ id, patch: Update*Input }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
 
@@ -135,6 +135,28 @@ await p.hrLeave.leave.createLeaveAdjustment({
 });
 await p.hrLeave.leave.listLeaveAdjustments({ employeeId: "EMP-001" });
 await p.hrLeave.leave.listLedgerEntries({ employeeId: "EMP-001", leaveType: "lt-sick" });
+```
+
+### Config
+
+Access: `p.hrLeave.config`
+
+Holiday lists and holidays (moved from hr-core).
+
+```ts title="config — holiday lists and holidays"
+await p.hrLeave.config.holidayLists.create({ input: { name: "India 2026", year: 2026 } });
+await p.hrLeave.config.holidayLists.update({ id, patch: { description: "National holidays" } });
+await p.hrLeave.config.holidayLists.get({ id });
+await p.hrLeave.config.holidayLists.list({});
+await p.hrLeave.config.holidayLists.delete({ id }); // soft isActive=false
+
+await p.hrLeave.config.holidays.create({
+  input: { holidayListId: "hl-1", name: "Republic Day", date: "2026-01-26", type: "public" },
+});
+await p.hrLeave.config.holidays.update({ id, patch: { date: "2026-01-27" } });
+await p.hrLeave.config.holidays.get({ id });
+await p.hrLeave.config.holidays.listByList({ holidayListId: "hl-1" });
+await p.hrLeave.config.holidays.delete({ id });
 ```
 
 Events emitted by these workflows: [Events](/docs/hr-leave/events). Tables touched: [DB Schemas](/docs/hr-leave/db-schemas).

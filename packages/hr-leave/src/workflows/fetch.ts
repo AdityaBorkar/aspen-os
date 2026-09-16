@@ -1,5 +1,6 @@
 import {
   compensatoryLeaveRequest,
+  holidayList,
   leaveAllocation,
   leaveApplication,
   leaveEncashment,
@@ -95,6 +96,14 @@ export function fetchLeaveEncashmentById(db: Db, id: string) {
   return fetchById(
     db.select().from(leaveEncashment).where(eq(leaveEncashment.id, id)).limit(1),
     "Leave encashment",
+    id,
+  );
+}
+
+export function fetchHolidayListById(db: Db, id: string) {
+  return fetchById(
+    db.select().from(holidayList).where(eq(holidayList.id, id)).limit(1),
+    "Holiday list",
     id,
   );
 }

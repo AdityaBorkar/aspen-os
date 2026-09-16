@@ -2,6 +2,7 @@
 export {
   CompensatoryLeaveStatusSchema,
   EarnedLeaveFrequencySchema,
+  HolidayTypeSchema,
   LeaveAllocationStatusSchema,
   LeaveApplicationStatusSchema,
   LeaveBlockListScopeSchema,
@@ -64,6 +65,19 @@ export {
   UpdateLeavePolicySchema,
   UpdateLeaveTypeSchema,
 } from "#/schemas/leave";
+// Holiday schemas
+export type {
+  CreateHolidayInput,
+  CreateHolidayListInput,
+  UpdateHolidayInput,
+  UpdateHolidayListInput,
+} from "#/schemas/holiday";
+export {
+  CreateHolidayListSchema,
+  CreateHolidaySchema,
+  UpdateHolidayListSchema,
+  UpdateHolidaySchema,
+} from "#/schemas/holiday";
 // Utility schemas
 export {
   EmailSchema,

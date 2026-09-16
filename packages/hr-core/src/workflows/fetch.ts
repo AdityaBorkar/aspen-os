@@ -7,7 +7,6 @@ import {
   employeeSeparation,
   employeeTransfer,
   fullAndFinalStatement,
-  holidayList,
   hrSettings,
   payrollSettings,
 } from "#/db-schemas";
@@ -132,14 +131,6 @@ export async function fetchHrSettings(db: Db) {
 export async function fetchPayrollSettings(db: Db) {
   const [settings] = await db.select().from(payrollSettings).limit(1);
   return settings ?? null;
-}
-
-export function fetchHolidayListById(db: Db, id: string) {
-  return fetchById(
-    db.select().from(holidayList).where(eq(holidayList.id, id)).limit(1),
-    "Holiday list",
-    id,
-  );
 }
 
 export function fetchDepartmentById(db: Db, id: string) {
