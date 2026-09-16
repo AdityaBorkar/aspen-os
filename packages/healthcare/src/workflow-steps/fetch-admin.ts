@@ -64,6 +64,7 @@ export interface BranchDto {
   createdAt: string;
   id: string;
   name: string;
+  orgBranchCode: string | null;
   status: string;
   subdomain: string;
 }
@@ -75,6 +76,7 @@ export function toBranchDto(row: typeof healthcareBranch.$inferSelect): BranchDt
     createdAt: row.created_at.toISOString(),
     id: row.id,
     name: row.name,
+    orgBranchCode: row.org_branch_code,
     status: row.status,
     subdomain: row.subdomain,
   };

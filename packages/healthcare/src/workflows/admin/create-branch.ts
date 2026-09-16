@@ -27,7 +27,12 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
       ctx.db
         .insert(healthcareBranch)
         .values({
-          ...branchInsertValues(parsed.name, parsed.address, subdomain),
+          ...branchInsertValues({
+            address: parsed.address,
+            name: parsed.name,
+            orgBranchCode: parsed.orgBranchCode,
+            subdomain,
+          }),
           id: crypto.randomUUID(),
           kind: "branch",
         })
@@ -42,12 +47,16 @@ export const createBranch = Workflow.name("healthcare.admin.create-branch")
         crudAction: "create",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.BRANCH,
-        newState: { id: row.id, name: row.name },
+        newState: { id: row.id, name: row.name, orgBranchCode: row.org_branch_code },
       });
       await ctx.pubsub.publish(BRANCH_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId: branchEventScope(row),
+        data: {
+          orgBranchCode: row.org_branch_code ?? null,
+          subdomain: row.subdomain,
+        },
         id: row.id,
       });
     });

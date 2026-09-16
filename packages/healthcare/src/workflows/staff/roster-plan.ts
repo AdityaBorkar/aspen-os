@@ -56,10 +56,18 @@ export const rosterPlan = Workflow.name("healthcare.staff.roster-plan")
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { entries: inserted.length, month: parsed.month },
       });
+      // Roster plans map to hr-attendance.shift; HR owns the shift record,
+      // healthcare keeps the deprecated month-bucketed mirror with the hr
+      // intent attached.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          entries: inserted.length,
+          hrOwner: "hr-attendance.shift",
+          month: parsed.month,
+        },
         id: parsed.month,
       });
     });

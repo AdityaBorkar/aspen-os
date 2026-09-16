@@ -36,10 +36,20 @@ export const explorerGrant = Workflow.name("healthcare.operations.explorer-grant
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { granteeId: row.grantee_id, scope: row.scope },
       });
+      // The explorer-grant table lives in db-schemas/staff.ts but is owned by
+      // operations; the shared surface owns grants/views/CSV/report-definitions.
+      // Workspace is the interim owner (reports is a placeholder); this row is
+      // the deprecated mirror of a workspace.filter-view grant.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          granteeId: row.grantee_id,
+          healthcareGrantId: row.id,
+          scope: row.scope,
+          workspaceOwner: "workspace.filter-view",
+        },
         id: row.id,
       });
     });

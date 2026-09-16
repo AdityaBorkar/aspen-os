@@ -2,6 +2,7 @@ import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { registerComplianceBridge, unregisterComplianceBridge } from "#/services/compliance-bridge";
+import { registerHealthcareBridge, unregisterHealthcareBridge } from "#/services/healthcare-bridge";
 import {
   registerReminderDispatcher,
   unregisterReminderDispatcher,
@@ -21,6 +22,7 @@ import type {
 
 const DEFAULT_CONFIG: Required<CalendarModuleConfig> = {
   complianceEnabled: true,
+  healthcareEnabled: true,
   reminderScanCron: "* * * * *",
   tasksEnabled: true,
 };
@@ -51,6 +53,9 @@ export class Calendar implements Module {
     "compliance.document_due",
     "compliance.document_archived",
     "compliance.document_deleted",
+    "healthcare.appointment_created",
+    "healthcare.appointment_updated",
+    "healthcare.patient_updated",
   ];
   readonly $config: Required<CalendarModuleConfig>;
 
@@ -59,6 +64,7 @@ export class Calendar implements Module {
   #reminderScanTopic: string | null = null;
   #taskBridgeTopics: string[] = [];
   #complianceBridgeTopics: string[] = [];
+  #healthcareBridgeTopics: string[] = [];
 
   constructor(config: CalendarModuleConfig) {
     this.$config = { ...DEFAULT_CONFIG, ...config };
@@ -108,6 +114,11 @@ export class Calendar implements Module {
     this.#complianceBridgeTopics = await registerComplianceBridge(deps, {
       enabled: this.$config.complianceEnabled,
     });
+    if (this.$config.healthcareEnabled) {
+      this.#healthcareBridgeTopics = await registerHealthcareBridge(deps, {
+        enabled: this.$config.healthcareEnabled,
+      });
+    }
   }
 
   async $cleanup(): Promise<void> {
@@ -115,10 +126,12 @@ export class Calendar implements Module {
       await unregisterReminderDispatcher(this.#reminderScanTopic, { pubsub: this.#pubsub });
       await unregisterTaskBridge(this.#taskBridgeTopics, { pubsub: this.#pubsub });
       await unregisterComplianceBridge(this.#complianceBridgeTopics, { pubsub: this.#pubsub });
+      await unregisterHealthcareBridge(this.#healthcareBridgeTopics, { pubsub: this.#pubsub });
     }
     this.#reminderScanTopic = null;
     this.#taskBridgeTopics = [];
     this.#complianceBridgeTopics = [];
+    this.#healthcareBridgeTopics = [];
     this.#db = null;
     this.#pubsub = null;
   }

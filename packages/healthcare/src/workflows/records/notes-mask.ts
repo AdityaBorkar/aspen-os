@@ -12,6 +12,11 @@ export const notesMask = Workflow.name("healthcare.records.notes-mask")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(TimelineQuerySchema, input);
     const branchId = parsed.branchId ?? "main";
+    // Generic masking policy aligns with notes.note access levels; the psych
+    // sensitivity heuristic below stays clinical (psych masking rules,
+    // encounter gate, and content gating live in healthcare). Do not move
+    // clinical content into notes; notes owns the generic primitive only if
+    // a shared masking/retention rule is ever needed.
     const docs = await ctx.step.run("load-docs", async () =>
       ctx.db
         .select()

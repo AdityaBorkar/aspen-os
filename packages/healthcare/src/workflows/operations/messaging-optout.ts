@@ -1,4 +1,5 @@
 import { healthcareMessageOptout } from "#/db-schemas/records";
+import { buildCommsPreferenceUpdatedEvent } from "#/integrations/comms";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { OptOutMessageSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -39,8 +40,23 @@ export const messagingOptOut = Workflow.name("healthcare.operations.messaging-op
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          channel: row.channel,
+          healthcareOptOutId: row.id,
+          to: row.to,
+        },
         id: row.id,
       });
+      const channel = row.channel === "whatsapp" ? "whatsapp" : "sms";
+      await ctx.pubsub.publish(
+        "comms.preference_updated",
+        buildCommsPreferenceUpdatedEvent({
+          branchId,
+          channel,
+          healthcareOptOutId: row.id,
+          to: row.to,
+        }),
+      );
     });
     return { messageId: row.id, to: row.to };
   });

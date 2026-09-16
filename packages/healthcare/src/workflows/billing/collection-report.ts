@@ -10,6 +10,9 @@ const CollectionReportInputSchema = object({ input: CollectionReportSchema });
 export const collectionReport = Workflow.name("healthcare.billing.collection-report")
   .input(CollectionReportInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Healthcare keeps the dues/aging/GST/TAT computations as query helpers;
+    // the shared surface (workspace, interim; reports when real) owns grants,
+    // views, CSV export, and report-definition storage.
     const parsed = parse(CollectionReportSchema, input);
     const branchId = parsed.branchId ?? "main";
 

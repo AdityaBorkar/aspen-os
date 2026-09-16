@@ -25,6 +25,7 @@ export const updateBranch = Workflow.name("healthcare.admin.update-branch")
         .update(healthcareBranch)
         .set({
           name: parsed.patch.name ?? current.name,
+          org_branch_code: parsed.patch.orgBranchCode ?? current.org_branch_code,
           payload,
           status: parsed.patch.status ?? current.status,
         })
@@ -40,12 +41,16 @@ export const updateBranch = Workflow.name("healthcare.admin.update-branch")
         crudAction: "update",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.BRANCH,
-        newState: { id: row.id, name: row.name },
+        newState: { id: row.id, name: row.name, orgBranchCode: row.org_branch_code },
       });
       await ctx.pubsub.publish(BRANCH_EVENTS.UPDATED, {
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId: branchEventScope(row),
+        data: {
+          orgBranchCode: row.org_branch_code ?? null,
+          subdomain: row.subdomain,
+        },
         id: row.id,
       });
     });

@@ -1,4 +1,5 @@
 import { healthcareMasterEntry } from "#/db-schemas/operations";
+import { healthcareMasterIntent } from "#/integrations/masters";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { UpsertMasterSchema } from "#/schemas/operations";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -52,10 +53,29 @@ export const mastersUpsert = Workflow.name("healthcare.operations.masters-upsert
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { domain: row.domain, key: row.key, version: row.version },
       });
+      // One shared catalogue surface is masters: healthcare keeps the clinical
+      // write for deprecated readers, masters owns the value set. The intent
+      // below maps the local domain/key/value row to a masters.setting key.
+      const intent = healthcareMasterIntent({
+        branchId,
+        domain: row.domain,
+        healthcareMasterId: row.id,
+        key: row.key,
+        value: row.value,
+        version: row.version,
+      });
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          domain: intent.domain,
+          healthcareMasterId: intent.healthcareMasterId,
+          key: intent.key,
+          mastersKey: intent.mastersKey,
+          value: intent.value,
+          version: intent.version,
+        },
         id: row.id,
       });
     });

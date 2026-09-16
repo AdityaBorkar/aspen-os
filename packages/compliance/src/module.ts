@@ -2,6 +2,7 @@ import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { registerEventBridgeSubscriptions } from "#/services/event-bridge";
+import { registerHealthcareBridge, unregisterHealthcareBridge } from "#/services/healthcare-bridge";
 import { registerObligationGenerator } from "#/services/obligation-generator";
 import { audit, dashboard, documents, obligations, summary, verification } from "#/workflows";
 
@@ -44,6 +45,7 @@ export class Compliance implements Module {
     "masters.org_branch_created",
     "accounting.financial_year_started",
     "masters.contact_created",
+    "healthcare.operations_created",
   ];
   readonly $config: ComplianceModuleConfig;
 
@@ -51,6 +53,7 @@ export class Compliance implements Module {
   #pubsub: PubSubUnit | null = null;
   #kvStore: KvStoreUnit | null = null;
   #topics: string[] = [];
+  #healthcareTopics: string[] = [];
 
   constructor(config: ComplianceModuleConfig) {
     this.$config = config;
@@ -89,6 +92,10 @@ export class Compliance implements Module {
     };
 
     const eventBridgeTopics = await registerEventBridgeSubscriptions(eventBridgeDeps);
+    this.#healthcareTopics = await registerHealthcareBridge({
+      db: this.#db.db,
+      pubsub: this.#pubsub,
+    });
     this.#topics = [obligationGenTopic, ...eventBridgeTopics];
   }
 
@@ -105,7 +112,11 @@ export class Compliance implements Module {
         }),
       );
     }
+    if (pubsub) {
+      await unregisterHealthcareBridge(this.#healthcareTopics, { pubsub });
+    }
     this.#topics = [];
+    this.#healthcareTopics = [];
     this.#db = null;
     this.#pubsub = null;
     this.#kvStore = null;

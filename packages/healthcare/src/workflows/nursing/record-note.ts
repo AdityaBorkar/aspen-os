@@ -37,10 +37,24 @@ export const recordNote = Workflow.name("healthcare.nursing.record-note")
         entityType: AUDIT_ENTITY_TYPE.NURSING,
         newState: { patientId: row.patient_id },
       });
+      // Generic note semantics align with notes.note (create/get/list/update/
+      // delete with scope_type/scope_id); all clinical gating stays here
+      // (encounter linkage, EWS/IO/pain/risk content, witnessed drug admin,
+      // handover signatures, psych masking). Healthcare keeps the clinical
+      // note tables; notes owns the generic policy primitive if a shared
+      // masking/retention rule is ever needed. Clinical content never moves.
       await ctx.pubsub.publish(NURSING_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          encounterId: row.encounter_id ?? null,
+          healthcareNoteId: row.id,
+          notesOwner: "notes.note",
+          notesScopeId: row.patient_id,
+          notesScopeType: "patient",
+          patientId: row.patient_id,
+        },
         id: row.id,
       });
     });

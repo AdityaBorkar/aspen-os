@@ -1,4 +1,5 @@
 import { healthcareShareLog } from "#/db-schemas/records";
+import { buildCommsMessageQueuedEvent } from "#/integrations/comms";
 import { RECORDS_EVENTS } from "#/pubsub";
 import { ShareRecordSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -59,8 +60,25 @@ export const shareWhatsapp = Workflow.name("healthcare.records.share-whatsapp")
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          channel: row.channel,
+          docId: row.doc_id ?? null,
+          healthcareShareId: row.id,
+          patientId: row.patient_id ?? null,
+          to: row.recipient,
+        },
         id: row.id,
       });
+      await ctx.pubsub.publish(
+        "comms.message_queued",
+        buildCommsMessageQueuedEvent({
+          branchId,
+          channel: "whatsapp",
+          healthcareMessageId: row.id,
+          patientId: parsed.patientId ?? null,
+          to: parsed.recipient,
+        }),
+      );
     });
     return { channel: "whatsapp", shareId: row.id };
   });

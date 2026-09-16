@@ -192,6 +192,7 @@ export const healthcareRadioReport = pgTable(
     ...payloadCol(),
     authorized_by: text(),
     booking_id: text().notNull(),
+    dms_file_id: text(),
     id: uuidv7().primaryKey(),
     impression: text(),
     report_path: text().notNull(),
@@ -203,6 +204,7 @@ export const healthcareRadioReport = pgTable(
     index("idx_healthcare_radio_report_branch_id").on(table.branch_id),
     index("idx_healthcare_radio_report_booking_id").on(table.booking_id),
     index("idx_healthcare_radio_report_status").on(table.status),
+    index("idx_healthcare_radio_report_dms_file_id").on(table.dms_file_id),
   ],
 );
 

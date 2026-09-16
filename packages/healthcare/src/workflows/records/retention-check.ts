@@ -37,6 +37,9 @@ function recordClassOf(fileType: string): string {
 export const retentionCheck = Workflow.name("healthcare.records.retention-check")
   .input(RetentionCheckInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Retention evaluation stays clinical (OPD/IPD/MLC periods); enforcement
+    // lives in dms.hold + compliance.verification. This read-only check never
+    // purges; purge is blocked while a hold applies.
     const parsed = parse(CheckRetentionSchema, input);
     const branchId = parsed.branchId ?? "main";
     const filters = [eq(healthcareClinicalDocument.branch_id, branchId)];

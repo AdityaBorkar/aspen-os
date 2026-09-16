@@ -1,4 +1,5 @@
 import { healthcareComplianceEvidence } from "#/db-schemas/operations";
+import { complianceDocumentName } from "#/integrations/compliance";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { RecordComplianceEvidenceSchema } from "#/schemas/operations";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -37,10 +38,27 @@ export const complianceEvidence = Workflow.name("healthcare.operations.complianc
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { control: row.control, framework: row.framework },
       });
+      // Healthcare emits evidence; compliance owns the evidence store
+      // (obligation/verification/document/audit). The bridge materializes a
+      // compliance.document with the clinical ids attached.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          attestedBy: row.attested_by ?? null,
+          control: row.control,
+          documentName: complianceDocumentName({
+            branchId,
+            control: row.control,
+            evidencePath: row.evidence_path,
+            framework: row.framework,
+            healthcareEvidenceId: row.id,
+          }),
+          evidencePath: row.evidence_path,
+          framework: row.framework,
+          healthcareEvidenceId: row.id,
+        },
         id: row.id,
       });
     });

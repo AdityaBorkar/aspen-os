@@ -79,6 +79,12 @@ export const bookAppointment = Workflow.name("healthcare.appointments.book")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          appointmentId: row.id,
+          patientId: row.patient_id,
+          practitionerId: row.practitioner_id,
+          slotStart: row.slot_start.toISOString(),
+        },
         id: row.id,
       });
     });

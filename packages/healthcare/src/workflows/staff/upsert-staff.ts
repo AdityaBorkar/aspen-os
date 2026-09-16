@@ -60,6 +60,12 @@ export const upsertStaff = Workflow.name("healthcare.staff.upsert-staff")
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          healthcareStaffId: row.id,
+          hrOwner: "hr-core.employee",
+          name: row.name,
+          role: row.role,
+        },
         id: row.id,
       });
     });

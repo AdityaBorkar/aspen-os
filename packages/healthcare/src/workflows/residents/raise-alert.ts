@@ -47,7 +47,20 @@ export const raiseAlert = Workflow.name("healthcare.residents.raiseAlert")
         actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          kind: parsed.kind,
+          residentId: resident.id,
+        },
         id: resident.id,
+      });
+      // Resident escalation rides the single delivery surface: healthcare keeps
+      // the clinical alert, comms owns the out-of-band page.
+      await ctx.pubsub.publish("comms.notification_created", {
+        channelTypes: ["inapp"],
+        notificationId: resident.id,
+        recipientId: "resident-oncall",
+        recipientType: "user",
+        type: "resident_alert",
       });
     });
 

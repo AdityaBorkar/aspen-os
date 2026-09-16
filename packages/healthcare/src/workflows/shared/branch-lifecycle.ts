@@ -50,22 +50,27 @@ export async function assertSubdomainFree(db: HealthcareDB, subdomain: string): 
 export interface BranchInsert {
   branch_id: string;
   name: string;
+  org_branch_code: string | null;
   payload: Record<string, string>;
   status: string;
   subdomain: string;
 }
 
-export function branchInsertValues(
-  name: string,
-  address: string | undefined,
-  subdomain: string,
-): BranchInsert {
+export interface BranchInsertOptions {
+  address?: string;
+  name: string;
+  orgBranchCode?: string | null;
+  subdomain: string;
+}
+
+export function branchInsertValues(options: BranchInsertOptions): BranchInsert {
   return {
     branch_id: "main",
-    name,
-    payload: address ? { address } : {},
+    name: options.name,
+    org_branch_code: options.orgBranchCode ?? null,
+    payload: options.address ? { address: options.address } : {},
     status: "active",
-    subdomain,
+    subdomain: options.subdomain,
   };
 }
 

@@ -11,6 +11,9 @@ const PendingJobsInputSchema = object({ input: PendingJobsFiltersSchema });
 export const pendingJobs = Workflow.name("healthcare.dental.pendingJobs")
   .input(PendingJobsInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Dental lab jobs are a clinical read view; fulfilment lives in
+    // tasks.task via the tasks.healthcare-bridge. This view keeps clinical
+    // staging/overdue display without owning status/automation.
     const parsed = parse(PendingJobsFiltersSchema, input);
     const branchId = parsed.branchId ?? "main";
     const clauses = [

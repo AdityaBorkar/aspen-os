@@ -73,7 +73,21 @@ export const alertSenior = Workflow.name("healthcare.psych.alertSenior")
         actorId,
         at: nowIso,
         branchId,
+        data: {
+          encounterId: parsed.encounterId ?? null,
+          patientId: parsed.patientId,
+          reason: parsed.reason,
+        },
         id: alertId,
+      });
+      // Senior escalation rides the single delivery surface: healthcare keeps
+      // the clinical risk flag, comms owns the out-of-band page.
+      await ctx.pubsub.publish("comms.notification_created", {
+        channelTypes: ["inapp"],
+        notificationId: alertId,
+        recipientId: "psych-senior-oncall",
+        recipientType: "user",
+        type: "psych_senior_alert",
       });
     });
 

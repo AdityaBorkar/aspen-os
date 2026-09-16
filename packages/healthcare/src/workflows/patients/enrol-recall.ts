@@ -46,6 +46,12 @@ export const enrolRecall = Workflow.name("healthcare.patients.enrol-recall")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          patientId: patient.id,
+          reason: row.reason,
+          recallAt: row.at,
+          recallId: row.id,
+        },
         id: patient.id,
       });
     });

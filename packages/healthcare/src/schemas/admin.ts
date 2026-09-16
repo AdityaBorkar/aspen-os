@@ -14,6 +14,7 @@ export type SaveCompanyInput = InferOutput<typeof SaveCompanySchema>;
 export const CreateBranchSchema = object({
   address: optional(string()),
   name: NameSchema,
+  orgBranchCode: optional(string()),
   subdomain: pipe(string(), minLength(1, "Subdomain is required")),
 });
 
@@ -30,6 +31,7 @@ export const UpdateBranchSchema = object({
   patch: object({
     address: optional(string()),
     name: optional(NameSchema),
+    orgBranchCode: optional(string()),
     status: optional(string()),
   }),
 });

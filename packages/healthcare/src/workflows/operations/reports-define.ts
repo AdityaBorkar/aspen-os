@@ -61,6 +61,13 @@ export const reportsDefine = Workflow.name("healthcare.operations.reports-define
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          collection: row.collection,
+          healthcareReportId: row.id,
+          name: row.name,
+          workspaceOwner: "workspace.filter-view",
+          workspaceScope: `healthcare.${row.collection}`,
+        },
         id: row.id,
       });
     });

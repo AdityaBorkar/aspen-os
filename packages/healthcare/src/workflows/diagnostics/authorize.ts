@@ -83,6 +83,11 @@ export const authorize = Workflow.name("healthcare.diagnostics.authorize")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          authorizedBy: parsed.authorizedBy,
+          complianceOwner: "compliance.verification",
+          orderId: order.id,
+        },
         id: order.id,
       });
     });

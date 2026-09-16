@@ -7,6 +7,7 @@ export const healthcareClinicalDocument = pgTable(
   {
     branch_id: text().notNull().default("main"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    dms_file_id: text(),
     encounter_id: text(),
     file_path: text().notNull(),
     file_type: text().notNull(),
@@ -28,6 +29,7 @@ export const healthcareClinicalDocument = pgTable(
     index("idx_healthcare_clinical_document_branch_id").on(table.branch_id),
     index("idx_healthcare_clinical_document_encounter_id").on(table.encounter_id),
     index("idx_healthcare_clinical_document_patient_id").on(table.patient_id),
+    index("idx_healthcare_clinical_document_dms_file_id").on(table.dms_file_id),
   ],
 );
 

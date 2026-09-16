@@ -86,6 +86,11 @@ export const prescribeControlled = Workflow.name("healthcare.psych.prescribeCont
         actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          complianceOwner: "compliance.verification",
+          encounterId: row.encounter_id ?? null,
+          patientId: row.patient_id,
+        },
         id: row.id,
       });
     });

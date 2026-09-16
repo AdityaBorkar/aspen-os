@@ -49,6 +49,12 @@ export const issueRecall = Workflow.name("healthcare.appointments.issue-recall")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          patientId: row.patient_id,
+          reason: parsed.reason,
+          recallAt: row.at,
+          recallId: row.id,
+        },
         id: row.id,
       });
     });

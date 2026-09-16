@@ -45,6 +45,13 @@ export const attendanceMark = Workflow.name("healthcare.staff.attendance-mark")
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          date: row.date,
+          healthcareAttendanceId: row.id,
+          hrOwner: "hr-attendance.attendance",
+          staffId: row.staff_id,
+          status: row.status,
+        },
         id: row.id,
       });
     });

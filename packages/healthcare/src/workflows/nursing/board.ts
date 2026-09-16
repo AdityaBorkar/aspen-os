@@ -29,6 +29,11 @@ function toDto(row: {
 export const board = Workflow.name("healthcare.nursing.board")
   .input(NursingBoardInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Nursing board is a clinical read view over healthcare_nursing_task
+    // filtered by patient/encounter, keeping amber/red triage display
+    // (literals in shared/board-query.ts). Order fulfilment itself lives in
+    // tasks.task via the tasks.healthcare-bridge; this view never owns
+    // status/automation.
     const parsed = parse(NursingBoardSchema, input);
     const rows = await ctx.step.run("load-board", async () =>
       ctx.db

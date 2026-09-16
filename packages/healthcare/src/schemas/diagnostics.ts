@@ -152,6 +152,7 @@ export const RadioCheckinSchema = object({
 export const RadioReportAttachSchema = object({
   bookingId: Id,
   branchId: BranchIdSchema,
+  dmsFileId: optional(string()),
   impression: optional(string()),
   reportPath: pipe(string(), minLength(1, "Report path is required")),
 });

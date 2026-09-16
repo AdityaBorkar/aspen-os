@@ -48,6 +48,14 @@ export const placeOrder = Workflow.name("healthcare.encounters.place-order")
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId: encounter.branch_id,
+        data: {
+          encounterId: row.encounter_id,
+          healthcareTaskId: row.id,
+          kind: row.kind,
+          orderId: row.id,
+          patientId: row.patient_id,
+          title: row.item,
+        },
         id: parsed.encounterId,
       });
     });

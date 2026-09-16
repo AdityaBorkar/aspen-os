@@ -5,7 +5,9 @@ import { index, jsonb, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm
 // Subdomain-routing row for the healthcare bounded context: every clinical
 // table scopes to one branch via branch_id (default "main"). Not the
 // organization hierarchy (masters org_branch); see
-// workflows/shared/branch-lifecycle.ts.
+// workflows/shared/branch-lifecycle.ts. After unifying the two branch CRUDs,
+// the routing row stays in hc-foundation but references management/masters
+// org-branch for org meaning via org_branch_code.
 export const healthcareBranch = pgTable(
   "healthcare_branch",
   {
@@ -14,6 +16,7 @@ export const healthcareBranch = pgTable(
     id: uuidv7().primaryKey(),
     kind: text().notNull().default("branch"),
     name: text().notNull(),
+    org_branch_code: text(),
     payload: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
     pricelist_ids: text().array().notNull().default([]),
     status: text().notNull().default("active"),
@@ -24,6 +27,7 @@ export const healthcareBranch = pgTable(
     uniqueIndex("idx_healthcare_branch_subdomain").on(table.subdomain),
     index("idx_healthcare_branch_branch_id").on(table.branch_id),
     index("idx_healthcare_branch_status").on(table.status),
+    index("idx_healthcare_branch_org_branch_code").on(table.org_branch_code),
   ],
 );
 

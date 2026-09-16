@@ -1,4 +1,5 @@
 import { healthcareResident } from "#/db-schemas/residents";
+import { buildCommsMessageQueuedEvent } from "#/integrations/comms";
 import { RESIDENT_EVENTS } from "#/pubsub";
 import { FamilySummarySendSchema } from "#/schemas/residents";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -59,8 +60,22 @@ export const sendFamilySummary = Workflow.name("healthcare.residents.sendFamilyS
         actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          channel,
+          residentId: resident.id,
+          to: parsed.to,
+        },
         id: resident.id,
       });
+      await ctx.pubsub.publish(
+        "comms.message_queued",
+        buildCommsMessageQueuedEvent({
+          branchId,
+          channel,
+          healthcareMessageId: resident.id,
+          to: parsed.to,
+        }),
+      );
     });
 
     return { deliveries, residentId: resident.id };

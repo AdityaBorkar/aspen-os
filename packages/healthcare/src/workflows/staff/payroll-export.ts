@@ -10,6 +10,9 @@ const PayrollExportInputSchema = object({ input: ExportPayrollSchema });
 export const payrollExport = Workflow.name("healthcare.staff.payroll-export")
   .input(PayrollExportInputSchema)
   .handler(async ({ input }, ctx) => {
+    // HR payroll hook: same export shape, HR owns the source of truth.
+    // Practitioners stay clinical; practitioner leave blocks read HR leave
+    // rather than duplicating it.
     const parsed = parse(ExportPayrollSchema, input);
     const branchId = parsed.branchId ?? "main";
     const [staff, attendance, leaves] = await ctx.step.run("load-payroll", async () =>

@@ -18,6 +18,7 @@ const Id = pipe(string(), minLength(1, "ID is required"));
 
 const AttachDocumentSchema = object({
   branchId: BranchIdSchema,
+  dmsFileId: optional(string()),
   encounterId: optional(string()),
   filePath: pipe(string(), minLength(1, "File path is required")),
   fileType: pipe(string(), minLength(1, "File type is required")),

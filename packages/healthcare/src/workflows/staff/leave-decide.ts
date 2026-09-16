@@ -55,10 +55,22 @@ export const leaveDecide = Workflow.name("healthcare.staff.leave-decide")
         entityType: AUDIT_ENTITY_TYPE.OPERATIONS,
         newState: { decidedBy: row.decided_by, status: row.status },
       });
+      // Maker-checker stays: leave-request/leave-decide maps to hr-leave with
+      // the same different-decider guard. HR owns the leave record; this event
+      // carries the hr intent for the future bridge.
       await ctx.pubsub.publish(OPERATIONS_EVENTS.UPDATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          decidedBy: row.decided_by ?? null,
+          fromDate: row.from_date,
+          healthcareLeaveId: row.id,
+          hrOwner: "hr-leave.leave",
+          staffId: row.staff_id,
+          status: row.status,
+          toDate: row.to_date,
+        },
         id: row.id,
       });
     });

@@ -7,6 +7,7 @@ import {
   unregisterMessageSweeper,
 } from "#/services/delivery-worker";
 import { registerEventBridgeSubscriptions, unregisterEventBridge } from "#/services/event-bridge";
+import { registerHealthcareBridge, unregisterHealthcareBridge } from "#/services/healthcare-bridge";
 import * as wf from "#/workflows";
 import { createChannel } from "#/workflows/channel/create";
 import { deleteChannel } from "#/workflows/channel/delete";
@@ -48,6 +49,10 @@ export class Comms implements Module {
     "tenant.provisioned",
     "tenant.activated",
     "auth.email_otp_requested",
+    "healthcare.operations_created",
+    "healthcare.operations_updated",
+    "healthcare.records_created",
+    "healthcare.resident_updated",
   ];
   readonly $config: CommsModuleConfig;
 
@@ -57,6 +62,7 @@ export class Comms implements Module {
   #pubsub: PubSubUnit | null = null;
   #sweeperTopic: string | null = null;
   #bridgeTopics: string[] = [];
+  #healthcareTopics: string[] = [];
   #channels: ReturnType<Comms["buildChannels"]> | null = null;
   #providers: ReturnType<Comms["buildProviders"]> | null = null;
   #notifications: ReturnType<Comms["buildNotifications"]> | null = null;
@@ -109,14 +115,21 @@ export class Comms implements Module {
       log: ctx.log,
       pubsub: this.#pubsub,
     });
+
+    this.#healthcareTopics = await registerHealthcareBridge({
+      db: this.#db.db,
+      pubsub: this.#pubsub,
+    });
   }
 
   async $cleanup(): Promise<void> {
     if (this.#pubsub) {
       await unregisterMessageSweeper(this.#sweeperTopic, { pubsub: this.#pubsub });
       await unregisterEventBridge(this.#bridgeTopics, { pubsub: this.#pubsub });
+      await unregisterHealthcareBridge(this.#healthcareTopics, { pubsub: this.#pubsub });
     }
     this.#bridgeTopics = [];
+    this.#healthcareTopics = [];
     this.#sweeperTopic = null;
     this.#auth = null;
     this.#db = null;

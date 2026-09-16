@@ -10,6 +10,8 @@ const TatReportInputSchema = object({ input: TatReportSchema });
 export const tatReport = Workflow.name("healthcare.diagnostics.tat-report")
   .input(TatReportInputSchema)
   .handler(async ({ input }, ctx) => {
+    // TAT computation stays clinical; rendering/export lives on the shared
+    // reporting surface (workspace, interim; reports when real).
     const parsed = parse(TatReportSchema, input);
     const branchId = parsed.branchId ?? "main";
     const limit = Math.min(parsed.limit ?? 200, 1000);

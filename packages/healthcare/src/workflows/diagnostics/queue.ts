@@ -11,6 +11,9 @@ const QueueInputSchema = object({ input: DiagnosticsIdSchema });
 export const queue = Workflow.name("healthcare.diagnostics.queue")
   .input(QueueInputSchema)
   .handler(async ({ input }, ctx) => {
+    // Diagnostics queue is a clinical worklist read view; order fulfilment
+    // itself lives in tasks.task via the tasks.healthcare-bridge. This view
+    // keeps clinical triage ordering (literals in shared/board-query.ts).
     const parsed = parse(DiagnosticsIdSchema, input);
     const branchId = boardBranchOf(parsed.branchId);
 

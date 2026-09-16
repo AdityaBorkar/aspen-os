@@ -43,6 +43,7 @@ export const radioReportAttach = Workflow.name("healthcare.diagnostics.radio-rep
       await ctx.db.insert(healthcareRadioReport).values({
         booking_id: parsed.bookingId,
         branch_id: branchId,
+        dms_file_id: parsed.dmsFileId ?? null,
         impression: parsed.impression ?? null,
         report_path: parsed.reportPath,
         status: "draft",
@@ -59,6 +60,7 @@ export const radioReportAttach = Workflow.name("healthcare.diagnostics.radio-rep
 
     const dto = {
       bookingId: booking.id,
+      dmsFileId: parsed.dmsFileId ?? null,
       missingImpression: !parsed.impression,
       reportPath: parsed.reportPath,
       status: "reported" as const,
@@ -70,12 +72,16 @@ export const radioReportAttach = Workflow.name("healthcare.diagnostics.radio-rep
         crudAction: "create",
         entityId: booking.id,
         entityType: AUDIT_ENTITY_TYPE.DIAGNOSTICS,
-        newState: { bookingId: booking.id, version },
+        newState: { bookingId: booking.id, dmsFileId: dto.dmsFileId, version },
       });
       await ctx.pubsub.publish(DIAGNOSTICS_EVENTS.UPDATED, {
         actorId: ctx.actorId,
         at: new Date().toISOString(),
         branchId,
+        data: {
+          bookingId: booking.id,
+          dmsFileId: dto.dmsFileId,
+        },
         id: booking.id,
       });
     });

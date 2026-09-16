@@ -40,7 +40,16 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
       }
       return true;
     });
-    const mirrored = [];
+    const mirrored: {
+      dueAt: string | null;
+      encounterId: string | null;
+      healthcareTaskId: string;
+      kind: string;
+      orderId: string | null;
+      patientId: string;
+      status: string;
+      title: string;
+    }[] = [];
     // oxlint-disable eslint/no-await-in-loop
     for (const order of orders) {
       const [row] = await ctx.step.run(`mirror-${order.orderId ?? order.title}`, async () =>
@@ -60,7 +69,11 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
       );
       if (row) {
         mirrored.push({
-          id: row.id,
+          dueAt: order.dueAt ?? null,
+          encounterId: row.encounter_id,
+          healthcareTaskId: row.id,
+          kind: row.kind,
+          orderId: row.order_id,
           patientId: row.patient_id,
           status: row.status,
           title: row.title,
@@ -81,8 +94,16 @@ export const tasksFromOrders = Workflow.name("healthcare.nursing.tasks-from-orde
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          mirrored,
+        },
         id: `${mirrored.length}`,
       });
     });
-    return mirrored;
+    return mirrored.map((entry) => ({
+      id: entry.healthcareTaskId,
+      patientId: entry.patientId,
+      status: entry.status,
+      title: entry.title,
+    }));
   });

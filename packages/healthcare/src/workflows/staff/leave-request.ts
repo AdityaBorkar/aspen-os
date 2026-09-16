@@ -64,6 +64,14 @@ export const leaveRequest = Workflow.name("healthcare.staff.leave-request")
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          fromDate: row.from_date,
+          healthcareLeaveId: row.id,
+          hrOwner: "hr-leave.leave",
+          staffId: row.staff_id,
+          status: row.status,
+          toDate: row.to_date,
+        },
         id: row.id,
       });
     });

@@ -1,3 +1,4 @@
+import { buildCommsMessageQueuedEvent } from "#/integrations/comms";
 import { OPERATIONS_EVENTS } from "#/pubsub";
 import { SendMessageSchema } from "#/schemas/records";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -39,8 +40,29 @@ export const messagingSend = Workflow.name("healthcare.operations.messaging-send
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          channel: row.channel,
+          healthcareMessageId: row.id,
+          patientId: row.patient_id ?? null,
+          template: row.template ?? null,
+          to: row.to,
+        },
         id: row.id,
       });
+      // Deprecated second outbox: healthcare keeps the clinical reference above,
+      // comms owns delivery. The comms.healthcare-bridge consumes the
+      // healthcare event and the sweeper-owned comms event below.
+      await ctx.pubsub.publish(
+        "comms.message_queued",
+        buildCommsMessageQueuedEvent({
+          branchId,
+          channel,
+          healthcareMessageId: row.id,
+          patientId: parsed.patientId ?? null,
+          template: parsed.template,
+          to: parsed.to,
+        }),
+      );
     });
     return { channel: row.channel, id: row.id, status: row.status };
   });

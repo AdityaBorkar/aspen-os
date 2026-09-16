@@ -225,6 +225,7 @@ export interface RecordsEventMap {
   [RECORDS_EVENTS.CREATED]: HealthcareEntityEvent;
   [RECORDS_EVENTS.MERGED]: HealthcareEntityEvent;
   [RECORDS_EVENTS.UPDATED]: HealthcareEntityEvent;
+  [RECORDS_EVENTS.VIEWED]: HealthcareEntityEvent;
 }
 
 export interface OperationsEventMap {

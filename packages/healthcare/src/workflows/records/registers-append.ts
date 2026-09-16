@@ -54,10 +54,19 @@ export const registersAppend = Workflow.name("healthcare.records.registers-appen
         entityType: AUDIT_ENTITY_TYPE.RECORDS,
         newState: { register: row.register, serial: row.serial },
       });
+      // Registers keep gapless number-preserving voids in healthcare; the
+      // verification aspect lives in compliance.verification and the document
+      // aspect in compliance.document. This event carries the clinical ids for
+      // the compliance bridge.
       await ctx.pubsub.publish(RECORDS_EVENTS.CREATED, {
         actorId: ctx.actorId,
         at,
         branchId,
+        data: {
+          complianceOwner: "compliance.verification",
+          register: row.register,
+          serial: row.serial,
+        },
         id: row.id,
       });
     });
