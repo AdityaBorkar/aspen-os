@@ -7,7 +7,6 @@ import fg from "fast-glob";
 
 const ROOT = resolve(import.meta.dir, "..");
 const OUTPUT_PATH = join(ROOT, "docs/.generated/ref.json");
-const SRC_OUTPUT_PATH = join(ROOT, "docs/src/lib/generated/ref.json");
 const CHECK_FLAG = process.argv.includes("--check");
 
 interface FileEntry {
@@ -381,11 +380,8 @@ async function main() {
     return;
   }
 
-  await Promise.all([
-    mkdir(join(ROOT, "docs/.generated"), { recursive: true }),
-    mkdir(join(ROOT, "docs/src/lib/generated"), { recursive: true }),
-  ]);
-  await Promise.all([writeFile(OUTPUT_PATH, json), writeFile(SRC_OUTPUT_PATH, json)]);
+  await mkdir(join(ROOT, "docs/.generated"), { recursive: true });
+  await writeFile(OUTPUT_PATH, json);
   console.log(`Generated ${relative(ROOT, OUTPUT_PATH)}`);
   console.log(
     `  modules=${modules.length} schemas=${schemas.length} dbSchemas=${dbSchemas.length} workflows=${workflows.length} steps=${workflowSteps.length} events=${events.length}`,
