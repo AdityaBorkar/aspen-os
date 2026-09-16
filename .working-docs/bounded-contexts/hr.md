@@ -1,30 +1,30 @@
 # HR Context
 
-> Package: `@aspen-os/hr`. Domain module for human resources — employees, attendance, leave, lifecycle (onboarding/promotions/transfers/separation), overtime, shift management, org setup, positions/structure, announcements, and role-based access.
+> Packages: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`). Domain modules for human resources — employees, attendance, leave, lifecycle (onboarding/promotions/transfers/separation), overtime, shift management, org setup, positions/structure, and role-based access. Announcements live in `@aspen-os/announcement` (see `bounded-contexts/announcement.md`).
 
 ## Relationship Type
 
-Downstream of the Platform (Customer–Supplier). Fully conformant — `implements Module`, has `$prepareRuntime()`, and follows the one-file-per-action workflow layout. Runtime-wired — receives `{ db, pubsub }` via `$initialize(units)` (stores `#db` and `#pubsub`), registers schedules + lifecycle reconciliation subscriptions in `$prepareRuntime()`.
+Downstream of Platform (Customer–Supplier). Fully conformant — each `implements Module` and follows one-file-per-action workflow layout. Runtime-wired — each receives `{ db, pubsub }` via `$initialize(units)` (stores `#db` and `#pubsub`); hr-attendance and hr-leave register one cron schedule each in `$prepareRuntime()`; hr-core registers lifecycle reconciliation subscriptions.
 
-## Structure (`packages/hr/`)
+## Structure
 
-- `Hr.create(config)` — factory returning a Module instance; `$config: HrModuleConfig = { country: "INDIA" }`
-- `$name = "hr"`, `$dependencies = []`
-- 10 workflow groups exposed as `readonly` properties: `access`, `announcement`, `attendance`, `employee`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift` — ~307 public methods across per-action workflow files composed into a `workflows/index.ts` router (shared helpers in `workflows/trees.ts` + `workflows/utils.ts` barrel)
-- 54 database tables:
-  - **14 control-plane** (setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `holiday`, `holiday_list`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
-  - **40 tenant** (operational/transactional): employee, attendance, leave, lifecycle, overtime, shift, position (+assignment), announcement (+recipient), employee check-in, groups, health insurance, skill maps, etc.
-- 58 domain events across 10 groups (`EmployeeEventMap` 4, `AttendanceEventMap` 5, `LeaveEventMap` 6, `LifecycleEventMap` 9, `OvertimeEventMap` 3, `PositionEventMap` 7, `SetupEventMap` 6, `ShiftEventMap` 4, `AccessEventMap` 8, `AnnouncementEventMap` 6) → `HrEventMap`
-- 12 ACL resources: `announcement`, `attendance`, `employee`, `hrPermission`, `hrRole`, `hrUser`, `leave`, `lifecycle`, `overtime`, `position`, `setup`, `shift`
-- `$prepareRuntime()` — registers 3 cron schedules + lifecycle reconciliation subscriptions; `$cleanup()` unregisters them:
+- `HrCore.create(config)` — `$name = "hrCore"`, `$dependencies = []`; `$config: HrCoreModuleConfig = { country: "INDIA" }`
+- `HrAttendance.create(config)` — `$name = "hrAttendance"`, `$dependencies = []`; `$config: HrAttendanceModuleConfig = { country: "INDIA" }`
+- `HrLeave.create(config)` — `$name = "hrLeave"`, `$dependencies = []`; `$config: HrLeaveModuleConfig = { country: "INDIA" }`
+- 10 workflow groups across three packages: hr-core `access`, `employee`, `lifecycle`, `position`, `config`; hr-attendance `attendance`, `overtime`, `shift`; hr-leave `leave`, `config`
+- 51 database tables:
+- **12 control-plane** (hr-core setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
+- **39 tenant** (operational/transactional): hr-core 14 (employee, groups, skill maps, onboarding/promotion/transfer/separation, exit interviews, F&F, position + assignment, onboarding/separation tasks), hr-attendance 11 (attendance, requests, check-ins, overtime, shift), hr-leave 14 (leave types/periods/policies/allocations/applications/block lists/adjustments/encashments/ledger/compensatory + holidays)
+- 52 domain events across 9 groups (hr-core 33: `EmployeeEventMap` 4, `LifecycleEventMap` 9, `PositionEventMap` 7, `SetupEventMap` 5, `AccessEventMap` 8; hr-attendance 12: `AttendanceEventMap` 5, `OvertimeEventMap` 3, `ShiftEventMap` 4; hr-leave 7: `LeaveEventMap` 7)
+- 12 ACL resources: hr-core 7 (`config`, `employee`, `hrPermission`, `hrRole`, `hrUser`, `lifecycle`, `position`), hr-attendance 3 (`attendance`, `overtime`, `shift`), hr-leave 2 (`config`, `leave`)
+- `$prepareRuntime()` — registers 2 cron schedules + lifecycle reconciliation subscriptions; `$cleanup()` unregisters them:
 
-| Topic                       | Cron        | Action                              |
-| --------------------------- | ----------- | ----------------------------------- |
-| `hr.daily-attendance-sync`  | `0 1 * * *` | Sync daily attendance records       |
-| `hr.daily-leave-accrual`    | `0 0 * * *` | Accrue leave balances               |
-| `hr.announcement-scheduler` | `* * * * *` | Publish due scheduled announcements |
+| Topic                      | Cron        | Action                        | Package       |
+| -------------------------- | ----------- | ----------------------------- | ------------- |
+| `hr.daily-attendance-sync` | `0 1 * * *` | Sync daily attendance records | hr-attendance |
+| `hr.daily-leave-accrual`   | `0 0 * * *` | Accrue leave balances         | hr-leave      |
 
-Reconciliation subscriptions (registered alongside the schedules, unregistered in `$cleanup()`):
+Reconciliation subscriptions (hr-core, registered in `$prepareRuntime()`, unregistered in `$cleanup()`):
 
 | Topic                            | Action                                                                                |
 | -------------------------------- | ------------------------------------------------------------------------------------- |
@@ -34,29 +34,28 @@ Reconciliation subscriptions (registered alongside the schedules, unregistered i
 ## Exposed on the platform instance
 
 ```
-p.hr.access       branch-scoped RBAC — users, roles, permissions, branch access (33 methods)
-p.hr.announcement internal communications — author, schedule, publish, archive, pin, audience
-                  targeting, delivery snapshot + stats (14 methods)
-p.hr.attendance   records, check-ins, attendance requests (17 methods)
-p.hr.employee     employees, groups, health insurance, skill maps, org chart (27 methods)
-p.hr.leave        leave types/periods/policies/allocations/applications/compensatory leave/
-                  encashment/block lists/adjustments/ledger (60 methods)
-p.hr.lifecycle    onboarding, promotions, transfers, separation, F&F, exit interviews (51 methods)
-p.hr.overtime     overtime types + slips (13 methods)
-p.hr.position     positions, assignments, org/position trees, direct reports, team (20 methods)
-p.hrCore.config   departments (+ tree ops), designations, grades, employment types, holidays,
-                  settings (nested groups: departments, designations, employeeGrades,
-                  employmentTypes, holidayLists, holidays, hr, payroll)
-p.hr.shift        shift types, locations, assignments, requests, schedules (33 methods)
+p.hrCore.access     branch-scoped RBAC — users, roles, permissions, branch access (33 methods)
+p.hrCore.employee   employees, groups, skill maps, org chart (28 methods)
+p.hrCore.lifecycle  onboarding, promotions, transfers, separation, F&F, exit interviews (52 methods)
+p.hrCore.position   positions, assignments, org/position trees, direct reports, team (20 methods)
+p.hrCore.config     departments (+ tree ops), designations, grades, employment types,
+                    settings (nested groups: departments, designations, employeeGrades,
+                    employmentTypes, hr, payroll)
+p.hrAttendance.attendance records, check-ins, attendance requests (17 methods)
+p.hrAttendance.overtime   overtime types + slips (13 methods)
+p.hrAttendance.shift      shift types, locations, assignments, requests, schedules (34 methods)
+p.hrLeave.leave     leave types/periods/policies/allocations/applications/compensatory leave/
+                    encashment/block lists/adjustments/ledger (60 methods)
+p.hrLeave.config    holidays + holiday lists
 ```
 
 ## Cross-context integration
 
 - Compliance's EventBridge subscribes to `hr.employee_onboarded` (background check + ID verification documents) and `hr.employee_separated` (exit + final settlement documents).
-- Comms' EventBridge subscribes to `announcement.published` (one `comms_notification` per auth-user recipient with `sourceModule: "hr"`, `sourceEntity.type: "announcement"`); hr's `getStats` reads read/acknowledgement counts back from those `comms_notification` rows (narrow, directed cross-module read for stats only).
-- Module-internal: the position group consumes `lifecycle.separation_completed` / `lifecycle.transfer_approved` to reconcile position assignments; `position.*` and `setup.department_*` events are produced by the position/setup workflows for host-app subscribers.
+- Announcement reads hr-core's `employee` + `hr_user` tables via raw SQL at publish time (one-directional `$dependencies = ["hrCore"]`); comms fans out `announcement.published` (see `bounded-contexts/announcement.md`).
+- Module-internal: position group consumes `lifecycle.separation_completed` / `lifecycle.transfer_approved` to reconcile position assignments; `position.*` and `setup.department_*` events are produced by position/setup workflows for host-app subscribers.
 
 ## Language
 
-- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Position, Position Assignment, Department, Designation, Employment Type, Employee Grade, Holiday List, Payroll Settings, HR Access, Announcement, Announcement Audience, Delivery Snapshot, HrModuleConfig
-- Avoid: Staff/Worker/Personnel (for Employee), Timesheet (for Attendance), PTO (for Leave), Roster (for Shift), Job (for Position), Notification (for Announcement — Notification stays a comms term)
+- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Position, Position Assignment, Department, Designation, Employment Type, Employee Grade, HR Access, HrCoreModuleConfig, HrAttendanceModuleConfig, HrLeaveModuleConfig
+- Avoid: Staff/Worker/Personnel (for Employee), Timesheet (for Attendance), PTO (for Leave), Roster (for Shift), Job (for Position)

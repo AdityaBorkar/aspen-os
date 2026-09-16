@@ -399,7 +399,7 @@ _Avoid_: Service, Handler
 
 ### HR Domain (3 packages)
 
-> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 9 workflow groups, 52 tables, 52 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`; all use units `db`, `pubsub`.
+> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 10 workflow groups, 51 tables (12 control-plane + 39 tenant), 52 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`; hr three use units `db`, `pubsub`, announcement is stateless.
 
 **Employee** (hr-core):
 Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `grade`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, employee groups.
@@ -446,7 +446,7 @@ Leave management sub-domain covering leave types, periods, policies, allocations
 _Avoid_: PTO, Time Off
 
 **HR package map**:
-hr-core = 5 groups (`access` 33, `employee` 28, `lifecycle` 52, `position` 20, `setup` 41), 29 tables (14 control-plane + 15 tenant), 34 events (5 namespaces), 7 ACL resources, reconciliation subscriptions (`lifecycle.separation_completed`, `lifecycle.transfer_approved`). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 34), 11 tenant tables, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 1 group (`leave`, 60 actions), 12 tenant tables, 6 events, 1 ACL resource, 1 cron.
+hr-core = 5 groups (`access` 33, `employee` 28, `lifecycle` 52, `position` 20, `setup` 41), 26 tables (12 control-plane + 14 tenant), 33 events (5 namespaces), 7 ACL resources, reconciliation subscriptions (`lifecycle.separation_completed`, `lifecycle.transfer_approved`). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 34), 11 tenant tables, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 2 groups (`leave`, 60 actions, plus `config` holidays), 14 tenant tables, 7 events, 2 ACL resources, 1 cron.
 _Avoid_: Single `Hr` module (use `hrCore` / `hrAttendance` / `hrLeave` / `announcement`)
 
 ### DMS Domain
@@ -718,16 +718,16 @@ _Avoid_: Service, Handler
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │  hrCore/hrAtt/ │ │    Module    │ │   Module     │ │   Module    │ │   Module     │
 │          │ │                  │ │              │ │              │ │  hrLeave       │ │  (no units)  │ │              │ │             │ │              │
 │9 wf grps │ │ 5 wf groups      │ │ 9 wf groups  │ │ 16 wf exports│ │ 10 wf groups   │ │ 1 wf group   │ │ 5 wf groups  │ │ 4 wf groups │ │ 8 wf groups  │
-│12 tables │ │ (+dashboard alias)│ │ 14 tables    │ │ 12 tables    │ │ 54 tables      │ │ 1 table      │ │ 4 owned +    │ │ 4 tables    │ │ 8 tables     │
-│32 events │ │ 3 tables         │ │ 5 ctl + 9 ten│ │ 27 events    │ │ 14 ctl + 40 ten│ │ 3 events     │ │ 2 shadow     │ │ 14 events   │ │ 30 events    │
-│9 ACL res.│ │ 23 events        │ │ 11 events    │ │ 9 ACL res.   │ │ 58 events      │ │ 1 ACL res.   │ │ 22 events    │ │ 4 ACL res.  │ │ 9 ACL res.   │
+│12 tables │ │ (+dashboard alias)│ │ 14 tables    │ │ 12 tables    │ │ 51 tables      │ │ 1 table      │ │ 4 owned +    │ │ 4 tables    │ │ 8 tables     │
+│32 events │ │ 3 tables         │ │ 5 ctl + 9 ten│ │ 27 events    │ │ 12 ctl + 39 ten│ │ 3 events     │ │ 2 shadow     │ │ 14 events   │ │ 30 events    │
+│9 ACL res.│ │ 23 events        │ │ 11 events    │ │ 9 ACL res.   │ │ 52 events      │ │ 1 ACL res.   │ │ 22 events    │ │ 4 ACL res.  │ │ 9 ACL res.   │
 │deps: none│ │ 3 ACL res.       │ │ empty ACL    │ │ deps: masters│ │ 12 ACL res.    │ │ deps: none   │ │ 4 ACL res.   │ │ deps: none  │ │ deps: none   │
 │units:    │ │ units:           │ │ deps: masters│ │ $cons: 4     │ │ deps: none     │ │              │ │ deps: none   │ │ $cons: 10   │ │ $cons: none  │
 │db,kvStore│ │ db, kvStore,     │ │ units:       │ │ units:       │ │ units:         │ │              │ │ units: db    │ │ units:      │ │ units:       │
 │          │ │ pubsub           │ │ db, pubsub   │ │ db, pubsub,  │ │ db, pubsub     │ │              │ │ (auth/pubsub │ │ db, pubsub  │ │ db, pubsub   │
 │          │ │                  │ │              │ │ storage      │ │                │ │              │ │ accepted,    │ │             │ │              │
-│          │ │                  │ │              │ │ 2 crons      │ │ 2 crons +      │ │              │ │ unused)      │ │ 1 cron +    │ │ per-schedule │
-│          │ │                  │ │              │ │              │ │ 1 scheduler    │ │              │ │              │ │ 3 bridges   │ │ crons        │
+│          │ │                  │ │              │ │ 2 crons      │ │ 2 crons        │ │              │ │ unused)      │ │ 1 cron +    │ │ per-schedule │
+│          │ │                  │ │              │ │              │ │                │ │              │ │              │ │ 3 bridges   │ │ crons        │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
 
 Implemented: DMS module — unified document/files management on a single `file`
@@ -789,17 +789,19 @@ Implemented: Healthcare module — stateless OPD clinic backend (`$initialize`/
   `diagnostics:authorize`, `psych:override`). No module deps. OPD only — no
   ADT/IPD, no OT, no insurance/TPA.
 
-Implemented: HR as three packages — hr-core (5 groups, 29 tables 14
-  control + 15 tenant, 34 events, 7 ACL, reconciliation subscriptions),
+Implemented: HR as three packages — hr-core (5 groups, 26 tables 12
+  control + 14 tenant, 33 events, 7 ACL, reconciliation subscriptions),
   hr-attendance (3 groups, 11 tenant tables, 12 events, 3 ACL,
-  `hr.daily-attendance-sync` cron), hr-leave (1 group of 60 actions, 12
-  tenant tables, 6 events, 1 ACL, `hr.daily-leave-accrual` cron), plus
+  `hr.daily-attendance-sync` cron), hr-leave (2 groups [`leave` + `config`
+  holidays], 14 tenant tables, 7 events, 2 ACL,
+  `hr.daily-leave-accrual` cron), plus
   announcement (1 group of 14 actions, 2 tenant tables, 6 events, 1 ACL,
   no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`). Announcements
   (`announcement.*`, incl. `announcement.published` consumed by comms)
-  live in `@aspen-os/announcement`. Totals: 10
-  groups, 54 tables, 58 events, 12 ACL resources. HR three `$dependencies = []`,
-  announcement `$dependencies = ["hrCore"]`; units `db`, `pubsub`.
+  live in `@aspen-os/announcement`. Totals: 11
+  groups, 53 tables, 58 events, 13 ACL resources. HR three `$dependencies = []`,
+  announcement `$dependencies = ["hrCore"]`; hr three units `db`, `pubsub`,
+  announcement stateless.
 
 Stubs (empty `src/index.ts` + `docs/` shell + `package.json` name only — no
   source): crm, fleet, inventory, reports
