@@ -7,7 +7,6 @@ export type {
 } from "#/schemas";
 export {
   AnnouncementAudienceSchema,
-  AnnouncementChannelSchema,
   AnnouncementFiltersSchema,
   AnnouncementPrioritySchema,
   AnnouncementStatusSchema,

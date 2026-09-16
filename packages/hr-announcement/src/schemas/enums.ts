@@ -7,12 +7,6 @@ export const AnnouncementStatusSchema = enum_({
   scheduled: "scheduled",
 });
 
-export const AnnouncementChannelSchema = enum_({
-  custom: "custom",
-  general: "general",
-  hr: "hr",
-});
-
 export const AnnouncementPrioritySchema = enum_({
   important: "important",
   normal: "normal",

@@ -21,7 +21,7 @@ await p.hrAnnouncement.announcement.create({
   input: {
     title: "Policy Update",
     body: "New leave policy effective next month",
-    channel: "hr",
+    audience: { type: "hr_users" },
     priority: "normal",
     requireAcknowledgement: false,
   },
@@ -30,7 +30,6 @@ await p.hrAnnouncement.announcement.create({
   input: {
     title: "Holiday Notice",
     body: "Office closed Monday",
-    channel: "custom",
     audience: { type: "departments", ids: ["dept-eng"] },
     scheduleAt: "2026-09-10T09:00:00Z",
   },

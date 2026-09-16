@@ -28,17 +28,16 @@ export const updateAnnouncement = Workflow.name("hr.announcement.update")
       throw new Error("Only draft or scheduled announcements can be edited.");
     }
 
-    const channel = parsed.channel ?? existing.channel;
     const audience = parsed.audience !== undefined ? parsed.audience : existing.audience;
 
-    const { ids, type } = resolveAudienceDefinition({ audience, channel });
+    const { ids, type } = resolveAudienceDefinition({ audience });
     await validateAudienceStrongRefs(ctx.db, type, ids);
 
     const [updated] = await ctx.db
       .update(hrAnnouncement)
       .set({
         ...parsed,
-        audience: channel === "custom" ? audience : null,
+        audience,
         updated_at: new Date(),
       })
       .where(eq(hrAnnouncement.id, id))

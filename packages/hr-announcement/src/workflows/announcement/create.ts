@@ -27,8 +27,7 @@ export const createAnnouncement = Workflow.name("hr.announcement.create")
     }
 
     const { ids, type } = resolveAudienceDefinition({
-      audience: parsed.audience ?? null,
-      channel: parsed.channel,
+      audience: parsed.audience,
     });
     await validateAudienceStrongRefs(ctx.db, type, ids);
 
@@ -39,10 +38,9 @@ export const createAnnouncement = Workflow.name("hr.announcement.create")
     const [result] = await ctx.db
       .insert(hrAnnouncement)
       .values({
-        audience: parsed.channel === "custom" ? parsed.audience : null,
+        audience: parsed.audience,
         author: ctx.actorId,
         body: parsed.body,
-        channel: parsed.channel,
         priority: parsed.priority,
         require_acknowledgement: parsed.requireAcknowledgement,
         scheduled_for: scheduledAt,
@@ -57,7 +55,6 @@ export const createAnnouncement = Workflow.name("hr.announcement.create")
 
     await ctx.pubsub.publish(ANNOUNCEMENT_EVENTS.CREATED, {
       announcement: {
-        channel: result.channel,
         id: result.id,
         status: result.status,
         title: result.title,

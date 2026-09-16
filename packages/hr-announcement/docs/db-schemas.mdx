@@ -8,7 +8,7 @@ All tables are tenant-scoped. Cross-module links are soft text FKs validated in 
 
 ### `hr_announcement` — tenant
 
-Stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`.
+Stores author (`ctx.actorId` required), body/title, `audience` JSON (`type` + `ids`, required), `priority` (`normal`/`important`/`urgent`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`.
 
 Indexes: `idx_hr_announcement_status` (`status`), `idx_hr_announcement_author` (`author`), `idx_hr_announcement_scheduled_for` (`scheduled_for`).
 

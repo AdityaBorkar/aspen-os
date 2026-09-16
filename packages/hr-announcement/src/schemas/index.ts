@@ -14,8 +14,4 @@ export {
   UpdateAnnouncementSchema,
 } from "#/schemas/announcement";
 // Enum schemas
-export {
-  AnnouncementChannelSchema,
-  AnnouncementPrioritySchema,
-  AnnouncementStatusSchema,
-} from "#/schemas/enums";
+export { AnnouncementPrioritySchema, AnnouncementStatusSchema } from "#/schemas/enums";

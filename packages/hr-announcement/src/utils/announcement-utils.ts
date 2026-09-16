@@ -5,8 +5,6 @@ import { collectSubtreeIds } from "#/workflows/trees";
 
 import { eq, sql } from "drizzle-orm";
 
-export type AnnouncementChannel = "custom" | "general" | "hr";
-
 export interface ResolvedRecipient {
   employeeId: string | null;
   hrUserId: string | null;
@@ -19,19 +17,16 @@ export interface ResolvedAudienceDefinition {
 }
 
 export function resolveAudienceDefinition(input: {
-  audience: AnnouncementAudience | null;
-  channel: AnnouncementChannel;
+  audience: AnnouncementAudience | null | undefined;
 }): ResolvedAudienceDefinition {
-  if (input.channel === "general") {
-    return { ids: [], type: "all" };
-  }
-  if (input.channel === "hr") {
-    return { ids: [], type: "hr_users" };
-  }
   if (!input.audience) {
-    throw new Error("Custom-channel announcements require an audience definition.");
+    throw new Error("Announcement audience is required.");
   }
-  if (input.audience.type !== "all" && (input.audience.ids?.length ?? 0) === 0) {
+  if (
+    input.audience.type !== "all" &&
+    input.audience.type !== "hr_users" &&
+    (input.audience.ids?.length ?? 0) === 0
+  ) {
     throw new Error(`Audience type "${input.audience.type}" requires at least one id.`);
   }
   return { ids: input.audience.ids ?? [], type: input.audience.type };
@@ -132,7 +127,7 @@ async function resolveHrUsers(db: Db, hrUserIds: string[]): Promise<ResolvedReci
 
 export async function resolveRecipients(
   db: Db,
-  input: { audience: AnnouncementAudience | null; channel: AnnouncementChannel },
+  input: { audience: AnnouncementAudience | null | undefined },
 ): Promise<ResolvedRecipient[]> {
   const { ids, type } = resolveAudienceDefinition(input);
   const recipients: ResolvedRecipient[] = [];

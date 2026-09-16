@@ -13,7 +13,6 @@ export const ANNOUNCEMENT_EVENTS = {
 
 export interface AnnouncementCreatedEvent {
   announcement: {
-    channel: string;
     id: string;
     status: string;
     title: string;

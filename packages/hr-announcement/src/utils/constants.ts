@@ -35,14 +35,6 @@ export const ANNOUNCEMENT_STATUS = {
 
 export type AnnouncementStatus = (typeof ANNOUNCEMENT_STATUS)[keyof typeof ANNOUNCEMENT_STATUS];
 
-export const ANNOUNCEMENT_CHANNEL = {
-  CUSTOM: "custom",
-  GENERAL: "general",
-  HR: "hr",
-} as const;
-
-export type AnnouncementChannel = (typeof ANNOUNCEMENT_CHANNEL)[keyof typeof ANNOUNCEMENT_CHANNEL];
-
 export const ANNOUNCEMENT_PRIORITY = {
   IMPORTANT: "important",
   NORMAL: "normal",

@@ -20,9 +20,6 @@ export const listAnnouncement = Workflow.name("hr.announcement.list")
     if (parsed.author) {
       conditions.push(eq(hrAnnouncement.author, parsed.author));
     }
-    if (parsed.channel) {
-      conditions.push(eq(hrAnnouncement.channel, parsed.channel));
-    }
     if (parsed.status) {
       conditions.push(eq(hrAnnouncement.status, parsed.status));
     }

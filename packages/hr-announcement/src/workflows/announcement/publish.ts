@@ -25,7 +25,6 @@ export const publishAnnouncement = Workflow.name("hr.announcement.publish")
 
     const recipients = await resolveRecipients(ctx.db, {
       audience: existing.audience,
-      channel: existing.channel,
     });
 
     const updated = await ctx.db.transaction(async (tx) => {

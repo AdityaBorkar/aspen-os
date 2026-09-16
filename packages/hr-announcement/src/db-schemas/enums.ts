@@ -8,12 +8,6 @@ export const announcementStatusEnum = pgEnum("hr_announcement_status", [
   "scheduled",
 ]);
 
-export const announcementChannelEnum = pgEnum("hr_announcement_channel", [
-  "custom",
-  "general",
-  "hr",
-]);
-
 export const announcementPriorityEnum = pgEnum("hr_announcement_priority", [
   NOTIFICATION_SEVERITY.IMPORTANT,
   NOTIFICATION_SEVERITY.NORMAL,

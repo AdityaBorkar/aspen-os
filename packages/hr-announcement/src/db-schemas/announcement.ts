@@ -1,8 +1,4 @@
-import {
-  announcementChannelEnum,
-  announcementPriorityEnum,
-  announcementStatusEnum,
-} from "#/db-schemas/enums";
+import { announcementPriorityEnum, announcementStatusEnum } from "#/db-schemas/enums";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -27,10 +23,9 @@ export const hrAnnouncement = pgTable(
   "hr_announcement",
   {
     archived_at: timestamp({ withTimezone: true }),
-    audience: jsonb().$type<AnnouncementAudience | null>(),
+    audience: jsonb().$type<AnnouncementAudience>().notNull(),
     author: text().notNull(),
     body: text().notNull(),
-    channel: announcementChannelEnum().notNull(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     id: uuidv7().primaryKey(),
     pinned: boolean().notNull().default(false),

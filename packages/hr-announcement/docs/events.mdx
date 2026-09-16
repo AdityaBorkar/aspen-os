@@ -10,7 +10,7 @@ The hr-announcement module defines announcement events. Events are type-level co
 
 | Event                    | Payload                                             | Trigger                                        |
 | ------------------------ | --------------------------------------------------- | ---------------------------------------------- |
-| `announcement.created`   | `{ announcement: { id, title, channel, status } }`  | `announcement.create`                          |
+| `announcement.created`   | `{ announcement: { id, title, status } }`           | `announcement.create`                          |
 | `announcement.updated`   | `{ announcement: { id }, changes }`                 | `announcement.update`                          |
 | `announcement.scheduled` | `{ announcementId, scheduledFor }`                  | `announcement.schedule`                        |
 | `announcement.published` | `{ announcement: { id, title }, recipientUserIds }` | `announcement.publish`                         |

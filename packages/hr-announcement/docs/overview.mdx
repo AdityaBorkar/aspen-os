@@ -76,7 +76,7 @@ Announcement scheduling owns no cron — `hr_announcement.scheduled_for` is mate
 
 ## Announcements
 
-`hr_announcement` stores author (`ctx.actorId` required), body/title, `channel` (`general`/`hr`/`custom`), `audience` JSON (`type` + `ids`), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
+`hr_announcement` stores author (`ctx.actorId` required), body/title, `audience` JSON (`type` + `ids`, required), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `hr_announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "hr"`).
 
 ## Relationships
 

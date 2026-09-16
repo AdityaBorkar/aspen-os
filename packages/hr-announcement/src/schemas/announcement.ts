@@ -1,15 +1,10 @@
-import {
-  AnnouncementChannelSchema,
-  AnnouncementPrioritySchema,
-  AnnouncementStatusSchema,
-} from "#/schemas/enums";
+import { AnnouncementPrioritySchema, AnnouncementStatusSchema } from "#/schemas/enums";
 
 import {
   array,
   boolean,
   enum as enum_,
   minLength,
-  nullable,
   number,
   object,
   omit,
@@ -38,9 +33,8 @@ export const AnnouncementAudienceSchema = object({
 export type AnnouncementAudienceInput = InferOutput<typeof AnnouncementAudienceSchema>;
 
 export const CreateAnnouncementSchema = object({
-  audience: optional(nullable(AnnouncementAudienceSchema)),
+  audience: AnnouncementAudienceSchema,
   body: pipe(string(), minLength(1, "Body is required")),
-  channel: AnnouncementChannelSchema,
   priority: optional(AnnouncementPrioritySchema, "normal"),
   requireAcknowledgement: optional(boolean(), false),
   scheduleAt: optional(string()),
@@ -60,7 +54,6 @@ export type UpdateAnnouncementInput = InferOutput<typeof UpdateAnnouncementSchem
 // oxlint-disable eslint/id-length
 export const AnnouncementFiltersSchema = object({
   author: optional(string()),
-  channel: optional(AnnouncementChannelSchema),
   fromDate: optional(string()),
   pinned: optional(boolean()),
   priority: optional(AnnouncementPrioritySchema),
