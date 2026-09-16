@@ -16,7 +16,7 @@ function definePackageDocs(dir: string) {
 export const platform = definePackageDocs("platform");
 export const compliance = definePackageDocs("compliance");
 export const hrCore = definePackageDocs("hr-core");
-export const hrAnnouncement = definePackageDocs("hr-announcement");
+export const announcement = definePackageDocs("announcement");
 export const hrAttendance = definePackageDocs("hr-attendance");
 export const hrLeave = definePackageDocs("hr-leave");
 export const dms = definePackageDocs("dms");

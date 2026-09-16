@@ -1,0 +1,52 @@
+---
+title: Workflows
+description: API reference for the workflow groups exposed by the announcement module.
+icon: IconListCheck
+---
+
+The announcement module exposes one workflow group via `p.announcement`: `announcement`.
+
+Create inputs are Valibot-validated `{ input: CreateAnnouncementInput }`, update is `{ id, patch: UpdateAnnouncementInput }` where `undefined` leaves a column untouched. Every command audit-logs and, where listed, publishes a domain event.
+
+## Features
+
+### Announcement
+
+Access: `p.announcement.announcement`
+
+Authoring, audience targeting, scheduling, publishing, pinning, and delivery snapshot.
+
+```ts title="announcement — publish and schedule"
+await p.announcement.announcement.create({
+  input: {
+    title: "Policy Update",
+    body: "New leave policy effective next month",
+    audience: { type: "hr_users" },
+    priority: "normal",
+    requireAcknowledgement: false,
+  },
+});
+await p.announcement.announcement.create({
+  input: {
+    title: "Holiday Notice",
+    body: "Office closed Monday",
+    audience: { type: "departments", ids: ["dept-eng"] },
+    scheduleAt: "2026-09-10T09:00:00Z",
+  },
+});
+await p.announcement.announcement.publish({ id });
+await p.announcement.announcement.schedule({ id, scheduledFor: "2026-09-10T09:00:00Z" });
+await p.announcement.announcement.cancelSchedule({ id });
+await p.announcement.announcement.archive({ id });
+await p.announcement.announcement.restore({ id });
+await p.announcement.announcement.pin({ id });
+await p.announcement.announcement.unpin({ id });
+await p.announcement.announcement.getById({ id });
+await p.announcement.announcement.list({ filters: { status: "published" } });
+await p.announcement.announcement.listRecipients({ announcementId: id });
+await p.announcement.announcement.getStats({ announcementId: id });
+```
+
+Publish is idempotent — re-publishing a published announcement returns it without re-emitting `announcement.published`.
+
+Events emitted by these workflows: [Events](/docs/announcement/events). Tables touched: [DB Schemas](/docs/announcement/db-schemas).

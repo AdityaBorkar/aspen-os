@@ -39,7 +39,7 @@
     { "path": "./packages/platform" },
     { "path": "./packages/hr-attendance" },
     { "path": "./packages/hr-core" },
-    { "path": "./packages/hr-announcement" },
+    { "path": "./packages/announcement" },
     { "path": "./packages/hr-leave" },
     { "path": "./packages/inventory" },
     { "path": "./packages/reports" },

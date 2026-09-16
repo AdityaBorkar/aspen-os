@@ -1,0 +1,24 @@
+import { announcement } from "#/db-schemas";
+import { fetchAnnouncementById } from "#/utils/announcement-utils";
+
+import { Workflow } from "@aspen-os/platform/server";
+import { eq } from "drizzle-orm";
+import { minLength, object, pipe, string } from "valibot";
+
+const InputSchema = object({
+  id: pipe(string(), minLength(1, "id is required")),
+});
+
+export const deleteAnnouncement = Workflow.name("announcement.delete")
+  .input(InputSchema)
+  .handler(async ({ id }, ctx) => {
+    const existing = await fetchAnnouncementById(ctx.db, id);
+
+    if (existing.status !== "draft" && existing.status !== "scheduled") {
+      throw new Error("Only draft or scheduled announcements can be deleted.");
+    }
+
+    const [deleted] = await ctx.db.delete(announcement).where(eq(announcement.id, id)).returning();
+
+    return deleted;
+  });

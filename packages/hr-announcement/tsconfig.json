@@ -1,9 +1,0 @@
-{
-  "compilerOptions": {
-    "declarationDir": "../../.local/types/hr-announcement",
-    "paths": {
-      "#/*": ["./src/*"]
-    }
-  },
-  "extends": "../../tsconfig.json"
-}

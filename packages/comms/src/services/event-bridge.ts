@@ -286,7 +286,7 @@ async function handleAnnouncementPublished(
             input: {
               recipient: { id: userId, type: "user" },
               sourceEntity: { id: event.announcement.id, type: "announcement" },
-              sourceModule: "hr",
+              sourceModule: "announcement",
               title: event.announcement.title,
               type: "announcement",
             },

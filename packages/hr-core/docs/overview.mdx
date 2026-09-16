@@ -124,7 +124,7 @@ flowchart LR
   subgraph external[Other modules]
     ATT[hr-attendance]
     LEAVE[hr-leave]
-    ANN[hr-announcement]
+    ANN[announcement]
   end
 
   EMP -. soft FK .-> DEPT
@@ -140,7 +140,7 @@ flowchart LR
   LC_TR_EVENT[lifecycle.transfer_approved] --> ASM
 ```
 
-All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance`, `hr-leave`, and `hr-announcement` reference `employee` via soft IDs without a hard FK.
+All cross-table links are soft text FKs (no DB constraints); invariants are workflow-enforced. `hr-attendance`, `hr-leave`, and `announcement` reference `employee` via soft IDs without a hard FK.
 
 <Callout type="warn">
   `lifecycle.separation_completed` and `lifecycle.transfer_approved` are consumed internally for
