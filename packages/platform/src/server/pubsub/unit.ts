@@ -127,6 +127,10 @@ export class PubSubUnit {
     this.subscriptions.set(topic, wrappedHandler);
 
     await this.ensureStarted();
+    // Create idempotently first: without an existing queue row the worker
+    // poll loop emits unhandled `Queue <name> does not exist` errors
+    // (seen in `dev:prepare` via hr-core reconciliation subscriptions).
+    await this.boss.createQueue(topic);
     await this.boss.work(topic, wrappedHandler);
   }
 
@@ -144,6 +148,10 @@ export class PubSubUnit {
   }): Promise<void> {
     const { topic, cron, data, options } = input;
     await this.ensureStarted();
+    // pg-boss `schedule()` FK-requires the queue row to exist; `work()`
+    // creates it implicitly but these cron jobs have no worker yet, so
+    // create idempotently first (same as `withQueueEnsured` for publish).
+    await this.boss.createQueue(topic);
     await this.boss.schedule(topic, cron, data, {
       ...this.toBossOptions(options),
       tz: options?.tz,

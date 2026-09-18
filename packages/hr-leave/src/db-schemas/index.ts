@@ -1,3 +1,12 @@
+import {
+  compensatoryLeaveStatusEnum,
+  earnedLeaveFrequencyEnum,
+  holidayTypeEnum,
+  leaveAllocationStatusEnum,
+  leaveApplicationStatusEnum,
+  leaveBlockListScopeEnum,
+  leaveEncashmentStatusEnum,
+} from "#/db-schemas/enums";
 import { holiday, holidayList } from "#/db-schemas/holiday";
 import {
   compensatoryLeaveRequest,
@@ -33,13 +42,20 @@ export { holiday, holidayList } from "#/db-schemas/holiday";
 
 export const dbSchema = {
   compensatoryLeaveRequest,
+  compensatoryLeaveStatusEnum,
+  earnedLeaveFrequencyEnum,
   holiday,
   holidayList,
+  holidayTypeEnum,
   leaveAdjustment,
   leaveAllocation,
+  leaveAllocationStatusEnum,
   leaveApplication,
+  leaveApplicationStatusEnum,
   leaveBlockList,
+  leaveBlockListScopeEnum,
   leaveEncashment,
+  leaveEncashmentStatusEnum,
   leaveLedgerEntry,
   leavePeriod,
   leavePolicy,
@@ -52,13 +68,20 @@ export const control_plane_schemas = {} as const;
 
 export const tenant_schemas = {
   compensatoryLeaveRequest,
+  compensatoryLeaveStatusEnum,
+  earnedLeaveFrequencyEnum,
   holiday,
   holidayList,
+  holidayTypeEnum,
   leaveAdjustment,
   leaveAllocation,
+  leaveAllocationStatusEnum,
   leaveApplication,
+  leaveApplicationStatusEnum,
   leaveBlockList,
+  leaveBlockListScopeEnum,
   leaveEncashment,
+  leaveEncashmentStatusEnum,
   leaveLedgerEntry,
   leavePeriod,
   leavePolicy,

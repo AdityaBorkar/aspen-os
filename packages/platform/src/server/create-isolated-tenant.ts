@@ -57,6 +57,20 @@ export class IsolatedTenantPlatform<
       "isolated",
     );
     const core = Base.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
+    // Aggregate module schemas eagerly so `provisionTenant` pushes complete
+    // tenant databases in any process — not only ones that ran $prepareInfra.
+    // (Previously tenants onboarded from the dev server/seed got platform
+    // tables only, silently missing all domain tables.)
+    const storedControl: SchemaMap = {};
+    const storedTenant: SchemaMap = {};
+    for (const mod of modules) {
+      const infra = mod.$prepareInfra?.();
+      if (infra) {
+        Object.assign(storedControl, infra.db.control_plane_schemas);
+        Object.assign(storedTenant, infra.db.tenant_schemas);
+      }
+    }
+    db.setStoredSchemas(storedControl, storedTenant);
     // SAFETY: create() returned an instance whose units/modules match the merged schema type.
     return new IsolatedTenantPlatform<TModules>(
       core.units,

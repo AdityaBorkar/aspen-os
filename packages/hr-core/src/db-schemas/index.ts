@@ -17,6 +17,21 @@ import {
   employeeTransfer,
 } from "#/db-schemas/employee";
 import {
+  accessLevelEnum,
+  employeeStatusEnum,
+  employmentTypeEnum,
+  exitInterviewStatusEnum,
+  fullAndFinalStatusEnum,
+  genderEnum,
+  lifecycleTaskStatusEnum,
+  onboardingStatusEnum,
+  permissionActionEnum,
+  promotionStatusEnum,
+  separationStatusEnum,
+  skillProficiencyEnum,
+  transferStatusEnum,
+} from "#/db-schemas/enums";
+import {
   exitInterview,
   fullAndFinalStatement,
   onboardingTask,
@@ -82,6 +97,7 @@ export type NewHrUserRole = typeof hrUserRole.$inferInsert;
 export type NewHrUserBranchAccess = typeof hrUserBranchAccess.$inferInsert;
 
 export const dbSchema = {
+  accessLevelEnum,
   department,
   designation,
   employee,
@@ -92,10 +108,15 @@ export const dbSchema = {
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
+  employeeStatusEnum,
   employeeTransfer,
   employmentType,
+  employmentTypeEnum,
   exitInterview,
+  exitInterviewStatusEnum,
+  fullAndFinalStatusEnum,
   fullAndFinalStatement,
+  genderEnum,
   hrPermission,
   hrPosition,
   hrPositionAssignment,
@@ -105,18 +126,28 @@ export const dbSchema = {
   hrUser,
   hrUserBranchAccess,
   hrUserRole,
+  lifecycleTaskStatusEnum,
+  onboardingStatusEnum,
   onboardingTask,
   payrollSettings,
+  permissionActionEnum,
+  promotionStatusEnum,
+  separationStatusEnum,
   separationTask,
+  skillProficiencyEnum,
+  transferStatusEnum,
 } as const;
 
 export const hrTables = dbSchema;
 
 export const control_plane_schemas = {
+  accessLevelEnum,
   department,
   designation,
   employeeGrade,
   employmentType,
+  employmentTypeEnum,
+  genderEnum,
   hrPermission,
   hrRole,
   hrRolePermission,
@@ -125,9 +156,11 @@ export const control_plane_schemas = {
   hrUserBranchAccess,
   hrUserRole,
   payrollSettings,
+  permissionActionEnum,
 } as const;
 
 export const tenant_schemas = {
+  accessLevelEnum,
   employee,
   employeeGroup,
   employeeGroupMember,
@@ -135,11 +168,23 @@ export const tenant_schemas = {
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
+  employeeStatusEnum,
   employeeTransfer,
+  employmentTypeEnum,
   exitInterview,
+  exitInterviewStatusEnum,
+  fullAndFinalStatusEnum,
   fullAndFinalStatement,
+  genderEnum,
   hrPosition,
   hrPositionAssignment,
+  lifecycleTaskStatusEnum,
+  onboardingStatusEnum,
   onboardingTask,
+  permissionActionEnum,
+  promotionStatusEnum,
+  separationStatusEnum,
   separationTask,
+  skillProficiencyEnum,
+  transferStatusEnum,
 } as const;

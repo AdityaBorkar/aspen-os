@@ -16,7 +16,12 @@ export const getAttendanceSummary = Workflow.name("hr.attendance.summary.get")
     const { employeeId, month } = input;
 
     const startDate = `${month}-01`;
-    const endDate = `${month}-31`;
+    // Last calendar day of the month (YYYY-MM input). The previous `${month}-31`
+    // literal produced invalid dates such as 2026-09-31, which Postgres
+    // rejects with 22008 on DATE columns.
+    const [year, monthIdx] = month.split("-").map(Number);
+    const lastDay = new Date(year ?? 1970, monthIdx ?? 1, 0).getDate();
+    const endDate = `${month}-${String(lastDay).padStart(2, "0")}`;
 
     const records = await ctx.db
       .select()

@@ -77,9 +77,18 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     return this.controlPlanePool;
   }
 
-  async $prepareInfra(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}) {
+  /**
+   * Record the aggregated module schemas for later tenant provisioning.
+   * Called eagerly at platform construction (so `provisionTenant` works in
+   * any process) and again by `$prepareInfra`/`prepareWithModules`.
+   */
+  setStoredSchemas(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}): void {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
+  }
+
+  async $prepareInfra(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}) {
+    this.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
     const schemas = { ...this.getSchemas(), ...controlPlaneSchemas };
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
   }
@@ -88,8 +97,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     controlPlaneSchemas: SchemaMap = {},
     tenantSchemas: SchemaMap = {},
   ): Promise<void> {
-    this.storedControlPlaneSchemas = controlPlaneSchemas;
-    this.storedTenantSchemas = tenantSchemas;
+    this.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
     const allControlPlaneSchemas = {
       ...this.getSchemas(),
       ...controlPlaneSchemas,
