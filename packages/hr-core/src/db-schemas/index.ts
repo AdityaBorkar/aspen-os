@@ -94,23 +94,11 @@ export const dbSchema = {
 
 export const hrTables = dbSchema;
 
-export const control_plane_schemas = {
-  accessLevelEnum,
-  department,
-  genderEnum,
-  hrPermission,
-  hrRole,
-  hrRolePermission,
-  hrSettings,
-  hrUser,
-  hrUserBranchAccess,
-  hrUserRole,
-  payrollSettings,
-  permissionActionEnum,
-} as const;
+export const control_plane_schemas = {} as const;
 
 export const tenant_schemas = {
   accessLevelEnum,
+  department,
   employee,
   employeeGroup,
   employeeGroupMember,
@@ -120,8 +108,16 @@ export const tenant_schemas = {
   employeeStatusEnum,
   employeeTransfer,
   genderEnum,
+  hrPermission,
   hrPosition,
   hrPositionAssignment,
+  hrRole,
+  hrRolePermission,
+  hrSettings,
+  hrUser,
+  hrUserBranchAccess,
+  hrUserRole,
+  payrollSettings,
   permissionActionEnum,
   promotionStatusEnum,
   separationStatusEnum,
