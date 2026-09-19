@@ -1,4 +1,4 @@
-import { employee, hrPosition } from "#/db-schemas";
+import { employee } from "#/db-schemas";
 import type { DepartmentTreeNode, OrgTreeNode } from "#/types";
 import type { Db } from "#/workflows/db";
 
@@ -95,7 +95,6 @@ export interface EmployeeChartRow {
   id: string;
   image: string | null;
   lastName: string;
-  position: string | null;
   reportsTo: string | null;
 }
 
@@ -115,7 +114,6 @@ export function buildEmployeeTree(
       id: employeeItem.id,
       image: employeeItem.image,
       name: `${employeeItem.firstName} ${employeeItem.lastName}`.trim(),
-      position: employeeItem.position,
     }),
   );
   if (parentId === null) {
@@ -128,26 +126,17 @@ export function buildEmployeeTree(
 
 export interface DepartmentCounts {
   employeeCountByDepartment: Map<string, number>;
-  positionCountByDepartment: Map<string, number>;
 }
 
 export async function getDepartmentCounts(db: Db): Promise<DepartmentCounts> {
-  const [employeeCounts, positionCounts] = await Promise.all([
-    db
-      .select({ count: count(), departmentId: employee.department })
-      .from(employee)
-      .where(eq(employee.status, "active"))
-      .groupBy(employee.department),
-    db
-      .select({ count: count(), departmentId: hrPosition.department })
-      .from(hrPosition)
-      .where(eq(hrPosition.is_active, true))
-      .groupBy(hrPosition.department),
-  ]);
+  const employeeCounts = await db
+    .select({ count: count(), departmentId: employee.department })
+    .from(employee)
+    .where(eq(employee.status, "active"))
+    .groupBy(employee.department);
 
   return {
     employeeCountByDepartment: new Map(employeeCounts.map((row) => [row.departmentId, row.count])),
-    positionCountByDepartment: new Map(positionCounts.map((row) => [row.departmentId, row.count])),
   };
 }
 
@@ -173,7 +162,6 @@ export function buildDepartmentTree(
     headEmployeeId: departmentItem.manager,
     id: departmentItem.id,
     name: departmentItem.name,
-    positionCount: counts.positionCountByDepartment.get(departmentItem.id) ?? 0,
   }));
 
   if (!options?.rootIds) {

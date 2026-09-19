@@ -53,6 +53,7 @@ export {
   AccessLevelSchema,
   EmployeeStatusSchema,
   GenderSchema,
+  OnboardingStatusSchema,
   PermissionActionSchema,
   PromotionStatusSchema,
   SeparationStatusSchema,
@@ -61,23 +62,31 @@ export {
 } from "#/schemas/enums";
 // Transition schemas
 export type {
+  CreateOnboardingInput,
   CreatePromotionInput,
   CreateSeparationInput,
   CreateTransferInput,
+  OnboardEmployeeInput,
+  OnboardingFilters,
   PromotionFilters,
   SeparationFilters,
   TransferFilters,
+  UpdateOnboardingInput,
   UpdatePromotionInput,
   UpdateSeparationInput,
   UpdateTransferInput,
 } from "#/schemas/transition";
 export {
+  CreateOnboardingSchema,
   CreatePromotionSchema,
   CreateSeparationSchema,
   CreateTransferSchema,
+  OnboardEmployeeSchema,
+  OnboardingFiltersSchema,
   PromotionFiltersSchema,
   SeparationFiltersSchema,
   TransferFiltersSchema,
+  UpdateOnboardingSchema,
   UpdatePromotionSchema,
   UpdateSeparationSchema,
   UpdateTransferSchema,
@@ -85,21 +94,6 @@ export {
 // Payroll schemas
 export type { ExportPayrollInput } from "#/schemas/payroll";
 export { ExportPayrollSchema } from "#/schemas/payroll";
-// Position schemas
-export type {
-  AssignEmployeeInput,
-  CreatePositionInput,
-  PositionFilters,
-  TransferAssignmentInput,
-  UpdatePositionInput,
-} from "#/schemas/position";
-export {
-  AssignEmployeeSchema,
-  CreatePositionSchema,
-  PositionFiltersSchema,
-  TransferAssignmentSchema,
-  UpdatePositionSchema,
-} from "#/schemas/position";
 // Setup schemas
 export type {
   CreateDepartmentInput,

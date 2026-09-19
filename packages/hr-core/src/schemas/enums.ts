@@ -35,6 +35,13 @@ export const TransferStatusSchema = enum_({
   rejected: "rejected",
 });
 
+export const OnboardingStatusSchema = enum_({
+  cancelled: "cancelled",
+  completed: "completed",
+  in_progress: "in_progress",
+  pending: "pending",
+});
+
 export const SkillProficiencySchema = enum_({
   advanced: "advanced",
   beginner: "beginner",

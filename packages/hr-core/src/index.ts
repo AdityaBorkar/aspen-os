@@ -15,12 +15,6 @@ export type {
 export { dbSchema as db_schema, dbSchema } from "#/db-schemas";
 export { HrCore, type HrCoreModuleConfig } from "#/module";
 export type { HrCoreEventMap } from "#/pubsub";
-export {
-  ACCESS_EVENTS,
-  EMPLOYEE_EVENTS,
-  TRANSITION_EVENTS,
-  POSITION_EVENTS,
-  SETUP_EVENTS,
-} from "#/pubsub";
+export { ACCESS_EVENTS, EMPLOYEE_EVENTS, TRANSITION_EVENTS, SETUP_EVENTS } from "#/pubsub";
 export * from "#/types";
 export type { AccessLevel, HrPermissionModule, PermissionAction } from "#/utils/constants";

@@ -399,30 +399,26 @@ _Avoid_: Service, Handler
 
 ### HR Domain (3 packages)
 
-> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 10 workflow groups, 50 tables (11 control-plane + 39 tenant), 52 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`; hr three use units `db`, `pubsub`, announcement is stateless.
+> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 9 workflow groups, 42 tables, 41 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`.
 
 **Employee** (hr-core):
-Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, employee groups.
+Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `branch`, `reportsTo`, `status`. Org structure = `department` + `reportsTo` only (designations and positions were removed). Supports health insurance, skill maps, employee groups.
 _Avoid_: Staff, Worker, Personnel
 
-**Lifecycle** (hr-core):
-Employee lifecycle sub-domain covering onboarding (tasks, completion tracking), promotions (w/ salary revision), transfers (between departments/branches/companies), separation (exit interviews, full & final settlement).
+**Lifecycle / Transition** (hr-core):
+Employee lifecycle sub-domain covering onboarding (completion tracking), promotions (w/ salary revision), transfers (between departments/branches/companies), separation (exit date). Promotions/transfers follow approval (pending → approved → completed / rejected); onboarding/separation complete directly. Exposed as `p.hrCore.transition`.
 _Avoid_: Employee Journey, HR Lifecycle
-
-**Position** (hr-core):
-Structural sub-domain — stable job slots (`hr_position`: `name`, `department`, `branch`, `designation`, `reportsToPosition`, `employmentType`, `headcount`, `jobDescription`, `isActive`) with employee assignments (`hr_position_assignment`: `positionId`, `employeeId`, `fromDate`, `toDate`, `isPrimary`). Positions outlive incumbents; assignments retain history. Manager resolution walks `reportsToPosition` chain, falling back to `employee.reportsTo`. Structure views: org tree, position tree, direct reports, subordinates, peers, team.
-_Avoid_: Job, Role Slot
 
 **HR Access** (hr-core):
 Role-based access control within HR module, w/ permissions, roles, branch-wise access controls for HR users.
 _Avoid_: HR Permissions, HR Auth
 
-**Department / Designation / Employment Type / Setup** (hr-core):
-Organizational setup w/ `Department` (`name`, `code`, `manager`, `parentDepartment` hierarchical, `isActive`), `Designation` (job title), `Employment Type` (full-time/part-time/contract classification), plus holidays, HR/payroll settings. Setup tables are control-plane (shared across tenants). designation tiers position/employee — distinct from `Position` (stable slot).
-_Avoid_: Team, Unit / Title / Contract Type
+**Department / Setup** (hr-core):
+Organizational setup w/ `Department` (`name`, `code`, `manager`/head, `parentDepartment` hierarchical, `isActive`), plus HR and payroll settings. Department deletion is blocked while child departments or active employees exist.
+_Avoid_: Team, Unit
 
 **Announcement** (announcement):
-Internal broadcast authored by HR users, targeted at whole org or subset (branch/department/designation/group/role/individuals), delivered into comms inbox via `announcement.published` w/ delivery snapshot (`announcement_recipient`). Status `draft → scheduled → published → archived`; only `draft`/`scheduled` editable; publish idempotent; scheduling is workflow-only (no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`).
+Internal broadcast authored by HR users, targeted at whole org or subset (branches/departments/groups/roles/individuals), delivered into comms inbox via `announcement.published` w/ delivery snapshot (`announcement_recipient`). Status `draft → scheduled → published → archived`; only `draft`/`scheduled` editable; publish idempotent; scheduling is workflow-only (no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`).
 _Avoid_: Notification (comms term)
 
 **Attendance** (hr-attendance):
@@ -446,7 +442,7 @@ Leave management sub-domain covering leave types, periods, policies, allocations
 _Avoid_: PTO, Time Off
 
 **HR package map**:
-hr-core = 5 groups (`access` 33, `employee` 28, `lifecycle` 52, `position` 20, `setup` 41), 26 tables (12 control-plane + 14 tenant), 33 events (5 namespaces), 7 ACL resources, reconciliation subscriptions (`lifecycle.separation_completed`, `lifecycle.transfer_approved`). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 34), 11 tenant tables, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 2 groups (`leave`, 60 actions, plus `config` holidays), 14 tenant tables, 7 events, 2 ACL resources, 1 cron.
+hr-core = 5 groups (`access` 33, `employee` 23, `transition` 27, `payroll` 1, `config` 13), 17 tables, 22 events (4 namespaces), 7 ACL resources, no runtime resources (reconciliation subscriptions removed with position/assignment). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 34), 11 tenant tables, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 2 groups (`leave`, 60 actions, plus `config` holidays), 14 tenant tables, 7 events, 2 ACL resources, 1 cron.
 _Avoid_: Single `Hr` module (use `hrCore` / `hrAttendance` / `hrLeave` / `announcement`)
 
 ### DMS Domain

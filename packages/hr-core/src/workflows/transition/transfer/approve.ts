@@ -1,5 +1,4 @@
 import { employeeTransfer } from "#/db-schemas";
-import { TRANSITION_EVENTS } from "#/pubsub";
 import { assertUpdated, fetchTransferById, requireStatus } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -31,12 +30,6 @@ export const approveTransfer = Workflow.name("hr.transition.approve-transfer")
       .returning();
 
     const transfer = assertUpdated(updated, `Transfer "${id}"`);
-
-    await ctx.pubsub.publish(TRANSITION_EVENTS.TRANSFER_APPROVED, {
-      approvedBy,
-      employeeId: existing.employee_id,
-      transferId: id,
-    });
 
     return transfer;
   });

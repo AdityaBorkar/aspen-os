@@ -1,6 +1,5 @@
 export type {
   AddGroupMemberInput,
-  AssignEmployeeInput,
   AssignPermissionInput,
   AssignRoleInput,
   CreateDepartmentInput,
@@ -9,8 +8,8 @@ export type {
   CreateHrPermissionInput,
   CreateHrRoleInput,
   CreateHrUserInput,
+  CreateOnboardingInput,
   CreatePromotionInput,
-  CreatePositionInput,
   CreateSeparationInput,
   CreateSkillMapInput,
   CreateTransferInput,
@@ -22,12 +21,12 @@ export type {
   HrRoleFilters,
   HrUserFilters,
   MoveDepartmentInput,
+  OnboardEmployeeInput,
+  OnboardingFilters,
   PromotionFilters,
-  PositionFilters,
   SeparationFilters,
   SetDepartmentHeadInput,
   TransferFilters,
-  TransferAssignmentInput,
   UpdateBranchAccessInput,
   UpdateDepartmentInput,
   UpdateEmployeeGroupInput,
@@ -35,8 +34,8 @@ export type {
   UpdateHrRoleInput,
   UpdateHrSettingsInput,
   UpdateHrUserInput,
+  UpdateOnboardingInput,
   UpdatePayrollSettingsInput,
-  UpdatePositionInput,
   UpdatePromotionInput,
   UpdateSeparationInput,
   UpdateSkillMapInput,
@@ -53,6 +52,7 @@ export {
   CreateHrPermissionSchema,
   CreateHrRoleSchema,
   CreateHrUserSchema,
+  CreateOnboardingSchema,
   CreatePromotionSchema,
   CreateSeparationSchema,
   CreateSkillMapSchema,
@@ -64,17 +64,14 @@ export {
   HrPermissionFiltersSchema,
   HrRoleFiltersSchema,
   HrUserFiltersSchema,
+  OnboardEmployeeSchema,
+  OnboardingFiltersSchema,
   PermissionActionSchema,
   PromotionFiltersSchema,
   SeparationFiltersSchema,
-  PositionFiltersSchema,
   MoveDepartmentSchema,
   SetDepartmentHeadSchema,
   TransferFiltersSchema,
-  AssignEmployeeSchema,
-  TransferAssignmentSchema,
-  CreatePositionSchema,
-  UpdatePositionSchema,
   UpdateBranchAccessSchema,
   UpdateDepartmentSchema,
   UpdateEmployeeGroupSchema,
@@ -82,6 +79,7 @@ export {
   UpdateHrRoleSchema,
   UpdateHrSettingsSchema,
   UpdateHrUserSchema,
+  UpdateOnboardingSchema,
   UpdatePayrollSettingsSchema,
   UpdatePromotionSchema,
   UpdateSeparationSchema,
@@ -102,22 +100,6 @@ export interface OrgTreeNode {
   id: string;
   image: string | null;
   name: string;
-  position: string | null;
-}
-
-export interface PositionIncumbent {
-  employeeId: string;
-  image: string | null;
-  name: string;
-}
-
-export interface PositionTreeNode {
-  branch: string | null;
-  children: PositionTreeNode[];
-  department: string;
-  id: string;
-  incumbents: PositionIncumbent[];
-  name: string;
 }
 
 export interface DepartmentTreeNode {
@@ -127,7 +109,6 @@ export interface DepartmentTreeNode {
   headEmployeeId: string | null;
   id: string;
   name: string;
-  positionCount: number;
 }
 
 export interface ResolvedPermission {

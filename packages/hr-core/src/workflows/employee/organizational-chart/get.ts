@@ -1,14 +1,13 @@
-import { employee, hrPosition, hrPositionAssignment } from "#/db-schemas";
+import { employee } from "#/db-schemas";
 import { buildEmployeeTree } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, inArray, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { minLength, object, optional, pipe, string } from "valibot";
 
 const ChartFiltersSchema = object({
   branch: optional(string()),
   department: optional(string()),
-  position: optional(string()),
 });
 
 const InputSchema = object({
@@ -21,82 +20,28 @@ export const getOrganizationalChart = Workflow.name("hr.employee.get-organizatio
   .handler(async (input, ctx) => {
     const { company, filters } = input;
 
-    const employeeConditions = [eq(employee.status, "active")];
+    const conditions = [eq(employee.status, "active")];
     if (company) {
-      employeeConditions.push(eq(employee.company, company));
+      conditions.push(eq(employee.company, company));
     }
     if (filters?.department) {
-      employeeConditions.push(eq(employee.department, filters.department));
+      conditions.push(eq(employee.department, filters.department));
     }
     if (filters?.branch) {
-      employeeConditions.push(eq(employee.branch, filters.branch));
+      conditions.push(eq(employee.branch, filters.branch));
     }
 
-    const [allEmployees, assignments] = await Promise.all([
-      ctx.db
-        .select({
-          department: employee.department,
-          firstName: employee.first_name,
-          id: employee.id,
-          image: employee.image,
-          lastName: employee.last_name,
-          reportsTo: employee.reports_to,
-        })
-        .from(employee)
-        .where(and(...employeeConditions)),
-      ctx.db
-        .select({
-          employeeId: hrPositionAssignment.employee_id,
-          isPrimary: hrPositionAssignment.is_primary,
-          positionId: hrPositionAssignment.position_id,
-        })
-        .from(hrPositionAssignment)
-        .where(isNull(hrPositionAssignment.to_date)),
-    ]);
+    const rows = await ctx.db
+      .select({
+        department: employee.department,
+        firstName: employee.first_name,
+        id: employee.id,
+        image: employee.image,
+        lastName: employee.last_name,
+        reportsTo: employee.reports_to,
+      })
+      .from(employee)
+      .where(and(...conditions));
 
-    let employees = allEmployees;
-    if (filters?.position) {
-      const assigned = new Set(
-        assignments
-          .filter((assignment) => assignment.positionId === filters.position)
-          .map((assignment) => assignment.employeeId),
-      );
-      employees = allEmployees.filter((employeeItem) => assigned.has(employeeItem.id));
-    }
-
-    const positionIdSet = new Set(assignments.map((assignment) => assignment.positionId));
-    const positionNameById = new Map<string, string>();
-    if (positionIdSet.size > 0) {
-      const positions = await ctx.db
-        .select({ id: hrPosition.id, name: hrPosition.name })
-        .from(hrPosition)
-        .where(inArray(hrPosition.id, [...positionIdSet]));
-      for (const position of positions) {
-        positionNameById.set(position.id, position.name);
-      }
-    }
-
-    const sortedAssignments = [...assignments].toSorted(
-      (left, right) => Number(right.isPrimary) - Number(left.isPrimary),
-    );
-    const positionByEmployee = new Map<string, string>();
-    for (const assignment of sortedAssignments) {
-      if (positionByEmployee.has(assignment.employeeId)) {
-        continue;
-      }
-      positionByEmployee.set(
-        assignment.employeeId,
-        positionNameById.get(assignment.positionId) ?? assignment.positionId,
-      );
-    }
-
-    const projected: Parameters<typeof buildEmployeeTree>[0] = [];
-    for (const employeeItem of employees) {
-      projected.push({
-        ...employeeItem,
-        position: positionByEmployee.get(employeeItem.id) ?? null,
-      });
-    }
-
-    return buildEmployeeTree(projected, null);
+    return buildEmployeeTree(rows, null);
   });

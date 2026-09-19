@@ -36,11 +36,11 @@ export interface EmployeeGroupCreatedEvent {
 // ─── Transition Events ─────────────────────────────────────────────────────
 
 export const TRANSITION_EVENTS = {
+  ONBOARDING_COMPLETED: "transition.onboarding_completed",
+  ONBOARDING_STARTED: "transition.onboarding_started",
   PROMOTION_APPROVED: "transition.promotion_approved",
   PROMOTION_REQUESTED: "transition.promotion_requested",
-  SEPARATION_COMPLETED: "transition.separation_completed",
   SEPARATION_INITIATED: "transition.separation_initiated",
-  TRANSFER_APPROVED: "transition.transfer_approved",
   TRANSFER_REQUESTED: "transition.transfer_requested",
 } as const;
 
@@ -66,12 +66,6 @@ export interface TransferRequestedEvent {
   };
 }
 
-export interface TransferApprovedEvent {
-  approvedBy: string;
-  employeeId: string;
-  transferId: string;
-}
-
 export interface SeparationInitiatedEvent {
   separation: {
     employeeId: string;
@@ -80,62 +74,16 @@ export interface SeparationInitiatedEvent {
   };
 }
 
-export interface SeparationCompletedEvent {
-  employeeId: string;
-  separationId: string;
-}
-
-// ─── Position Events ────────────────────────────────────────────────────
-
-export const POSITION_EVENTS = {
-  ACTIVATED: "position.activated",
-  ASSIGNED: "position.assigned",
-  CREATED: "position.created",
-  DEACTIVATED: "position.deactivated",
-  REASSIGNED: "position.reassigned",
-  UNASSIGNED: "position.unassigned",
-  UPDATED: "position.updated",
-} as const;
-
-export interface PositionCreatedEvent {
-  position: {
-    department: string;
-    id: string;
-    name: string;
-  };
-}
-
-export interface PositionUpdatedEvent {
-  changes: Record<string, JsonValue>;
-  position: { id: string };
-}
-
-export interface PositionDeactivatedEvent {
-  positionId: string;
-}
-
-export interface PositionActivatedEvent {
-  positionId: string;
-}
-
-export interface PositionAssignedEvent {
-  assignment: {
+export interface OnboardingStartedEvent {
+  onboarding: {
     employeeId: string;
-    fromDate: string;
-    positionId: string;
+    id: string;
   };
 }
 
-export interface PositionUnassignedEvent {
+export interface OnboardingCompletedEvent {
   employeeId: string;
-  positionId: string;
-  toDate: string;
-}
-
-export interface PositionReassignedEvent {
-  employeeId: string;
-  fromPositionId: string;
-  toPositionId: string;
+  onboardingId: string;
 }
 
 // ─── Setup Events ─────────────────────────────────────────────────────────
@@ -236,22 +184,12 @@ export interface EmployeeEventMap {
 }
 
 export interface TransitionEventMap {
+  [TRANSITION_EVENTS.ONBOARDING_COMPLETED]: OnboardingCompletedEvent;
+  [TRANSITION_EVENTS.ONBOARDING_STARTED]: OnboardingStartedEvent;
   [TRANSITION_EVENTS.PROMOTION_APPROVED]: PromotionApprovedEvent;
   [TRANSITION_EVENTS.PROMOTION_REQUESTED]: PromotionRequestedEvent;
-  [TRANSITION_EVENTS.SEPARATION_COMPLETED]: SeparationCompletedEvent;
   [TRANSITION_EVENTS.SEPARATION_INITIATED]: SeparationInitiatedEvent;
-  [TRANSITION_EVENTS.TRANSFER_APPROVED]: TransferApprovedEvent;
   [TRANSITION_EVENTS.TRANSFER_REQUESTED]: TransferRequestedEvent;
-}
-
-export interface PositionEventMap {
-  [POSITION_EVENTS.ACTIVATED]: PositionActivatedEvent;
-  [POSITION_EVENTS.ASSIGNED]: PositionAssignedEvent;
-  [POSITION_EVENTS.CREATED]: PositionCreatedEvent;
-  [POSITION_EVENTS.DEACTIVATED]: PositionDeactivatedEvent;
-  [POSITION_EVENTS.REASSIGNED]: PositionReassignedEvent;
-  [POSITION_EVENTS.UNASSIGNED]: PositionUnassignedEvent;
-  [POSITION_EVENTS.UPDATED]: PositionUpdatedEvent;
 }
 
 export interface SetupEventMap {
@@ -272,18 +210,13 @@ export interface AccessEventMap {
   [ACCESS_EVENTS.USER_DEACTIVATED]: AccessUserDeactivatedEvent;
 }
 
-export type HrEventMap = EmployeeEventMap &
-  TransitionEventMap &
-  PositionEventMap &
-  SetupEventMap &
-  AccessEventMap;
+export type HrEventMap = EmployeeEventMap & TransitionEventMap & SetupEventMap & AccessEventMap;
 
 export type HrCoreEventMap = HrEventMap;
 
 export const events = {
   access: ACCESS_EVENTS,
   employee: EMPLOYEE_EVENTS,
-  position: POSITION_EVENTS,
   setup: SETUP_EVENTS,
   transition: TRANSITION_EVENTS,
 };

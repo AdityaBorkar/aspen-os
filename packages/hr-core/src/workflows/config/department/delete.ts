@@ -1,4 +1,4 @@
-import { department, employee, hrPosition } from "#/db-schemas";
+import { department, employee } from "#/db-schemas";
 import { fetchDepartmentById } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -16,16 +16,11 @@ export const deleteDepartment = Workflow.name("hr.config.department.delete")
 
     await fetchDepartmentById(ctx.db, id);
 
-    const [children, activePositions, activeEmployees] = await Promise.all([
+    const [children, activeEmployees] = await Promise.all([
       ctx.db
         .select({ id: department.id })
         .from(department)
         .where(and(eq(department.parent_department, id), eq(department.is_active, true)))
-        .limit(1),
-      ctx.db
-        .select({ id: hrPosition.id })
-        .from(hrPosition)
-        .where(and(eq(hrPosition.department, id), eq(hrPosition.is_active, true)))
         .limit(1),
       ctx.db
         .select({ id: employee.id })
@@ -36,9 +31,6 @@ export const deleteDepartment = Workflow.name("hr.config.department.delete")
 
     if (children.length > 0) {
       throw new Error(`Department "${id}" has child departments and cannot be deleted.`);
-    }
-    if (activePositions.length > 0) {
-      throw new Error(`Department "${id}" has active positions and cannot be deleted.`);
     }
     if (activeEmployees.length > 0) {
       throw new Error(`Department "${id}" has active employees and cannot be deleted.`);

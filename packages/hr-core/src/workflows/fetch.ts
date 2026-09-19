@@ -2,6 +2,7 @@ import {
   department,
   employee,
   employeeGroup,
+  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeTransfer,
@@ -99,6 +100,14 @@ export function fetchSeparationById(db: Db, id: string) {
   return fetchById(
     db.select().from(employeeSeparation).where(eq(employeeSeparation.id, id)).limit(1),
     "Separation",
+    id,
+  );
+}
+
+export function fetchOnboardingById(db: Db, id: string) {
+  return fetchById(
+    db.select().from(employeeOnboarding).where(eq(employeeOnboarding.id, id)).limit(1),
+    "Onboarding",
     id,
   );
 }

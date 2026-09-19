@@ -36,7 +36,6 @@ import { deleteDepartment } from "#/workflows/config/department/delete";
 import { getDepartmentById } from "#/workflows/config/department/get";
 import { listDepartments } from "#/workflows/config/department/list";
 import { moveDepartment } from "#/workflows/config/department/move";
-import { listPositionsByDepartment } from "#/workflows/config/department/positions/list";
 import { setDepartmentHead } from "#/workflows/config/department/set-head";
 import { getDepartmentSubtree } from "#/workflows/config/department/subtree";
 import { getDepartmentTree } from "#/workflows/config/department/tree";
@@ -60,6 +59,7 @@ import { deleteGroup } from "#/workflows/employee/group/delete";
 import { updateGroup } from "#/workflows/employee/group/update";
 import { listGroups } from "#/workflows/employee/groups/list";
 import { list as listEmployees } from "#/workflows/employee/list";
+import { onboard } from "#/workflows/employee/onboard";
 import { getOrganizationalChart } from "#/workflows/employee/organizational-chart/get";
 import { listSkillMapByEmployee } from "#/workflows/employee/skill-map/by-employee/list";
 import { getSkillMapById } from "#/workflows/employee/skill-map/by-id/get";
@@ -68,28 +68,12 @@ import { deleteSkillMap } from "#/workflows/employee/skill-map/delete";
 import { updateSkillMap } from "#/workflows/employee/skill-map/update";
 import { update as updateEmployee } from "#/workflows/employee/update";
 import { exportPayroll } from "#/workflows/payroll/export";
-import { assignEmployee } from "#/workflows/position/assignment/assign";
-import { getEmployeePositionHistory } from "#/workflows/position/assignment/by-employee/history";
-import { getPositionHistory } from "#/workflows/position/assignment/by-position/history";
-import {
-  getCurrentAssignment,
-  getCurrentPositions,
-} from "#/workflows/position/assignment/current/get";
-import { transferAssignment } from "#/workflows/position/assignment/transfer";
-import { unassignEmployee } from "#/workflows/position/assignment/unassign";
-import { getDirectReports } from "#/workflows/position/direct-reports/get";
-import { getOrgTree } from "#/workflows/position/org-tree/get";
-import { getPeers } from "#/workflows/position/peers/get";
-import { getPositionTree } from "#/workflows/position/position-tree/get";
-import { activatePosition } from "#/workflows/position/position/activate";
-import { getPositionById } from "#/workflows/position/position/by-id/get";
-import { createPosition } from "#/workflows/position/position/create";
-import { deactivatePosition } from "#/workflows/position/position/deactivate";
-import { deletePosition } from "#/workflows/position/position/delete";
-import { listPositions } from "#/workflows/position/position/list";
-import { updatePosition } from "#/workflows/position/position/update";
-import { getSubordinates } from "#/workflows/position/subordinates/get";
-import { getTeam } from "#/workflows/position/team/get";
+import { getOnboardingById } from "#/workflows/transition/onboarding/by-id/get";
+import { completeOnboarding } from "#/workflows/transition/onboarding/complete";
+import { createOnboarding } from "#/workflows/transition/onboarding/create";
+import { deleteOnboarding } from "#/workflows/transition/onboarding/remove";
+import { updateOnboarding } from "#/workflows/transition/onboarding/update";
+import { listOnboardings } from "#/workflows/transition/onboardings/list";
 import { approvePromotion } from "#/workflows/transition/promotion/approve";
 import { getPromotionById } from "#/workflows/transition/promotion/by-id/get";
 import { completePromotion } from "#/workflows/transition/promotion/complete";
@@ -166,6 +150,7 @@ export const employee = {
     getOrgChart: getOrganizationalChart,
     list: listEmployees,
     markAsLeft,
+    onboard,
     update: updateEmployee,
   },
   groups: {
@@ -188,14 +173,13 @@ export const employee = {
 } as const;
 
 export const transition = {
-  assignments: {
-    assign: assignEmployee,
-    getCurrent: getCurrentAssignment,
-    listCurrent: getCurrentPositions,
-    listHistoryByEmployee: getEmployeePositionHistory,
-    listHistoryByPosition: getPositionHistory,
-    transfer: transferAssignment,
-    unassign: unassignEmployee,
+  onboardings: {
+    complete: completeOnboarding,
+    create: createOnboarding,
+    get: getOnboardingById,
+    list: listOnboardings,
+    remove: deleteOnboarding,
+    update: updateOnboarding,
   },
   promotions: {
     approve: approvePromotion,
@@ -226,32 +210,11 @@ export const transition = {
   },
 } as const;
 
-export const position = {
-  org: {
-    getDirectReports,
-    getPeers,
-    getPositionTree,
-    getSubordinates,
-    getTeam,
-    getTree: getOrgTree,
-  },
-  positions: {
-    activate: activatePosition,
-    create: createPosition,
-    deactivate: deactivatePosition,
-    get: getPositionById,
-    list: listPositions,
-    remove: deletePosition,
-    update: updatePosition,
-  },
-} as const;
-
 export const config = {
   departments: {
     create: createDepartment,
     get: getDepartmentById,
     list: listDepartments,
-    listPositions: listPositionsByDepartment,
     move: moveDepartment,
     remove: deleteDepartment,
     setHead: setDepartmentHead,

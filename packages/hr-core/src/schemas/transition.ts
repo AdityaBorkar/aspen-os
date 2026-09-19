@@ -1,10 +1,23 @@
+import { CreateEmployeeSchema, CreateSkillMapSchema } from "#/schemas/employee";
 import {
+  OnboardingStatusSchema,
   PromotionStatusSchema,
   SeparationStatusSchema,
   TransferStatusSchema,
 } from "#/schemas/enums";
 
-import { minLength, nullable, object, omit, optional, partial, pick, pipe, string } from "valibot";
+import {
+  array,
+  minLength,
+  nullable,
+  object,
+  omit,
+  optional,
+  partial,
+  pick,
+  pipe,
+  string,
+} from "valibot";
 import type { InferOutput } from "valibot";
 
 // Employee Promotion
@@ -84,3 +97,39 @@ export const SeparationFiltersSchema = object({
 });
 
 export type SeparationFilters = InferOutput<typeof SeparationFiltersSchema>;
+
+// Employee Onboarding
+
+export const CreateOnboardingSchema = object({
+  employeeId: pipe(string(), minLength(1, "Employee ID is required")),
+  metadata: optional(nullable(object({}))),
+  notes: optional(nullable(string())),
+});
+
+export type CreateOnboardingInput = InferOutput<typeof CreateOnboardingSchema>;
+
+export const UpdateOnboardingSchema = object({
+  ...partial(omit(CreateOnboardingSchema, ["employeeId"])).entries,
+  status: optional(OnboardingStatusSchema),
+});
+
+export type UpdateOnboardingInput = InferOutput<typeof UpdateOnboardingSchema>;
+
+export const OnboardingFiltersSchema = object({
+  ...partial(pick(CreateOnboardingSchema, ["employeeId"])).entries,
+  status: optional(OnboardingStatusSchema),
+});
+
+export type OnboardingFilters = InferOutput<typeof OnboardingFiltersSchema>;
+
+// Employee Onboarding — single-submit onboarding: employee record + pre-entered
+// skills + onboarding transition. `employeeId` values are derived server-side
+// from the freshly created employee, so callers never pass them.
+
+export const OnboardEmployeeSchema = object({
+  employee: CreateEmployeeSchema,
+  onboarding: optional(object({ notes: optional(nullable(string())) })),
+  skills: optional(array(omit(CreateSkillMapSchema, ["employeeId"]))),
+});
+
+export type OnboardEmployeeInput = InferOutput<typeof OnboardEmployeeSchema>;

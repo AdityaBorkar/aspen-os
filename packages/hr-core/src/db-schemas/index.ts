@@ -10,6 +10,7 @@ import {
   employee,
   employeeGroup,
   employeeGroupMember,
+  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
@@ -19,13 +20,13 @@ import {
   accessLevelEnum,
   employeeStatusEnum,
   genderEnum,
+  onboardingStatusEnum,
   permissionActionEnum,
   promotionStatusEnum,
   separationStatusEnum,
   skillProficiencyEnum,
   transferStatusEnum,
 } from "#/db-schemas/enums";
-import { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
 import { department, hrSettings, payrollSettings } from "#/db-schemas/setup";
 
 export {
@@ -40,13 +41,13 @@ export {
   employee,
   employeeGroup,
   employeeGroupMember,
+  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
   employeeTransfer,
 } from "#/db-schemas/employee";
 export * from "#/db-schemas/enums";
-export { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
 export { department, hrSettings, payrollSettings } from "#/db-schemas/setup";
 
 export type HrUser = typeof hrUser.$inferSelect;
@@ -69,6 +70,7 @@ export const dbSchema = {
   employee,
   employeeGroup,
   employeeGroupMember,
+  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
@@ -76,14 +78,13 @@ export const dbSchema = {
   employeeTransfer,
   genderEnum,
   hrPermission,
-  hrPosition,
-  hrPositionAssignment,
   hrRole,
   hrRolePermission,
   hrSettings,
   hrUser,
   hrUserBranchAccess,
   hrUserRole,
+  onboardingStatusEnum,
   payrollSettings,
   permissionActionEnum,
   promotionStatusEnum,
@@ -102,6 +103,7 @@ export const tenant_schemas = {
   employee,
   employeeGroup,
   employeeGroupMember,
+  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeSkillMap,
@@ -109,14 +111,13 @@ export const tenant_schemas = {
   employeeTransfer,
   genderEnum,
   hrPermission,
-  hrPosition,
-  hrPositionAssignment,
   hrRole,
   hrRolePermission,
   hrSettings,
   hrUser,
   hrUserBranchAccess,
   hrUserRole,
+  onboardingStatusEnum,
   payrollSettings,
   permissionActionEnum,
   promotionStatusEnum,

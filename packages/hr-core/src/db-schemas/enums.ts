@@ -30,6 +30,13 @@ export const transferStatusEnum = pgEnum("hr_transfer_status", [
   "rejected",
 ]);
 
+export const onboardingStatusEnum = pgEnum("hr_onboarding_status", [
+  "cancelled",
+  "completed",
+  "in_progress",
+  "pending",
+]);
+
 export const skillProficiencyEnum = pgEnum("hr_skill_proficiency", [
   "advanced",
   "beginner",
