@@ -399,10 +399,10 @@ _Avoid_: Service, Handler
 
 ### HR Domain (3 packages)
 
-> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 10 workflow groups, 51 tables (12 control-plane + 39 tenant), 52 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`; hr three use units `db`, `pubsub`, announcement is stateless.
+> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 10 workflow groups, 50 tables (11 control-plane + 39 tenant), 52 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`; hr three use units `db`, `pubsub`, announcement is stateless.
 
 **Employee** (hr-core):
-Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `grade`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, employee groups.
+Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `designation`, `employmentType`, `branch`, `reportsTo`, `status`. Supports health insurance, skill maps, employee groups.
 _Avoid_: Staff, Worker, Personnel
 
 **Lifecycle** (hr-core):
@@ -418,8 +418,8 @@ Role-based access control within HR module, w/ permissions, roles, branch-wise a
 _Avoid_: HR Permissions, HR Auth
 
 **Department / Designation / Employment Type / Setup** (hr-core):
-Organizational setup w/ `Department` (`name`, `code`, `manager`, `parentDepartment` hierarchical, `isActive`), `Designation` (job title), `Employment Type` (full-time/part-time/contract classification), plus grades, holidays, HR/payroll settings. Setup tables are control-plane (shared across tenants). designation tiers position/employee — distinct from `Position` (stable slot).
-_Avoid_: Team, Unit / Title, Grade / Contract Type
+Organizational setup w/ `Department` (`name`, `code`, `manager`, `parentDepartment` hierarchical, `isActive`), `Designation` (job title), `Employment Type` (full-time/part-time/contract classification), plus holidays, HR/payroll settings. Setup tables are control-plane (shared across tenants). designation tiers position/employee — distinct from `Position` (stable slot).
+_Avoid_: Team, Unit / Title / Contract Type
 
 **Announcement** (announcement):
 Internal broadcast authored by HR users, targeted at whole org or subset (branch/department/designation/group/role/individuals), delivered into comms inbox via `announcement.published` w/ delivery snapshot (`announcement_recipient`). Status `draft → scheduled → published → archived`; only `draft`/`scheduled` editable; publish idempotent; scheduling is workflow-only (no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`).

@@ -135,7 +135,6 @@ Core employee record; `employee_id` is the unique business id.
 | `date_of_joining`             | date                 | Required           |
 | `date_of_leaving`             | date                 | Set by markAsLeft  |
 | `reports_to`                  | text (FK → employee) | Manager fallback   |
-| `grade`                       | text                 | Org ref            |
 | `branch`                      | text                 | Org ref            |
 | `holiday_list`                | text                 | Org ref            |
 | `gender`                      | `hr_gender`          | Optional           |
@@ -239,8 +238,6 @@ Indexes: `idx_employee_onboarding_employee_id` (`employee_id`), `idx_employee_on
 | `employee_id`        | text (FK → employee)  | Promotee          |
 | `current_department` | text                  | Optional          |
 | `new_department`     | text                  | Optional          |
-| `current_grade`      | text                  | Optional          |
-| `new_grade`          | text                  | Optional          |
 | `effective_date`     | date                  | Effective date    |
 | `salary_revision`    | text                  | Revised salary    |
 | `reason`             | text                  | Justification     |

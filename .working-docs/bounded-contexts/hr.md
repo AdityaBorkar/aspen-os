@@ -12,8 +12,8 @@ Downstream of Platform (Customer–Supplier). Fully conformant — each `impleme
 - `HrAttendance.create(config)` — `$name = "hrAttendance"`, `$dependencies = []`; `$config: HrAttendanceModuleConfig = { country: "INDIA" }`
 - `HrLeave.create(config)` — `$name = "hrLeave"`, `$dependencies = []`; `$config: HrLeaveModuleConfig = { country: "INDIA" }`
 - 11 workflow groups across three packages: hr-core `access`, `employee`, `lifecycle`, `position`, `payroll`, `config`; hr-attendance `attendance`, `overtime`, `shift`; hr-leave `leave`, `config`
-- 51 database tables:
-- **12 control-plane** (hr-core setup/access): `department`, `designation`, `employee_grade`, `employment_type`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
+- 50 database tables:
+- **11 control-plane** (hr-core setup/access): `department`, `designation`, `employment_type`, `hr_permission`, `hr_role`, `hr_role_permission`, `hr_settings`, `hr_user`, `hr_user_branch_access`, `hr_user_role`, `payroll_settings`
 - **39 tenant** (operational/transactional): hr-core 14 (employee, groups, skill maps, onboarding/promotion/transfer/separation, exit interviews, F&F, position + assignment, onboarding/separation tasks), hr-attendance 11 (attendance, requests, check-ins, overtime, shift), hr-leave 14 (leave types/periods/policies/allocations/applications/block lists/adjustments/encashments/ledger/compensatory + holidays)
 - 52 domain events across 9 groups (hr-core 33: `EmployeeEventMap` 4, `LifecycleEventMap` 9, `PositionEventMap` 7, `SetupEventMap` 5, `AccessEventMap` 8; hr-attendance 12: `AttendanceEventMap` 5, `OvertimeEventMap` 3, `ShiftEventMap` 4; hr-leave 7: `LeaveEventMap` 7)
 - 12 ACL resources: hr-core 7 (`config`, `employee`, `hrPermission`, `hrRole`, `hrUser`, `lifecycle`, `position`), hr-attendance 3 (`attendance`, `overtime`, `shift`), hr-leave 2 (`config`, `leave`)
@@ -39,8 +39,8 @@ p.hrCore.employee   employees, groups, skill maps, org chart (28 methods)
 p.hrCore.lifecycle  onboarding, promotions, transfers, separation, F&F, exit interviews (52 methods)
 p.hrCore.position   positions, assignments, org/position trees, direct reports, team (20 methods)
 p.hrCore.payroll    monthly payroll export over employees + attendance/leave/overtime (1 method)
-p.hrCore.config     departments (+ tree ops), designations, grades, employment types,
-                    settings (nested groups: departments, designations, employeeGrades,
+p.hrCore.config     departments (+ tree ops), designations, employment types,
+                    settings (nested groups: departments, designations,
                     employmentTypes, hr, payroll)
 p.hrAttendance.attendance records, check-ins, attendance requests (17 methods)
 p.hrAttendance.overtime   overtime types + slips (13 methods)
@@ -58,5 +58,5 @@ p.hrLeave.config    holidays + holiday lists
 
 ## Language
 
-- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Position, Position Assignment, Department, Designation, Employment Type, Employee Grade, HR Access, HrCoreModuleConfig, HrAttendanceModuleConfig, HrLeaveModuleConfig
+- Employee, Attendance, Employee Check-in, Leave, Lifecycle, Overtime, Shift, Position, Position Assignment, Department, Designation, Employment Type, HR Access, HrCoreModuleConfig, HrAttendanceModuleConfig, HrLeaveModuleConfig
 - Avoid: Staff/Worker/Personnel (for Employee), Timesheet (for Attendance), PTO (for Leave), Roster (for Shift), Job (for Position)

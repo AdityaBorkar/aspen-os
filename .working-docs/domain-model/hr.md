@@ -1,12 +1,12 @@
 # HR Domain Model
 
-> Packages: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`). Human resources — 9 sub-domains across 51 tables (12 control-plane setup/access + 39 tenant operational/transactional). Announcements live in `@aspen-os/announcement` (see `domain-model/announcement.md`), not here.
+> Packages: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`). Human resources — 9 sub-domains across 50 tables (11 control-plane setup/access + 39 tenant operational/transactional). Announcements live in `@aspen-os/announcement` (see `domain-model/announcement.md`), not here.
 
 ## Sub-domain Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     HR DOMAIN (51 tables, 9 sub-domains)            │
+│                     HR DOMAIN (50 tables, 9 sub-domains)            │
 │                                                                     │
 │  Employee ←─ 1:N ─→ Attendance, Leave, Lifecycle, Overtime, Shift   │
 │                                                                     │
@@ -15,7 +15,7 @@
 │    and employee assignments (current + history).                    │
 │                                                                     │
 │  Setup (control plane, hr-core): Department, Designation,           │
-│    EmployeeGrade, EmploymentType, HrSettings, PayrollSettings       │
+│    EmploymentType, HrSettings, PayrollSettings                      │
 │  Access (control plane, hr-core): HrUser, HrRole, HrPermission,     │
 │    HrRolePermission, HrUserRole, HrUserBranchAccess                 │
 │  Leave config (tenant, hr-leave): Holiday(+HolidayList) plus       │
@@ -111,9 +111,9 @@
 
 ### Setup (org structure sub-domain, hr-core + hr-leave)
 
-**Invariants**: Department (hierarchical via `parentDepartment`, `manager`), Designation, EmployeeGrade, EmploymentType, HrSettings, PayrollSettings — all control-plane in hr-core (shared across tenants). Holiday + HolidayList live in hr-leave tenant schemas (see `p.hrLeave.config`).
+**Invariants**: Department (hierarchical via `parentDepartment`, `manager`), Designation, EmploymentType, HrSettings, PayrollSettings — all control-plane in hr-core (shared across tenants). Holiday + HolidayList live in hr-leave tenant schemas (see `p.hrLeave.config`).
 
-**Lifecycle commands** (via `p.hrCore.config`): `departments` (create/update/delete/get/list + `move`, `setHead`, `tree`, `subtree`, `listPositions`), `designations`, `employeeGrades`, `employmentTypes`; `hr` and `payroll` singletons (get/update). Holidays via `p.hrLeave.config`: `holidays`, `holidayLists` (create/update/delete/get/list, list-by-list).
+**Lifecycle commands** (via `p.hrCore.config`): `departments` (create/update/delete/get/list + `move`, `setHead`, `tree`, `subtree`, `listPositions`), `designations`, `employmentTypes`; `hr` and `payroll` singletons (get/update). Holidays via `p.hrLeave.config`: `holidays`, `holidayLists` (create/update/delete/get/list, list-by-list).
 
 ### Payroll (reporting surface, hr-core)
 

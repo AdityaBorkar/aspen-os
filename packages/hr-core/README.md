@@ -96,7 +96,6 @@ Manages HR configuration and organizational masters:
 - **Payroll Settings** -- payroll configuration (upsert pattern)
 - **Employment Type** -- full-time, part-time, contract, intern, etc.
 - **Department** -- hierarchical departments with circular-reference detection
-- **Employee Grade** -- grading levels
 - **Holiday List** -- named holiday lists containing individual holidays
 
 ### Employee Management
