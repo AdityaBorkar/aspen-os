@@ -82,30 +82,6 @@ import { createSkillMap } from "#/workflows/employee/skill-map/create";
 import { deleteSkillMap } from "#/workflows/employee/skill-map/delete";
 import { updateSkillMap } from "#/workflows/employee/skill-map/update";
 import { update as updateEmployee } from "#/workflows/employee/update";
-import { getExitInterviewById } from "#/workflows/lifecycle/exit-interview/by-id/get";
-import { completeExitInterview } from "#/workflows/lifecycle/exit-interview/complete";
-import { createExitInterview } from "#/workflows/lifecycle/exit-interview/create";
-import { deleteExitInterview } from "#/workflows/lifecycle/exit-interview/delete";
-import { updateExitInterview } from "#/workflows/lifecycle/exit-interview/update";
-import { listExitInterviews } from "#/workflows/lifecycle/exit-interviews/list";
-import { listFullAndFinalStatements } from "#/workflows/lifecycle/full-and-final-statements/list";
-import { approveFullAndFinal } from "#/workflows/lifecycle/full-and-final/approve";
-import { getFullAndFinalById } from "#/workflows/lifecycle/full-and-final/by-id/get";
-import { createFullAndFinal } from "#/workflows/lifecycle/full-and-final/create";
-import { deleteFullAndFinal } from "#/workflows/lifecycle/full-and-final/delete";
-import { markFullAndFinalPaid } from "#/workflows/lifecycle/full-and-final/mark-paid";
-import { updateFullAndFinal } from "#/workflows/lifecycle/full-and-final/update";
-import { getOnboardingTaskById } from "#/workflows/lifecycle/onboarding-task/by-id/get";
-import { completeOnboardingTask } from "#/workflows/lifecycle/onboarding-task/complete";
-import { createOnboardingTask } from "#/workflows/lifecycle/onboarding-task/create";
-import { deleteOnboardingTask } from "#/workflows/lifecycle/onboarding-task/delete";
-import { updateOnboardingTask } from "#/workflows/lifecycle/onboarding-task/update";
-import { listOnboardingTasks } from "#/workflows/lifecycle/onboarding-tasks/list";
-import { getOnboardingById } from "#/workflows/lifecycle/onboarding/by-id/get";
-import { createOnboarding } from "#/workflows/lifecycle/onboarding/create";
-import { deleteOnboarding } from "#/workflows/lifecycle/onboarding/delete";
-import { updateOnboarding } from "#/workflows/lifecycle/onboarding/update";
-import { listOnboardings } from "#/workflows/lifecycle/onboardings/list";
 import { approvePromotion } from "#/workflows/lifecycle/promotion/approve";
 import { getPromotionById } from "#/workflows/lifecycle/promotion/by-id/get";
 import { completePromotion } from "#/workflows/lifecycle/promotion/complete";
@@ -114,12 +90,6 @@ import { deletePromotion } from "#/workflows/lifecycle/promotion/delete";
 import { rejectPromotion } from "#/workflows/lifecycle/promotion/reject";
 import { updatePromotion } from "#/workflows/lifecycle/promotion/update";
 import { listPromotions } from "#/workflows/lifecycle/promotions/list";
-import { getSeparationTaskById } from "#/workflows/lifecycle/separation-task/by-id/get";
-import { completeSeparationTask } from "#/workflows/lifecycle/separation-task/complete";
-import { createSeparationTask } from "#/workflows/lifecycle/separation-task/create";
-import { deleteSeparationTask } from "#/workflows/lifecycle/separation-task/delete";
-import { updateSeparationTask } from "#/workflows/lifecycle/separation-task/update";
-import { listSeparationTasks } from "#/workflows/lifecycle/separation-tasks/list";
 import { getSeparationById } from "#/workflows/lifecycle/separation/by-id/get";
 import { createSeparation } from "#/workflows/lifecycle/separation/create";
 import { deleteSeparation } from "#/workflows/lifecycle/separation/delete";
@@ -233,38 +203,6 @@ export const employee = {
 } as const;
 
 export const lifecycle = {
-  exitInterviews: {
-    complete: completeExitInterview,
-    create: createExitInterview,
-    get: getExitInterviewById,
-    list: listExitInterviews,
-    remove: deleteExitInterview,
-    update: updateExitInterview,
-  },
-  fullAndFinal: {
-    approve: approveFullAndFinal,
-    create: createFullAndFinal,
-    get: getFullAndFinalById,
-    list: listFullAndFinalStatements,
-    markPaid: markFullAndFinalPaid,
-    remove: deleteFullAndFinal,
-    update: updateFullAndFinal,
-  },
-  onboardingTasks: {
-    complete: completeOnboardingTask,
-    create: createOnboardingTask,
-    get: getOnboardingTaskById,
-    list: listOnboardingTasks,
-    remove: deleteOnboardingTask,
-    update: updateOnboardingTask,
-  },
-  onboardings: {
-    create: createOnboarding,
-    get: getOnboardingById,
-    list: listOnboardings,
-    remove: deleteOnboarding,
-    update: updateOnboarding,
-  },
   promotions: {
     approve: approvePromotion,
     complete: completePromotion,
@@ -274,14 +212,6 @@ export const lifecycle = {
     reject: rejectPromotion,
     remove: deletePromotion,
     update: updatePromotion,
-  },
-  separationTasks: {
-    complete: completeSeparationTask,
-    create: createSeparationTask,
-    get: getSeparationTaskById,
-    list: listSeparationTasks,
-    remove: deleteSeparationTask,
-    update: updateSeparationTask,
   },
   separations: {
     create: createSeparation,

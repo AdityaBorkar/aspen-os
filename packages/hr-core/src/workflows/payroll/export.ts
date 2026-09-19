@@ -1,10 +1,10 @@
-import { employee, fullAndFinalStatement } from "#/db-schemas";
+import { employee } from "#/db-schemas";
 import { ExportPayrollSchema } from "#/types";
 import type { Db } from "#/workflows/db";
 import { fetchPayrollSettings } from "#/workflows/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { boolean, nullish, object, safeParse, string } from "valibot";
 import type { InferOutput } from "valibot";
 
@@ -254,21 +254,13 @@ export const exportPayroll = Workflow.name("hr.payroll.export")
     const byCode = new Map(employees.map((row) => [row.employee_id, row]));
     const resolveEmployee = (key: string) => byId.get(key) ?? byCode.get(key) ?? null;
 
-    const [attendance, overtime, leaves, encashments, statements, payrollSettings] =
-      await Promise.all([
-        readAttendance(ctx.db, monthStart, monthEnd),
-        readOvertime(ctx.db, monthStart, monthEnd),
-        readLeaves(ctx.db, monthStart, monthEnd),
-        readEncashments(ctx.db),
-        ctx.db
-          .select()
-          .from(fullAndFinalStatement)
-          .where(ne(fullAndFinalStatement.status, "cancelled"))
-          .limit(2000),
-        fetchPayrollSettings(ctx.db),
-      ]);
-
-    const statementByEmployee = new Map(statements.map((row) => [row.employee_id, row]));
+    const [attendance, overtime, leaves, encashments, payrollSettings] = await Promise.all([
+      readAttendance(ctx.db, monthStart, monthEnd),
+      readOvertime(ctx.db, monthStart, monthEnd),
+      readLeaves(ctx.db, monthStart, monthEnd),
+      readEncashments(ctx.db),
+      fetchPayrollSettings(ctx.db),
+    ]);
 
     const aggregates = new Map<string, MutableRow>();
     const aggregateFor = (key: string): MutableRow => {
@@ -387,7 +379,6 @@ export const exportPayroll = Workflow.name("hr.payroll.export")
           aggregate.approvedLeaveDays,
       );
       const lopDays = round(aggregate.absent + aggregate.halfDay * 0.5);
-      const statement = statementByEmployee.get(row.id) ?? null;
       return {
         approvedLeaveDays: round(aggregate.approvedLeaveDays),
         attendance: {
@@ -412,14 +403,6 @@ export const exportPayroll = Workflow.name("hr.payroll.export")
           amount: round(aggregate.encashmentAmount),
           days: round(aggregate.encashmentDays),
         },
-        fullAndFinal:
-          statement === null
-            ? null
-            : {
-                netPayable:
-                  statement.net_payable === null ? null : round(toFloat(statement.net_payable)),
-                status: statement.status,
-              },
         id: row.id,
         leavesByType: [...aggregate.leavesByType.entries()].map(([leaveType, days]) => ({
           days: round(days),
@@ -450,7 +433,7 @@ export const exportPayroll = Workflow.name("hr.payroll.export")
     const notes = [
       "payableDays = present + work_from_home + half_day * 0.5 + on_leave + approvedLeaveDays; lopDays = absent + half_day * 0.5.",
       "Cross-month overtime slips are prorated by overlapping days; half-day leave applications count 0.5 days.",
-      "Encashments cover all approved/paid records regardless of month; full-and-final covers open statements.",
+      "Encashments cover all approved/paid records regardless of month.",
       ...attendance.notes,
       ...overtime.notes,
       ...leaves.notes,

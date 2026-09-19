@@ -1,4 +1,4 @@
-import { employeeSeparation, separationTask } from "#/db-schemas";
+import { employeeSeparation } from "#/db-schemas";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -12,9 +12,6 @@ export const deleteSeparation = Workflow.name("hr.lifecycle.delete-separation")
   .input(InputSchema)
   .handler(async (input, ctx) => {
     const { id } = input;
-
-    // Delete tasks first
-    await ctx.db.delete(separationTask).where(eq(separationTask.separation_id, id));
 
     const [deleted] = await ctx.db
       .delete(employeeSeparation)

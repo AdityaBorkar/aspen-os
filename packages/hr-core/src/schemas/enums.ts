@@ -23,20 +23,6 @@ export const EmploymentTypeSchema = enum_({
   temporary: "temporary",
 });
 
-export const LifecycleTaskStatusSchema = enum_({
-  completed: "completed",
-  in_progress: "in_progress",
-  pending: "pending",
-  skipped: "skipped",
-});
-
-export const OnboardingStatusSchema = enum_({
-  cancelled: "cancelled",
-  completed: "completed",
-  in_progress: "in_progress",
-  pending: "pending",
-});
-
 export const SeparationStatusSchema = enum_({
   cancelled: "cancelled",
   completed: "completed",
@@ -63,20 +49,6 @@ export const SkillProficiencySchema = enum_({
   beginner: "beginner",
   expert: "expert",
   intermediate: "intermediate",
-});
-
-export const ExitInterviewStatusSchema = enum_({
-  cancelled: "cancelled",
-  completed: "completed",
-  scheduled: "scheduled",
-});
-
-export const FullAndFinalStatusSchema = enum_({
-  approved: "approved",
-  cancelled: "cancelled",
-  draft: "draft",
-  paid: "paid",
-  pending: "pending",
 });
 
 export const AccessLevelSchema = enum_({

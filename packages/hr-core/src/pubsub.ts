@@ -36,9 +36,6 @@ export interface EmployeeGroupCreatedEvent {
 // ─── Lifecycle Events ─────────────────────────────────────────────────────
 
 export const LIFECYCLE_EVENTS = {
-  EXIT_INTERVIEW_SCHEDULED: "lifecycle.exit_interview_scheduled",
-  ONBOARDING_COMPLETED: "lifecycle.onboarding_completed",
-  ONBOARDING_STARTED: "lifecycle.onboarding_started",
   PROMOTION_APPROVED: "lifecycle.promotion_approved",
   PROMOTION_REQUESTED: "lifecycle.promotion_requested",
   SEPARATION_COMPLETED: "lifecycle.separation_completed",
@@ -46,19 +43,6 @@ export const LIFECYCLE_EVENTS = {
   TRANSFER_APPROVED: "lifecycle.transfer_approved",
   TRANSFER_REQUESTED: "lifecycle.transfer_requested",
 } as const;
-
-export interface OnboardingStartedEvent {
-  onboarding: {
-    employeeId: string;
-    id: string;
-    startDate: string;
-  };
-}
-
-export interface OnboardingCompletedEvent {
-  employeeId: string;
-  onboardingId: string;
-}
 
 export interface PromotionRequestedEvent {
   promotion: {
@@ -101,12 +85,6 @@ export interface SeparationInitiatedEvent {
 export interface SeparationCompletedEvent {
   employeeId: string;
   separationId: string;
-}
-
-export interface ExitInterviewScheduledEvent {
-  employeeId: string;
-  exitInterviewId: string;
-  scheduledDate: string;
 }
 
 // ─── Position Events ────────────────────────────────────────────────────
@@ -265,9 +243,6 @@ export interface EmployeeEventMap {
 }
 
 export interface LifecycleEventMap {
-  [LIFECYCLE_EVENTS.EXIT_INTERVIEW_SCHEDULED]: ExitInterviewScheduledEvent;
-  [LIFECYCLE_EVENTS.ONBOARDING_COMPLETED]: OnboardingCompletedEvent;
-  [LIFECYCLE_EVENTS.ONBOARDING_STARTED]: OnboardingStartedEvent;
   [LIFECYCLE_EVENTS.PROMOTION_APPROVED]: PromotionApprovedEvent;
   [LIFECYCLE_EVENTS.PROMOTION_REQUESTED]: PromotionRequestedEvent;
   [LIFECYCLE_EVENTS.SEPARATION_COMPLETED]: SeparationCompletedEvent;

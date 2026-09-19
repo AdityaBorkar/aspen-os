@@ -1,8 +1,4 @@
 import {
-  ExitInterviewStatusSchema,
-  FullAndFinalStatusSchema,
-  LifecycleTaskStatusSchema,
-  OnboardingStatusSchema,
   PromotionStatusSchema,
   SeparationStatusSchema,
   TransferStatusSchema,
@@ -10,54 +6,6 @@ import {
 
 import { minLength, nullable, object, omit, optional, partial, pick, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
-
-// Employee Onboarding
-
-export const CreateOnboardingSchema = object({
-  employeeId: pipe(string(), minLength(1, "Employee ID is required")),
-  expectedCompletionDate: optional(string()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  startDate: pipe(string(), minLength(1, "Start date is required")),
-});
-
-export type CreateOnboardingInput = InferOutput<typeof CreateOnboardingSchema>;
-
-export const UpdateOnboardingSchema = object({
-  ...partial(omit(CreateOnboardingSchema, ["employeeId"])).entries,
-  actualCompletionDate: optional(string()),
-  status: optional(OnboardingStatusSchema),
-});
-
-export type UpdateOnboardingInput = InferOutput<typeof UpdateOnboardingSchema>;
-
-export const OnboardingFiltersSchema = object({
-  ...partial(pick(CreateOnboardingSchema, ["employeeId"])).entries,
-  status: optional(OnboardingStatusSchema),
-});
-
-export type OnboardingFilters = InferOutput<typeof OnboardingFiltersSchema>;
-
-// Onboarding Task
-
-export const CreateOnboardingTaskSchema = object({
-  assignedTo: optional(nullable(string())),
-  department: optional(nullable(string())),
-  description: optional(nullable(string())),
-  dueDate: optional(string()),
-  notes: optional(nullable(string())),
-  onboardingId: pipe(string(), minLength(1, "Onboarding ID is required")),
-  title: pipe(string(), minLength(1, "Title is required")),
-});
-
-export type CreateOnboardingTaskInput = InferOutput<typeof CreateOnboardingTaskSchema>;
-
-export const UpdateOnboardingTaskSchema = object({
-  ...partial(omit(CreateOnboardingTaskSchema, ["onboardingId"])).entries,
-  status: optional(LifecycleTaskStatusSchema),
-});
-
-export type UpdateOnboardingTaskInput = InferOutput<typeof UpdateOnboardingTaskSchema>;
 
 // Employee Promotion
 
@@ -140,90 +88,3 @@ export const SeparationFiltersSchema = object({
 });
 
 export type SeparationFilters = InferOutput<typeof SeparationFiltersSchema>;
-
-// Separation Task
-
-export const CreateSeparationTaskSchema = object({
-  assignedTo: optional(nullable(string())),
-  department: optional(nullable(string())),
-  description: optional(nullable(string())),
-  dueDate: optional(string()),
-  notes: optional(nullable(string())),
-  separationId: pipe(string(), minLength(1, "Separation ID is required")),
-  title: pipe(string(), minLength(1, "Title is required")),
-});
-
-export type CreateSeparationTaskInput = InferOutput<typeof CreateSeparationTaskSchema>;
-
-export const UpdateSeparationTaskSchema = object({
-  ...partial(omit(CreateSeparationTaskSchema, ["separationId"])).entries,
-  status: optional(LifecycleTaskStatusSchema),
-});
-
-export type UpdateSeparationTaskInput = InferOutput<typeof UpdateSeparationTaskSchema>;
-
-// Exit Interview
-
-export const CreateExitInterviewSchema = object({
-  employeeId: pipe(string(), minLength(1, "Employee ID is required")),
-  interviewer: optional(nullable(string())),
-  questionnaireTemplate: optional(nullable(string())),
-  scheduledDate: optional(string()),
-  separationId: optional(nullable(string())),
-});
-
-export type CreateExitInterviewInput = InferOutput<typeof CreateExitInterviewSchema>;
-
-export const UpdateExitInterviewSchema = object({
-  ...partial(omit(CreateExitInterviewSchema, ["employeeId", "separationId"])).entries,
-  completedDate: optional(string()),
-  feedback: optional(nullable(string())),
-  responses: optional(nullable(object({}))),
-  status: optional(ExitInterviewStatusSchema),
-});
-
-export type UpdateExitInterviewInput = InferOutput<typeof UpdateExitInterviewSchema>;
-
-export const ExitInterviewFiltersSchema = object({
-  ...partial(pick(CreateExitInterviewSchema, ["employeeId"])).entries,
-  status: optional(ExitInterviewStatusSchema),
-});
-
-export type ExitInterviewFilters = InferOutput<typeof ExitInterviewFiltersSchema>;
-
-// Full and Final Statement
-
-export const CreateFullAndFinalSchema = object({
-  bonus: optional(string()),
-  deductions: optional(string()),
-  employeeId: pipe(string(), minLength(1, "Employee ID is required")),
-  gratuity: optional(string()),
-  leaveEncashment: optional(string()),
-  loanRecovery: optional(string()),
-  metadata: optional(nullable(object({}))),
-  notes: optional(nullable(string())),
-  pendingSalary: optional(string()),
-  separationId: optional(nullable(string())),
-});
-
-export type CreateFullAndFinalInput = InferOutput<typeof CreateFullAndFinalSchema>;
-
-export const UpdateFullAndFinalSchema = object({
-  ...partial(omit(CreateFullAndFinalSchema, ["employeeId", "separationId"])).entries,
-  approvedBy: optional(nullable(string())),
-  netPayable: optional(string()),
-  paidAt: optional(string()),
-  paymentEntry: optional(nullable(string())),
-  status: optional(FullAndFinalStatusSchema),
-  totalDeductions: optional(string()),
-  totalEarnings: optional(string()),
-});
-
-export type UpdateFullAndFinalInput = InferOutput<typeof UpdateFullAndFinalSchema>;
-
-export const FullAndFinalFiltersSchema = object({
-  ...partial(pick(CreateFullAndFinalSchema, ["employeeId"])).entries,
-  status: optional(FullAndFinalStatusSchema),
-});
-
-export type FullAndFinalFilters = InferOutput<typeof FullAndFinalFiltersSchema>;

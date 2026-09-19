@@ -2,11 +2,9 @@ import {
   department,
   employee,
   employeeGroup,
-  employeeOnboarding,
   employeePromotion,
   employeeSeparation,
   employeeTransfer,
-  fullAndFinalStatement,
   hrSettings,
   payrollSettings,
 } from "#/db-schemas";
@@ -81,14 +79,6 @@ export async function ensureEmployeeIdUnique(
 
 // ─── Lifecycle lookups ───────────────────────────────────────────────────────
 
-export function fetchOnboardingById(db: Db, id: string) {
-  return fetchById(
-    db.select().from(employeeOnboarding).where(eq(employeeOnboarding.id, id)).limit(1),
-    "Onboarding",
-    id,
-  );
-}
-
 export function fetchPromotionById(db: Db, id: string) {
   return fetchById(
     db.select().from(employeePromotion).where(eq(employeePromotion.id, id)).limit(1),
@@ -109,14 +99,6 @@ export function fetchSeparationById(db: Db, id: string) {
   return fetchById(
     db.select().from(employeeSeparation).where(eq(employeeSeparation.id, id)).limit(1),
     "Separation",
-    id,
-  );
-}
-
-export function fetchFullAndFinalById(db: Db, id: string) {
-  return fetchById(
-    db.select().from(fullAndFinalStatement).where(eq(fullAndFinalStatement.id, id)).limit(1),
-    "Full and final statement",
     id,
   );
 }

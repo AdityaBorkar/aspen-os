@@ -2,7 +2,6 @@ import {
   employeeStatusEnum,
   employmentTypeEnum,
   genderEnum,
-  onboardingStatusEnum,
   promotionStatusEnum,
   separationStatusEnum,
   skillProficiencyEnum,
@@ -110,26 +109,6 @@ export const employeeSkillMap = pgTable(
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [index("idx_employee_skill_map_employee_id").on(table.employee_id)],
-);
-
-export const employeeOnboarding = pgTable(
-  "employee_onboarding",
-  {
-    actual_completion_date: date(),
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    employee_id: text().notNull(),
-    expected_completion_date: date(),
-    id: uuidv7().primaryKey(),
-    metadata: jsonb(),
-    notes: text(),
-    start_date: date().notNull(),
-    status: onboardingStatusEnum().notNull().default("pending"),
-    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [
-    index("idx_employee_onboarding_employee_id").on(table.employee_id),
-    index("idx_employee_onboarding_status").on(table.status),
-  ],
 );
 
 export const employeePromotion = pgTable(

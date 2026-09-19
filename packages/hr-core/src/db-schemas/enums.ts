@@ -18,20 +18,6 @@ export const employmentTypeEnum = pgEnum("hr_employment_type", [
   "temporary",
 ]);
 
-export const lifecycleTaskStatusEnum = pgEnum("hr_lifecycle_task_status", [
-  "completed",
-  "in_progress",
-  "pending",
-  "skipped",
-]);
-
-export const onboardingStatusEnum = pgEnum("hr_onboarding_status", [
-  "cancelled",
-  "completed",
-  "in_progress",
-  "pending",
-]);
-
 export const separationStatusEnum = pgEnum("hr_separation_status", [
   "cancelled",
   "completed",
@@ -58,20 +44,6 @@ export const skillProficiencyEnum = pgEnum("hr_skill_proficiency", [
   "beginner",
   "expert",
   "intermediate",
-]);
-
-export const exitInterviewStatusEnum = pgEnum("hr_exit_interview_status", [
-  "cancelled",
-  "completed",
-  "scheduled",
-]);
-
-export const fullAndFinalStatusEnum = pgEnum("hr_full_and_final_status", [
-  "approved",
-  "cancelled",
-  "draft",
-  "paid",
-  "pending",
 ]);
 
 export const accessLevelEnum = pgEnum("hr_access_level", ["full", "manage", "read_only"]);
