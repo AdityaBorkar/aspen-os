@@ -23,9 +23,6 @@ export const listPositions = Workflow.name("hr.position.list")
     if (parsed.branch) {
       conditions.push(eq(hrPosition.branch, parsed.branch));
     }
-    if (parsed.designation) {
-      conditions.push(eq(hrPosition.designation, parsed.designation));
-    }
     if (parsed.isActive !== undefined) {
       conditions.push(eq(hrPosition.is_active, parsed.isActive));
     }

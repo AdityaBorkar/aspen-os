@@ -36,7 +36,6 @@ export const getOrganizationalChart = Workflow.name("hr.employee.get-organizatio
       ctx.db
         .select({
           department: employee.department,
-          designation: employee.designation,
           firstName: employee.first_name,
           id: employee.id,
           image: employee.image,

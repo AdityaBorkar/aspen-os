@@ -14,15 +14,6 @@ export const GenderSchema = enum_({
   prefer_not_to_say: "prefer_not_to_say",
 });
 
-export const EmploymentTypeSchema = enum_({
-  contract: "contract",
-  freelance: "freelance",
-  intern: "intern",
-  part_time: "part_time",
-  permanent: "permanent",
-  temporary: "temporary",
-});
-
 export const SeparationStatusSchema = enum_({
   cancelled: "cancelled",
   completed: "completed",

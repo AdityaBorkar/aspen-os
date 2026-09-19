@@ -21,7 +21,6 @@ export const AnnouncementAudienceSchema = object({
     all: "all",
     branches: "branches",
     departments: "departments",
-    designations: "designations",
     employees: "employees",
     groups: "groups",
     hr_users: "hr_users",

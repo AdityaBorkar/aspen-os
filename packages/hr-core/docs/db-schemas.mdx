@@ -102,16 +102,6 @@ Singleton payroll settings (upserted).
 | `benefits_application_mandatory` | boolean | Benefits gate         |
 | `multi_currency_expense_claims`  | boolean | Multi-currency claims |
 
-### `employment_type` — control-plane
-
-| Column        | Type    | Description      |
-| ------------- | ------- | ---------------- |
-| `name`        | text    | Type name        |
-| `description` | text    | Optional         |
-| `is_active`   | boolean | Soft-delete flag |
-
-Indexes: `idx_employment_type_is_active` (`is_active`).
-
 ### `department` — control-plane
 
 Hierarchical departments.
@@ -129,23 +119,6 @@ Hierarchical departments.
 
 Indexes: `idx_department_is_active` (`is_active`), `idx_department_parent_department` (`parent_department`).
 
-### `designation` — control-plane
-
-| Column        | Type    | Description      |
-| ------------- | ------- | ---------------- |
-| `name`        | text    | Designation name |
-| `description` | text    | Optional         |
-| `is_active`   | boolean | Soft-delete flag |
-
-### `employee_grade` — control-plane
-
-| Column                     | Type    | Description             |
-| -------------------------- | ------- | ----------------------- |
-| `name`                     | text    | Grade name              |
-| `description`              | text    | Optional                |
-| `default_salary_structure` | text    | Linked salary structure |
-| `is_active`                | boolean | Soft-delete flag        |
-
 ### `employee` — tenant
 
 Core employee record; `employee_id` is the unique business id.
@@ -158,8 +131,6 @@ Core employee record; `employee_id` is the unique business id.
 | `last_name`                   | text                 | Required           |
 | `company`                     | text                 | Owning company     |
 | `department`                  | text                 | Department id      |
-| `designation`                 | text                 | Designation id     |
-| `employment_type`             | `hr_employment_type` | Employment type    |
 | `status`                      | `hr_employee_status` | Default `active`   |
 | `date_of_joining`             | date                 | Required           |
 | `date_of_leaving`             | date                 | Set by markAsLeft  |
@@ -263,24 +234,22 @@ Indexes: `idx_employee_onboarding_employee_id` (`employee_id`), `idx_employee_on
 
 ### `employee_promotion` — tenant
 
-| Column                | Type                  | Description       |
-| --------------------- | --------------------- | ----------------- |
-| `employee_id`         | text (FK → employee)  | Promotee          |
-| `current_designation` | text                  | Required          |
-| `new_designation`     | text                  | Required          |
-| `current_department`  | text                  | Optional          |
-| `new_department`      | text                  | Optional          |
-| `current_grade`       | text                  | Optional          |
-| `new_grade`           | text                  | Optional          |
-| `effective_date`      | date                  | Effective date    |
-| `salary_revision`     | text                  | Revised salary    |
-| `reason`              | text                  | Justification     |
-| `status`              | `hr_promotion_status` | Default `pending` |
-| `approved_by`         | text                  | Audit             |
-| `approved_at`         | timestamptz           | Audit             |
-| `rejected_by`         | text                  | Audit             |
-| `rejected_at`         | timestamptz           | Audit             |
-| `rejection_reason`    | text                  | Audit             |
+| Column               | Type                  | Description       |
+| -------------------- | --------------------- | ----------------- |
+| `employee_id`        | text (FK → employee)  | Promotee          |
+| `current_department` | text                  | Optional          |
+| `new_department`     | text                  | Optional          |
+| `current_grade`      | text                  | Optional          |
+| `new_grade`          | text                  | Optional          |
+| `effective_date`     | date                  | Effective date    |
+| `salary_revision`    | text                  | Revised salary    |
+| `reason`             | text                  | Justification     |
+| `status`             | `hr_promotion_status` | Default `pending` |
+| `approved_by`        | text                  | Audit             |
+| `approved_at`        | timestamptz           | Audit             |
+| `rejected_by`        | text                  | Audit             |
+| `rejected_at`        | timestamptz           | Audit             |
+| `rejection_reason`   | text                  | Audit             |
 
 Indexes: `idx_employee_promotion_employee_id` (`employee_id`), `idx_employee_promotion_status` (`status`).
 
@@ -402,8 +371,6 @@ Indexes: `idx_full_and_final_statement_employee_id` (`employee_id`), `idx_full_a
 | `name`                | text                    | Position name   |
 | `department`          | text                    | Department id   |
 | `branch`              | text                    | Branch id       |
-| `designation`         | text                    | Designation id  |
-| `employment_type`     | text                    | Employment type |
 | `headcount`           | integer                 | Default 1       |
 | `is_active`           | boolean                 | Default true    |
 | `reports_to_position` | text (FK → hr_position) | Parent position |

@@ -33,23 +33,21 @@ export interface EmployeeGroupCreatedEvent {
   group: { id: string; name: string };
 }
 
-// ─── Lifecycle Events ─────────────────────────────────────────────────────
+// ─── Transition Events ─────────────────────────────────────────────────────
 
-export const LIFECYCLE_EVENTS = {
-  PROMOTION_APPROVED: "lifecycle.promotion_approved",
-  PROMOTION_REQUESTED: "lifecycle.promotion_requested",
-  SEPARATION_COMPLETED: "lifecycle.separation_completed",
-  SEPARATION_INITIATED: "lifecycle.separation_initiated",
-  TRANSFER_APPROVED: "lifecycle.transfer_approved",
-  TRANSFER_REQUESTED: "lifecycle.transfer_requested",
+export const TRANSITION_EVENTS = {
+  PROMOTION_APPROVED: "transition.promotion_approved",
+  PROMOTION_REQUESTED: "transition.promotion_requested",
+  SEPARATION_COMPLETED: "transition.separation_completed",
+  SEPARATION_INITIATED: "transition.separation_initiated",
+  TRANSFER_APPROVED: "transition.transfer_approved",
+  TRANSFER_REQUESTED: "transition.transfer_requested",
 } as const;
 
 export interface PromotionRequestedEvent {
   promotion: {
-    currentDesignation: string;
     employeeId: string;
     id: string;
-    newDesignation: string;
   };
 }
 
@@ -146,7 +144,6 @@ export const SETUP_EVENTS = {
   DEPARTMENT_CREATED: "setup.department_created",
   DEPARTMENT_HEAD_CHANGED: "setup.department_head_changed",
   DEPARTMENT_MOVED: "setup.department_moved",
-  DESIGNATION_CREATED: "setup.designation_created",
   SETTINGS_UPDATED: "setup.settings_updated",
 } as const;
 
@@ -163,10 +160,6 @@ export interface DepartmentMovedEvent {
   departmentId: string;
   fromParentId: string | null;
   toParentId: string | null;
-}
-
-export interface DesignationCreatedEvent {
-  designation: { id: string; name: string };
 }
 
 export interface HrSettingsUpdatedEvent {
@@ -242,13 +235,13 @@ export interface EmployeeEventMap {
   [EMPLOYEE_EVENTS.UPDATED]: EmployeeUpdatedEvent;
 }
 
-export interface LifecycleEventMap {
-  [LIFECYCLE_EVENTS.PROMOTION_APPROVED]: PromotionApprovedEvent;
-  [LIFECYCLE_EVENTS.PROMOTION_REQUESTED]: PromotionRequestedEvent;
-  [LIFECYCLE_EVENTS.SEPARATION_COMPLETED]: SeparationCompletedEvent;
-  [LIFECYCLE_EVENTS.SEPARATION_INITIATED]: SeparationInitiatedEvent;
-  [LIFECYCLE_EVENTS.TRANSFER_APPROVED]: TransferApprovedEvent;
-  [LIFECYCLE_EVENTS.TRANSFER_REQUESTED]: TransferRequestedEvent;
+export interface TransitionEventMap {
+  [TRANSITION_EVENTS.PROMOTION_APPROVED]: PromotionApprovedEvent;
+  [TRANSITION_EVENTS.PROMOTION_REQUESTED]: PromotionRequestedEvent;
+  [TRANSITION_EVENTS.SEPARATION_COMPLETED]: SeparationCompletedEvent;
+  [TRANSITION_EVENTS.SEPARATION_INITIATED]: SeparationInitiatedEvent;
+  [TRANSITION_EVENTS.TRANSFER_APPROVED]: TransferApprovedEvent;
+  [TRANSITION_EVENTS.TRANSFER_REQUESTED]: TransferRequestedEvent;
 }
 
 export interface PositionEventMap {
@@ -265,7 +258,6 @@ export interface SetupEventMap {
   [SETUP_EVENTS.DEPARTMENT_CREATED]: DepartmentCreatedEvent;
   [SETUP_EVENTS.DEPARTMENT_HEAD_CHANGED]: DepartmentHeadChangedEvent;
   [SETUP_EVENTS.DEPARTMENT_MOVED]: DepartmentMovedEvent;
-  [SETUP_EVENTS.DESIGNATION_CREATED]: DesignationCreatedEvent;
   [SETUP_EVENTS.SETTINGS_UPDATED]: HrSettingsUpdatedEvent;
 }
 
@@ -281,7 +273,7 @@ export interface AccessEventMap {
 }
 
 export type HrEventMap = EmployeeEventMap &
-  LifecycleEventMap &
+  TransitionEventMap &
   PositionEventMap &
   SetupEventMap &
   AccessEventMap;
@@ -291,7 +283,7 @@ export type HrCoreEventMap = HrEventMap;
 export const events = {
   access: ACCESS_EVENTS,
   employee: EMPLOYEE_EVENTS,
-  lifecycle: LIFECYCLE_EVENTS,
   position: POSITION_EVENTS,
   setup: SETUP_EVENTS,
+  transition: TRANSITION_EVENTS,
 };

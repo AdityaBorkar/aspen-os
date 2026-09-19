@@ -18,7 +18,6 @@ import {
 import {
   accessLevelEnum,
   employeeStatusEnum,
-  employmentTypeEnum,
   genderEnum,
   permissionActionEnum,
   promotionStatusEnum,
@@ -27,14 +26,7 @@ import {
   transferStatusEnum,
 } from "#/db-schemas/enums";
 import { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
-import {
-  department,
-  designation,
-  employeeGrade,
-  employmentType,
-  hrSettings,
-  payrollSettings,
-} from "#/db-schemas/setup";
+import { department, hrSettings, payrollSettings } from "#/db-schemas/setup";
 
 export {
   hrPermission,
@@ -55,14 +47,7 @@ export {
 } from "#/db-schemas/employee";
 export * from "#/db-schemas/enums";
 export { hrPosition, hrPositionAssignment } from "#/db-schemas/position";
-export {
-  department,
-  designation,
-  employeeGrade,
-  employmentType,
-  hrSettings,
-  payrollSettings,
-} from "#/db-schemas/setup";
+export { department, hrSettings, payrollSettings } from "#/db-schemas/setup";
 
 export type HrUser = typeof hrUser.$inferSelect;
 export type HrRole = typeof hrRole.$inferSelect;
@@ -81,9 +66,7 @@ export type NewHrUserBranchAccess = typeof hrUserBranchAccess.$inferInsert;
 export const dbSchema = {
   accessLevelEnum,
   department,
-  designation,
   employee,
-  employeeGrade,
   employeeGroup,
   employeeGroupMember,
   employeePromotion,
@@ -91,8 +74,6 @@ export const dbSchema = {
   employeeSkillMap,
   employeeStatusEnum,
   employeeTransfer,
-  employmentType,
-  employmentTypeEnum,
   genderEnum,
   hrPermission,
   hrPosition,
@@ -116,10 +97,6 @@ export const hrTables = dbSchema;
 export const control_plane_schemas = {
   accessLevelEnum,
   department,
-  designation,
-  employeeGrade,
-  employmentType,
-  employmentTypeEnum,
   genderEnum,
   hrPermission,
   hrRole,
@@ -142,7 +119,6 @@ export const tenant_schemas = {
   employeeSkillMap,
   employeeStatusEnum,
   employeeTransfer,
-  employmentTypeEnum,
   genderEnum,
   hrPosition,
   hrPositionAssignment,

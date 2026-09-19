@@ -19,8 +19,6 @@ import type { InferOutput } from "valibot";
 export const CreatePositionSchema = object({
   branch: optional(nullable(string())),
   department: pipe(string(), minLength(1, "Department is required")),
-  designation: optional(nullable(string())),
-  employmentType: optional(nullable(string())),
   headcount: optional(number(), 1),
   jobDescription: optional(nullable(string())),
   name: NameSchema,
@@ -38,7 +36,7 @@ export const UpdatePositionSchema = object({
 export type UpdatePositionInput = InferOutput<typeof UpdatePositionSchema>;
 
 export const PositionFiltersSchema = object({
-  ...partial(pick(CreatePositionSchema, ["branch", "department", "designation"])).entries,
+  ...partial(pick(CreatePositionSchema, ["branch", "department"])).entries,
   isActive: optional(boolean()),
 });
 

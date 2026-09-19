@@ -6,7 +6,7 @@ export const acl = defineAcl({
   hrPermission: ["create", "delete", "read", "update"],
   hrRole: ["create", "delete", "read", "update"],
   hrUser: ["create", "delete", "read", "update"],
-  lifecycle: ["approve", "create", "read", "reject", "update"],
   payroll: ["read"],
   position: ["create", "delete", "read", "update"],
+  transition: ["approve", "create", "read", "reject", "update"],
 });

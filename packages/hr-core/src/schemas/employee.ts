@@ -1,9 +1,4 @@
-import {
-  EmployeeStatusSchema,
-  EmploymentTypeSchema,
-  GenderSchema,
-  SkillProficiencySchema,
-} from "#/schemas/enums";
+import { EmployeeStatusSchema, GenderSchema, SkillProficiencySchema } from "#/schemas/enums";
 import { EmployeeIdSchema, NameSchema } from "#/schemas/utils";
 
 import {
@@ -36,16 +31,13 @@ export const CreateEmployeeSchema = object({
   dateOfJoining: pipe(string(), minLength(1, "Date of joining is required")),
   dateOfLeaving: optional(string()),
   department: pipe(string(), minLength(1, "Department is required")),
-  designation: pipe(string(), minLength(1, "Designation is required")),
   email: optional(nullable(string())),
   emergencyContactName: optional(nullable(string())),
   emergencyContactPhone: optional(nullable(string())),
   emergencyContactRelation: optional(nullable(string())),
   employeeId: EmployeeIdSchema,
-  employmentType: EmploymentTypeSchema,
   firstName: NameSchema,
   gender: optional(GenderSchema),
-  grade: optional(nullable(string())),
   holidayList: optional(nullable(string())),
   ifscCode: optional(nullable(string())),
   image: optional(nullable(string())),
@@ -77,17 +69,7 @@ export const UpdateEmployeeSchema = object({
 export type UpdateEmployeeInput = InferOutput<typeof UpdateEmployeeSchema>;
 
 export const EmployeeFiltersSchema = object({
-  ...partial(
-    pick(CreateEmployeeSchema, [
-      "branch",
-      "company",
-      "department",
-      "designation",
-      "employmentType",
-      "grade",
-      "reportsTo",
-    ]),
-  ).entries,
+  ...partial(pick(CreateEmployeeSchema, ["branch", "company", "department", "reportsTo"])).entries,
   status: optional(EmployeeStatusSchema),
 });
 

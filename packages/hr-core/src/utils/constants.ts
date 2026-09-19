@@ -1,9 +1,9 @@
 export const HR_PERMISSION_MODULE = {
   ACCESS: "access",
   EMPLOYEE: "employee",
-  LIFECYCLE: "lifecycle",
   POSITION: "position",
   SETUP: "setup",
+  TRANSITION: "transition",
 } as const;
 
 export type HrPermissionModule = (typeof HR_PERMISSION_MODULE)[keyof typeof HR_PERMISSION_MODULE];

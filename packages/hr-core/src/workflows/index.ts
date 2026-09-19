@@ -41,21 +41,6 @@ import { setDepartmentHead } from "#/workflows/config/department/set-head";
 import { getDepartmentSubtree } from "#/workflows/config/department/subtree";
 import { getDepartmentTree } from "#/workflows/config/department/tree";
 import { updateDepartment } from "#/workflows/config/department/update";
-import { createDesignation } from "#/workflows/config/designation/create";
-import { deleteDesignation } from "#/workflows/config/designation/delete";
-import { getDesignationById } from "#/workflows/config/designation/get";
-import { listDesignations } from "#/workflows/config/designation/list";
-import { updateDesignation } from "#/workflows/config/designation/update";
-import { createEmployeeGrade } from "#/workflows/config/employee-grade/create";
-import { deleteEmployeeGrade } from "#/workflows/config/employee-grade/delete";
-import { getEmployeeGradeById } from "#/workflows/config/employee-grade/get";
-import { listEmployeeGrades } from "#/workflows/config/employee-grade/list";
-import { updateEmployeeGrade } from "#/workflows/config/employee-grade/update";
-import { createEmploymentType } from "#/workflows/config/employment-type/create";
-import { deleteEmploymentType } from "#/workflows/config/employment-type/delete";
-import { getEmploymentTypeById } from "#/workflows/config/employment-type/get";
-import { listEmploymentTypes } from "#/workflows/config/employment-type/list";
-import { updateEmploymentType } from "#/workflows/config/employment-type/update";
 import { getHrSettings } from "#/workflows/config/hr/get";
 import { updateHrSettings } from "#/workflows/config/hr/update";
 import { getPayrollSettings } from "#/workflows/config/payroll/get";
@@ -82,27 +67,6 @@ import { createSkillMap } from "#/workflows/employee/skill-map/create";
 import { deleteSkillMap } from "#/workflows/employee/skill-map/delete";
 import { updateSkillMap } from "#/workflows/employee/skill-map/update";
 import { update as updateEmployee } from "#/workflows/employee/update";
-import { approvePromotion } from "#/workflows/lifecycle/promotion/approve";
-import { getPromotionById } from "#/workflows/lifecycle/promotion/by-id/get";
-import { completePromotion } from "#/workflows/lifecycle/promotion/complete";
-import { createPromotion } from "#/workflows/lifecycle/promotion/create";
-import { deletePromotion } from "#/workflows/lifecycle/promotion/delete";
-import { rejectPromotion } from "#/workflows/lifecycle/promotion/reject";
-import { updatePromotion } from "#/workflows/lifecycle/promotion/update";
-import { listPromotions } from "#/workflows/lifecycle/promotions/list";
-import { getSeparationById } from "#/workflows/lifecycle/separation/by-id/get";
-import { createSeparation } from "#/workflows/lifecycle/separation/create";
-import { deleteSeparation } from "#/workflows/lifecycle/separation/delete";
-import { updateSeparation } from "#/workflows/lifecycle/separation/update";
-import { listSeparations } from "#/workflows/lifecycle/separations/list";
-import { approveTransfer } from "#/workflows/lifecycle/transfer/approve";
-import { getTransferById } from "#/workflows/lifecycle/transfer/by-id/get";
-import { completeTransfer } from "#/workflows/lifecycle/transfer/complete";
-import { createTransfer } from "#/workflows/lifecycle/transfer/create";
-import { deleteTransfer } from "#/workflows/lifecycle/transfer/delete";
-import { rejectTransfer } from "#/workflows/lifecycle/transfer/reject";
-import { updateTransfer } from "#/workflows/lifecycle/transfer/update";
-import { listTransfers } from "#/workflows/lifecycle/transfers/list";
 import { exportPayroll } from "#/workflows/payroll/export";
 import { assignEmployee } from "#/workflows/position/assignment/assign";
 import { getEmployeePositionHistory } from "#/workflows/position/assignment/by-employee/history";
@@ -126,6 +90,27 @@ import { listPositions } from "#/workflows/position/position/list";
 import { updatePosition } from "#/workflows/position/position/update";
 import { getSubordinates } from "#/workflows/position/subordinates/get";
 import { getTeam } from "#/workflows/position/team/get";
+import { approvePromotion } from "#/workflows/transition/promotion/approve";
+import { getPromotionById } from "#/workflows/transition/promotion/by-id/get";
+import { completePromotion } from "#/workflows/transition/promotion/complete";
+import { createPromotion } from "#/workflows/transition/promotion/create";
+import { deletePromotion } from "#/workflows/transition/promotion/delete";
+import { rejectPromotion } from "#/workflows/transition/promotion/reject";
+import { updatePromotion } from "#/workflows/transition/promotion/update";
+import { listPromotions } from "#/workflows/transition/promotions/list";
+import { getSeparationById } from "#/workflows/transition/separation/by-id/get";
+import { createSeparation } from "#/workflows/transition/separation/create";
+import { deleteSeparation } from "#/workflows/transition/separation/delete";
+import { updateSeparation } from "#/workflows/transition/separation/update";
+import { listSeparations } from "#/workflows/transition/separations/list";
+import { approveTransfer } from "#/workflows/transition/transfer/approve";
+import { getTransferById } from "#/workflows/transition/transfer/by-id/get";
+import { completeTransfer } from "#/workflows/transition/transfer/complete";
+import { createTransfer } from "#/workflows/transition/transfer/create";
+import { deleteTransfer } from "#/workflows/transition/transfer/delete";
+import { rejectTransfer } from "#/workflows/transition/transfer/reject";
+import { updateTransfer } from "#/workflows/transition/transfer/update";
+import { listTransfers } from "#/workflows/transition/transfers/list";
 
 export const access = {
   branches: {
@@ -202,7 +187,16 @@ export const employee = {
   },
 } as const;
 
-export const lifecycle = {
+export const transition = {
+  assignments: {
+    assign: assignEmployee,
+    getCurrent: getCurrentAssignment,
+    listCurrent: getCurrentPositions,
+    listHistoryByEmployee: getEmployeePositionHistory,
+    listHistoryByPosition: getPositionHistory,
+    transfer: transferAssignment,
+    unassign: unassignEmployee,
+  },
   promotions: {
     approve: approvePromotion,
     complete: completePromotion,
@@ -233,15 +227,6 @@ export const lifecycle = {
 } as const;
 
 export const position = {
-  assignments: {
-    assign: assignEmployee,
-    getCurrent: getCurrentAssignment,
-    listCurrent: getCurrentPositions,
-    listHistoryByEmployee: getEmployeePositionHistory,
-    listHistoryByPosition: getPositionHistory,
-    transfer: transferAssignment,
-    unassign: unassignEmployee,
-  },
   org: {
     getDirectReports,
     getPeers,
@@ -273,27 +258,6 @@ export const config = {
     subtree: getDepartmentSubtree,
     tree: getDepartmentTree,
     update: updateDepartment,
-  },
-  designations: {
-    create: createDesignation,
-    get: getDesignationById,
-    list: listDesignations,
-    remove: deleteDesignation,
-    update: updateDesignation,
-  },
-  employeeGrades: {
-    create: createEmployeeGrade,
-    get: getEmployeeGradeById,
-    list: listEmployeeGrades,
-    remove: deleteEmployeeGrade,
-    update: updateEmployeeGrade,
-  },
-  employmentTypes: {
-    create: createEmploymentType,
-    get: getEmploymentTypeById,
-    list: listEmploymentTypes,
-    remove: deleteEmploymentType,
-    update: updateEmploymentType,
   },
   hr: {
     get: getHrSettings,

@@ -43,22 +43,6 @@ export const UpdatePayrollSettingsSchema = object({
 
 export type UpdatePayrollSettingsInput = InferOutput<typeof UpdatePayrollSettingsSchema>;
 
-// Employment Type
-
-export const CreateEmploymentTypeSchema = object({
-  description: optional(nullable(string())),
-  name: NameSchema,
-});
-
-export type CreateEmploymentTypeInput = InferOutput<typeof CreateEmploymentTypeSchema>;
-
-export const UpdateEmploymentTypeSchema = object({
-  ...partial(CreateEmploymentTypeSchema).entries,
-  isActive: optional(boolean()),
-});
-
-export type UpdateEmploymentTypeInput = InferOutput<typeof UpdateEmploymentTypeSchema>;
-
 // Department
 
 export const CreateDepartmentSchema = object({
@@ -100,36 +84,3 @@ export const DepartmentFiltersSchema = object({
 });
 
 export type DepartmentFilters = InferOutput<typeof DepartmentFiltersSchema>;
-
-// Designation
-
-export const CreateDesignationSchema = object({
-  description: optional(nullable(string())),
-  name: NameSchema,
-});
-
-export type CreateDesignationInput = InferOutput<typeof CreateDesignationSchema>;
-
-export const UpdateDesignationSchema = object({
-  ...partial(CreateDesignationSchema).entries,
-  isActive: optional(boolean()),
-});
-
-export type UpdateDesignationInput = InferOutput<typeof UpdateDesignationSchema>;
-
-// Employee Grade
-
-export const CreateEmployeeGradeSchema = object({
-  defaultSalaryStructure: optional(nullable(string())),
-  description: optional(nullable(string())),
-  name: NameSchema,
-});
-
-export type CreateEmployeeGradeInput = InferOutput<typeof CreateEmployeeGradeSchema>;
-
-export const UpdateEmployeeGradeSchema = object({
-  ...partial(CreateEmployeeGradeSchema).entries,
-  isActive: optional(boolean()),
-});
-
-export type UpdateEmployeeGradeInput = InferOutput<typeof UpdateEmployeeGradeSchema>;

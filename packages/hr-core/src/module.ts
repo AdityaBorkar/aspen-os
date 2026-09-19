@@ -66,7 +66,7 @@ export class HrCore implements Module {
 
   readonly employee = wf.employee;
 
-  readonly lifecycle = wf.lifecycle;
+  readonly transition = wf.transition;
 
   readonly position = wf.position;
 

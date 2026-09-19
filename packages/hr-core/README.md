@@ -72,15 +72,15 @@ const platform = Platform.create(config, { organization, hr });
 
 ### Planned workflow accessors
 
-| Getter                   | Workflow                                                                                                                      | Domain                                                           |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------- |
-| `platform.hrCore.config` | nested `departments`, `designations`, `employeeGrades`, `employmentTypes`, `holidayLists`, `holidays`, `hr`, `payroll` groups | HR/payroll settings, departments, designations, grades, holidays |
-| `platform.hr.employees`  | `EmployeeWorkflow`                                                                                                            | Employee CRUD, groups, health insurance, skills, org chart       |
-| `platform.hr.attendance` | `AttendanceWorkflow`                                                                                                          | Attendance records, checkins, requests                           |
-| `platform.hr.shifts`     | `ShiftWorkflow`                                                                                                               | Shift types, locations, assignments, schedules                   |
-| `platform.hr.leave`      | `LeaveWorkflow`                                                                                                               | Leave types, policies, allocations, applications, ledger         |
-| `platform.hr.lifecycle`  | `LifecycleWorkflow`                                                                                                           | Promotions, transfers, separations                               |
-| `platform.hr.overtime`   | `OvertimeWorkflow`                                                                                                            | Overtime types, slips, approval, summary                         |
+| Getter                   | Workflow                                                                 | Domain                                                     |
+| ------------------------ | ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| `platform.hrCore.config` | nested `departments`, `holidayLists`, `holidays`, `hr`, `payroll` groups | HR/payroll settings, departments, holidays                 |
+| `platform.hr.employees`  | `EmployeeWorkflow`                                                       | Employee CRUD, groups, health insurance, skills, org chart |
+| `platform.hr.attendance` | `AttendanceWorkflow`                                                     | Attendance records, checkins, requests                     |
+| `platform.hr.shifts`     | `ShiftWorkflow`                                                          | Shift types, locations, assignments, schedules             |
+| `platform.hr.leave`      | `LeaveWorkflow`                                                          | Leave types, policies, allocations, applications, ledger   |
+| `platform.hr.lifecycle`  | `LifecycleWorkflow`                                                      | Promotions, transfers, separations                         |
+| `platform.hr.overtime`   | `OvertimeWorkflow`                                                       | Overtime types, slips, approval, summary                   |
 
 ## Phase 1: Core Operations
 
@@ -96,7 +96,6 @@ Manages HR configuration and organizational masters:
 - **Payroll Settings** -- payroll configuration (upsert pattern)
 - **Employment Type** -- full-time, part-time, contract, intern, etc.
 - **Department** -- hierarchical departments with circular-reference detection
-- **Designation** -- job titles/roles
 - **Employee Grade** -- grading levels
 - **Holiday List** -- named holiday lists containing individual holidays
 
@@ -229,22 +228,22 @@ All Phase 1 schemas are complete in `src/schemas/` (9 files, ~1,500 lines). They
 | `leave.ts` (364 lines)      | Leave type, period, policy, allocation, application, compensatory, encashment, block list, adjustment schemas |
 | `lifecycle.ts` (302 lines)  | Promotion, transfer, separation schemas                                                                       |
 | `overtime.ts` (94 lines)    | Overtime type, slip schemas                                                                                   |
-| `setup.ts` (190 lines)      | HR settings, payroll settings, employment type, department, designation, grade, holiday schemas               |
+| `setup.ts` (190 lines)      | HR settings, payroll settings, department, holiday schemas                                                    |
 | `index.ts` (271 lines)      | Barrel re-export of all schemas and types                                                                     |
 
 ## Workflows
 
 All Phase 1 workflows are complete in `src/workflows/` (7 files, ~4,370 lines). They perform real DB operations via drizzle and validate input with Valibot `parse()`.
 
-| File            | Class                | Lines | Tables Referenced                                                                                                         |
-| --------------- | -------------------- | ----- | ------------------------------------------------------------------------------------------------------------------------- |
-| `employee.ts`   | `EmployeeWorkflow`   | 524   | `employee`, `employeeGroup`, `employeeGroupMember`, `employeeHealthInsurance`, `employeeSkillMap`                         |
-| `attendance.ts` | `AttendanceWorkflow` | 400   | `attendance`, `attendanceRequest`, `employeeCheckin`                                                                      |
-| `shift.ts`      | `ShiftWorkflow`      | 535   | `shiftType`, `shiftLocation`, `shiftAssignment`, `shiftRequest`, `shiftSchedule`, `shiftScheduleAssignment`               |
-| `leave.ts`      | `LeaveWorkflow`      | 1181  | 12 leave tables including `leaveLedgerEntry`                                                                              |
-| `lifecycle.ts`  | `LifecycleWorkflow`  | 907   | `employeePromotion`, `employeeTransfer`, `employeeSeparation`                                                             |
-| `overtime.ts`   | `OvertimeWorkflow`   | 270   | `overtimeType`, `overtimeSlip`                                                                                            |
-| `setup.ts`      | `SetupWorkflow`      | 553   | `hrSettings`, `payrollSettings`, `employmentType`, `department`, `designation`, `employeeGrade`, `holidayList`, `holiday` |
+| File            | Class                | Lines | Tables Referenced                                                                                           |
+| --------------- | -------------------- | ----- | ----------------------------------------------------------------------------------------------------------- |
+| `employee.ts`   | `EmployeeWorkflow`   | 524   | `employee`, `employeeGroup`, `employeeGroupMember`, `employeeHealthInsurance`, `employeeSkillMap`           |
+| `attendance.ts` | `AttendanceWorkflow` | 400   | `attendance`, `attendanceRequest`, `employeeCheckin`                                                        |
+| `shift.ts`      | `ShiftWorkflow`      | 535   | `shiftType`, `shiftLocation`, `shiftAssignment`, `shiftRequest`, `shiftSchedule`, `shiftScheduleAssignment` |
+| `leave.ts`      | `LeaveWorkflow`      | 1181  | 12 leave tables including `leaveLedgerEntry`                                                                |
+| `lifecycle.ts`  | `LifecycleWorkflow`  | 907   | `employeePromotion`, `employeeTransfer`, `employeeSeparation`                                               |
+| `overtime.ts`   | `OvertimeWorkflow`   | 270   | `overtimeType`, `overtimeSlip`                                                                              |
+| `setup.ts`      | `SetupWorkflow`      | 553   | `hrSettings`, `payrollSettings`, `department`, `holidayList`, `holiday`                                     |
 
 All workflows follow the pattern: `constructor(private readonly db: NodePgDatabase) {}` with synchronous CRUD methods that `parse()` input before writing.
 
@@ -285,7 +284,7 @@ packages/hr/
       leave.ts             # Full leave ledger system (364 lines)
       lifecycle.ts         # Promotion, transfer, separation
       overtime.ts          # Overtime types and slips
-      setup.ts             # Settings, departments, designations, holidays
+      setup.ts             # Settings, departments, holidays
     workflows/
       index.ts             # Barrel re-exports
       employee.ts          # EmployeeWorkflow (524 lines)

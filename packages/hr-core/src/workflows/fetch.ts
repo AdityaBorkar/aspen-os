@@ -77,7 +77,7 @@ export async function ensureEmployeeIdUnique(
   }
 }
 
-// ─── Lifecycle lookups ───────────────────────────────────────────────────────
+// ─── Transition lookups ───────────────────────────────────────────────────────
 
 export function fetchPromotionById(db: Db, id: string) {
   return fetchById(

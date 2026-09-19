@@ -4,11 +4,8 @@ export type {
   AssignPermissionInput,
   AssignRoleInput,
   CreateDepartmentInput,
-  CreateDesignationInput,
-  CreateEmployeeGradeInput,
   CreateEmployeeGroupInput,
   CreateEmployeeInput,
-  CreateEmploymentTypeInput,
   CreateHrPermissionInput,
   CreateHrRoleInput,
   CreateHrUserInput,
@@ -33,11 +30,8 @@ export type {
   TransferAssignmentInput,
   UpdateBranchAccessInput,
   UpdateDepartmentInput,
-  UpdateDesignationInput,
-  UpdateEmployeeGradeInput,
   UpdateEmployeeGroupInput,
   UpdateEmployeeInput,
-  UpdateEmploymentTypeInput,
   UpdateHrRoleInput,
   UpdateHrSettingsInput,
   UpdateHrUserInput,
@@ -54,11 +48,8 @@ export {
   AssignPermissionSchema,
   AssignRoleSchema,
   CreateDepartmentSchema,
-  CreateDesignationSchema,
-  CreateEmployeeGradeSchema,
   CreateEmployeeGroupSchema,
   CreateEmployeeSchema,
-  CreateEmploymentTypeSchema,
   CreateHrPermissionSchema,
   CreateHrRoleSchema,
   CreateHrUserSchema,
@@ -86,11 +77,8 @@ export {
   UpdatePositionSchema,
   UpdateBranchAccessSchema,
   UpdateDepartmentSchema,
-  UpdateDesignationSchema,
-  UpdateEmployeeGradeSchema,
   UpdateEmployeeGroupSchema,
   UpdateEmployeeSchema,
-  UpdateEmploymentTypeSchema,
   UpdateHrRoleSchema,
   UpdateHrSettingsSchema,
   UpdateHrUserSchema,
@@ -103,7 +91,6 @@ export {
 
 export interface EmployeeTreeNode {
   children: EmployeeTreeNode[];
-  designation: string;
   id: string;
   image: string | null;
   name: string;
@@ -112,7 +99,6 @@ export interface EmployeeTreeNode {
 export interface OrgTreeNode {
   children: OrgTreeNode[];
   department: string;
-  designation: string;
   id: string;
   image: string | null;
   name: string;
@@ -120,7 +106,6 @@ export interface OrgTreeNode {
 }
 
 export interface PositionIncumbent {
-  designation: string;
   employeeId: string;
   image: string | null;
   name: string;

@@ -7,8 +7,6 @@ export const hrPosition = pgTable(
     branch: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     department: text().notNull(),
-    designation: text(),
-    employment_type: text(),
     headcount: integer().notNull().default(1),
     id: uuidv7().primaryKey(),
     is_active: boolean().notNull().default(true),

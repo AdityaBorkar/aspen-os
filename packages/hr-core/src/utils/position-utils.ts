@@ -325,7 +325,6 @@ export async function resolveManagerIdMap(
 // ─── Position tree ────────────────────────────────────────────────────────
 
 export interface PositionTreeEmployee {
-  designation: string;
   image: string | null;
   name: string;
 }
@@ -363,7 +362,6 @@ export function buildPositionTree(
       const employee = employeeById.get(employeeId);
       if (employee) {
         incumbents.push({
-          designation: employee.designation,
           employeeId,
           image: employee.image,
           name: employee.name,

@@ -63,8 +63,6 @@ await p.hrCore.employee.employees.create({
     lastName: "Sharma",
     company: "ACME",
     department: "dept-eng",
-    designation: "des-swe",
-    employmentType: "permanent",
     dateOfJoining: "2024-01-15",
   },
 });
@@ -123,8 +121,6 @@ await p.hrCore.lifecycle.onboardingTasks.list({ onboardingId: id });
 await p.hrCore.lifecycle.promotions.create({
   input: {
     employeeId: "EMP-001",
-    currentDesignation: "SWE-1",
-    newDesignation: "SWE-2",
     effectiveDate: "2026-04-01",
   },
 });
@@ -203,7 +199,7 @@ await p.hrCore.position.org.getTeam({ employeeId: "EMP-001" });
 
 Access: `p.hrCore.config`
 
-HR/payroll settings, employment types, departments (tree ops), designations, and grades. Each resource is a nested REST-style group (`departments`, `designations`, `employeeGrades`, `employmentTypes`, `hr`, `payroll`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`move`, `setHead`, `tree`, `subtree`, `listPositions`). Holiday lists/holidays moved to `p.hrLeave.config`.
+HR/payroll settings and departments (tree ops). Each resource is a nested REST-style group (`departments`, `hr`, `payroll`) with `get`/`list`/`create`/`update`/`remove` verbs plus domain extras (`move`, `setHead`, `tree`, `subtree`, `listPositions`). Holiday lists/holidays moved to `p.hrLeave.config`.
 
 ```ts title="config — settings and departments"
 await p.hrCore.config.hr.get({});
@@ -221,9 +217,7 @@ await p.hrCore.config.departments.remove({ id });
 ```
 
 ```ts title="config — catalog"
-await p.hrCore.config.designations.create({ input: { name: "Software Engineer" } });
-await p.hrCore.config.employmentTypes.create({ input: { name: "Permanent" } });
-await p.hrCore.config.employeeGrades.create({ input: { name: "G7" } });
+
 ```
 
 `hr.update` and `payroll.update` are upserts; department codes are uppercased on write.

@@ -27,7 +27,6 @@ export const getPositionTree = Workflow.name("hr.position.get-position-tree")
       ctx.db.select().from(hrPositionAssignment).where(isNull(hrPositionAssignment.to_date)),
       ctx.db
         .select({
-          designation: employee.designation,
           firstName: employee.first_name,
           id: employee.id,
           image: employee.image,
@@ -41,7 +40,6 @@ export const getPositionTree = Workflow.name("hr.position.get-position-tree")
       activeEmployees.map((employeeItem) => [
         employeeItem.id,
         {
-          designation: employeeItem.designation,
           image: employeeItem.image,
           name: `${employeeItem.firstName} ${employeeItem.lastName}`.trim(),
         },

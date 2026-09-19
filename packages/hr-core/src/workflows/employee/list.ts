@@ -23,17 +23,8 @@ export const list = Workflow.name("hr.employee.list")
     if (parsed.department) {
       conditions.push(eq(employee.department, parsed.department));
     }
-    if (parsed.designation) {
-      conditions.push(eq(employee.designation, parsed.designation));
-    }
     if (parsed.branch) {
       conditions.push(eq(employee.branch, parsed.branch));
-    }
-    if (parsed.grade) {
-      conditions.push(eq(employee.grade, parsed.grade));
-    }
-    if (parsed.employmentType) {
-      conditions.push(eq(employee.employment_type, parsed.employmentType));
     }
     if (parsed.status) {
       conditions.push(eq(employee.status, parsed.status));

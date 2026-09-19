@@ -29,19 +29,6 @@ export const payrollSettings = pgTable("payroll_settings", {
   updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
 });
 
-export const employmentType = pgTable(
-  "employment_type",
-  {
-    created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    description: text(),
-    id: uuidv7().primaryKey(),
-    is_active: boolean().notNull().default(true),
-    name: text().notNull(),
-    updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  },
-  (table) => [index("idx_employment_type_is_active").on(table.is_active)],
-);
-
 export const department = pgTable(
   "department",
   {
@@ -62,22 +49,3 @@ export const department = pgTable(
     index("idx_department_parent_department").on(table.parent_department),
   ],
 );
-
-export const designation = pgTable("designation", {
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  description: text(),
-  id: uuidv7().primaryKey(),
-  is_active: boolean().notNull().default(true),
-  name: text().notNull(),
-  updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});
-
-export const employeeGrade = pgTable("employee_grade", {
-  created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-  default_salary_structure: text(),
-  description: text(),
-  id: uuidv7().primaryKey(),
-  is_active: boolean().notNull().default(true),
-  name: text().notNull(),
-  updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-});

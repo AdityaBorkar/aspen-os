@@ -34,8 +34,6 @@ export const createPosition = Workflow.name("hr.position.create")
       .values({
         branch: parsed.branch ?? null,
         department: parsed.department,
-        designation: parsed.designation ?? null,
-        employment_type: parsed.employmentType ?? null,
         headcount: parsed.headcount,
         job_description: parsed.jobDescription ?? null,
         name: parsed.name,

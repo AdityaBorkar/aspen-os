@@ -1,5 +1,5 @@
 import { hrPosition, hrPositionAssignment } from "#/db-schemas";
-import { LIFECYCLE_EVENTS, POSITION_EVENTS } from "#/pubsub";
+import { TRANSITION_EVENTS, POSITION_EVENTS } from "#/pubsub";
 import type { Db } from "#/workflows/db";
 import { fetchSeparationById, fetchTransferById } from "#/workflows/fetch";
 
@@ -129,21 +129,21 @@ async function handleTransferApproved(
 export async function registerReconciliation(deps: ReconciliationDeps): Promise<string[]> {
   const topics: string[] = [];
 
-  await deps.pubsub.subscribe(LIFECYCLE_EVENTS.SEPARATION_COMPLETED, async (message) => {
+  await deps.pubsub.subscribe(TRANSITION_EVENTS.SEPARATION_COMPLETED, async (message) => {
     const parsed = safeParse(SeparationCompletedEventSchema, message.data);
     if (parsed.success) {
       await handleSeparationCompleted(parsed.output, deps);
     }
   });
-  topics.push(LIFECYCLE_EVENTS.SEPARATION_COMPLETED);
+  topics.push(TRANSITION_EVENTS.SEPARATION_COMPLETED);
 
-  await deps.pubsub.subscribe(LIFECYCLE_EVENTS.TRANSFER_APPROVED, async (message) => {
+  await deps.pubsub.subscribe(TRANSITION_EVENTS.TRANSFER_APPROVED, async (message) => {
     const parsed = safeParse(TransferApprovedEventSchema, message.data);
     if (parsed.success) {
       await handleTransferApproved(parsed.output, deps);
     }
   });
-  topics.push(LIFECYCLE_EVENTS.TRANSFER_APPROVED);
+  topics.push(TRANSITION_EVENTS.TRANSFER_APPROVED);
 
   return topics;
 }

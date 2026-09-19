@@ -18,7 +18,7 @@ export type { HrCoreEventMap } from "#/pubsub";
 export {
   ACCESS_EVENTS,
   EMPLOYEE_EVENTS,
-  LIFECYCLE_EVENTS,
+  TRANSITION_EVENTS,
   POSITION_EVENTS,
   SETUP_EVENTS,
 } from "#/pubsub";

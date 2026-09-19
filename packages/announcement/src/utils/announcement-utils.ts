@@ -157,13 +157,6 @@ export async function resolveRecipients(
       );
       await pushEmployees(rows.map((row) => row.id));
     }
-  } else if (type === "designations") {
-    if (ids.length > 0) {
-      const rows = await db.execute<{ id: string }>(
-        sql`SELECT id FROM employee WHERE designation IN (${inList(ids)})`,
-      );
-      await pushEmployees(rows.map((row) => row.id));
-    }
   } else if (type === "groups") {
     if (ids.length > 0) {
       const memberRows = await db.execute<{ employeeId: string }>(

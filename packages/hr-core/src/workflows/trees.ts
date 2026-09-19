@@ -91,7 +91,6 @@ function findInForest<TNode extends { children: TNode[]; id: string }>(
 
 export interface EmployeeChartRow {
   department: string;
-  designation: string;
   firstName: string;
   id: string;
   image: string | null;
@@ -113,7 +112,6 @@ export function buildEmployeeTree(
     (employeeItem, children) => ({
       children,
       department: employeeItem.department,
-      designation: employeeItem.designation,
       id: employeeItem.id,
       image: employeeItem.image,
       name: `${employeeItem.firstName} ${employeeItem.lastName}`.trim(),

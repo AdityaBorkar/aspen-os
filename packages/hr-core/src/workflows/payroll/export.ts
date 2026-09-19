@@ -397,7 +397,6 @@ export const exportPayroll = Workflow.name("hr.payroll.export")
         branch: row.branch,
         company: row.company,
         department: row.department,
-        designation: row.designation,
         employeeId: row.employee_id,
         encashment: {
           amount: round(aggregate.encashmentAmount),

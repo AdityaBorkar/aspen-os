@@ -69,7 +69,7 @@ flowchart TB
 
 ## Employee
 
-Canonical employee row (`employee` tenant table) identified by `employee_id` (business id, unique) and `id` (UUIDv7 PK). Carries org placement (`company`, `department`, `designation`, `branch`, `grade`, `holiday_list`), employment type, status (`active`/`inactive`/`left`/`suspended`), and personal/contact/bank fields. `reportsTo` is a soft text FK used as manager fallback when no position assignment resolves. `ensureEmployeeIdUnique` enforces business-id uniqueness on create/update.
+Canonical employee row (`employee` tenant table) identified by `employee_id` (business id, unique) and `id` (UUIDv7 PK). Carries org placement (`company`, `department`, `branch`, `holiday_list`), status (`active`/`inactive`/`left`/`suspended`), and personal/contact/bank fields. `reportsTo` is a soft text FK used as manager fallback when no position assignment resolves. `ensureEmployeeIdUnique` enforces business-id uniqueness on create/update.
 
 ## Employee Groups and Supplemental Records
 
@@ -81,7 +81,7 @@ Canonical employee row (`employee` tenant table) identified by `employee_id` (bu
 
 ## Lifecycle
 
-Onboarding, promotion, transfer, separation are first-class tracks (`employee_onboarding`, `employee_promotion`, `employee_transfer`, `employee_separation`) with status enums; onboarding/separation own task tables (`onboarding_task`, `separation_task`, status `hr_lifecycle_task_status`) that cascade-delete. Promotion/transfer carry `approved/rejected/completed` transitions; `approvePromotion` syncs `employee.designation` (+ grade/department), `approveTransfer` emits `lifecycle.transfer_approved`, completing a separation emits `lifecycle.separation_completed`. Exit interviews (`exit_interview`) and full-and-final settlements (`full_and_final_statement`, totals computed on approve) close the offboarding chain.
+Onboarding, promotion, transfer, separation are first-class tracks (`employee_onboarding`, `employee_promotion`, `employee_transfer`, `employee_separation`) with status enums; onboarding/separation own task tables (`onboarding_task`, `separation_task`, status `hr_lifecycle_task_status`) that cascade-delete. Promotion/transfer carry `approved/rejected/completed` transitions; `approvePromotion` syncs `employee.department`, `approveTransfer` emits `transition.transfer_approved`, completing a separation emits `lifecycle.separation_completed`. Exit interviews (`exit_interview`) and full-and-final settlements (`full_and_final_statement`, totals computed on approve) close the offboarding chain.
 
 ## Access Control
 
@@ -101,7 +101,7 @@ export const acl = defineAcl({
 
 ## Organizational Setup
 
-Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `designation`, `employment_type`, `employee_grade`, `hr_settings` and `payroll_settings` (singleton upserts). Holiday lists/holidays live in `@aspen-os/hr-leave`; `employee.holiday_list` and `hr_settings.default_holiday_list` stay as soft text refs. Department moves and head changes emit `setup.department_moved` / `setup.department_head_changed`; ancestor walk (depth 10) prevents cycles.
+Control-plane catalog: `department` (hierarchical `parent_department`, `manager` head, `code` uppercased unique, `is_active` soft delete blocked while children/positions/employees exist), `hr_settings` and `payroll_settings` (singleton upserts). Holiday lists/holidays live in `@aspen-os/hr-leave`; `employee.holiday_list` and `hr_settings.default_holiday_list` stay as soft text refs. Department moves and head changes emit `setup.department_moved` / `setup.department_head_changed`; ancestor walk (depth 10) prevents cycles.
 
 ## Relationships
 
@@ -115,8 +115,6 @@ flowchart LR
 
   subgraph control[control-plane]
     DEPT[department]
-    DESIG[designation]
-    GRADE[employee_grade]
     HRU[hr_user]
     ROLE[hr_role]
   end

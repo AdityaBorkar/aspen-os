@@ -9,7 +9,6 @@ export type AnnouncementAudienceType =
   | "employees"
   | "branches"
   | "departments"
-  | "designations"
   | "groups"
   | "roles"
   | "individuals";

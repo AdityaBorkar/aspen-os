@@ -9,15 +9,6 @@ export const employeeStatusEnum = pgEnum("hr_employee_status", [
 
 export const genderEnum = pgEnum("hr_gender", ["female", "male", "other", "prefer_not_to_say"]);
 
-export const employmentTypeEnum = pgEnum("hr_employment_type", [
-  "contract",
-  "freelance",
-  "intern",
-  "part_time",
-  "permanent",
-  "temporary",
-]);
-
 export const separationStatusEnum = pgEnum("hr_separation_status", [
   "cancelled",
   "completed",

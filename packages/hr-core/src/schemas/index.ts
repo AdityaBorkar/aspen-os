@@ -52,7 +52,6 @@ export {
 export {
   AccessLevelSchema,
   EmployeeStatusSchema,
-  EmploymentTypeSchema,
   GenderSchema,
   PermissionActionSchema,
   PromotionStatusSchema,
@@ -60,7 +59,7 @@ export {
   SkillProficiencySchema,
   TransferStatusSchema,
 } from "#/schemas/enums";
-// Lifecycle schemas
+// Transition schemas
 export type {
   CreatePromotionInput,
   CreateSeparationInput,
@@ -71,7 +70,7 @@ export type {
   UpdatePromotionInput,
   UpdateSeparationInput,
   UpdateTransferInput,
-} from "#/schemas/lifecycle";
+} from "#/schemas/transition";
 export {
   CreatePromotionSchema,
   CreateSeparationSchema,
@@ -82,7 +81,7 @@ export {
   UpdatePromotionSchema,
   UpdateSeparationSchema,
   UpdateTransferSchema,
-} from "#/schemas/lifecycle";
+} from "#/schemas/transition";
 // Payroll schemas
 export type { ExportPayrollInput } from "#/schemas/payroll";
 export { ExportPayrollSchema } from "#/schemas/payroll";
@@ -104,31 +103,19 @@ export {
 // Setup schemas
 export type {
   CreateDepartmentInput,
-  CreateDesignationInput,
-  CreateEmployeeGradeInput,
-  CreateEmploymentTypeInput,
   DepartmentFilters,
   MoveDepartmentInput,
   SetDepartmentHeadInput,
   UpdateDepartmentInput,
-  UpdateDesignationInput,
-  UpdateEmployeeGradeInput,
-  UpdateEmploymentTypeInput,
   UpdateHrSettingsInput,
   UpdatePayrollSettingsInput,
 } from "#/schemas/setup";
 export {
   CreateDepartmentSchema,
-  CreateDesignationSchema,
-  CreateEmployeeGradeSchema,
-  CreateEmploymentTypeSchema,
   DepartmentFiltersSchema,
   MoveDepartmentSchema,
   SetDepartmentHeadSchema,
   UpdateDepartmentSchema,
-  UpdateDesignationSchema,
-  UpdateEmployeeGradeSchema,
-  UpdateEmploymentTypeSchema,
   UpdateHrSettingsSchema,
   UpdatePayrollSettingsSchema,
 } from "#/schemas/setup";
