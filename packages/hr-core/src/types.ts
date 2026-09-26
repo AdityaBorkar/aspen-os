@@ -1,3 +1,27 @@
+import {
+  EmployeeStatusSchema,
+  OnboardingStatusSchema,
+  PromotionStatusSchema,
+  SeparationStatusSchema,
+  TransferStatusSchema,
+} from "#/schemas";
+
+import type { InferOutput } from "valibot";
+
+export type EmployeeStatus = InferOutput<typeof EmployeeStatusSchema>;
+export type OnboardingStatus = InferOutput<typeof OnboardingStatusSchema>;
+export type PromotionStatus = InferOutput<typeof PromotionStatusSchema>;
+export type SeparationStatus = InferOutput<typeof SeparationStatusSchema>;
+export type TransferStatus = InferOutput<typeof TransferStatusSchema>;
+
+export {
+  EmployeeStatusSchema,
+  OnboardingStatusSchema,
+  PromotionStatusSchema,
+  SeparationStatusSchema,
+  TransferStatusSchema,
+} from "#/schemas";
+
 export type {
   AddGroupMemberInput,
   AssignPermissionInput,
