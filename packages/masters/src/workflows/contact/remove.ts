@@ -1,4 +1,4 @@
-import { masterContact } from "#/db-schemas";
+import { masterContact, orgBranch } from "#/db-schemas";
 import { CONTACT_EVENTS } from "#/pubsub";
 import { RemoveContactSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -34,6 +34,19 @@ export const removeContact = Workflow.name("masters.contact.remove")
     if (!removed) {
       throw new Error(`Contact with id "${id}" not found.`);
     }
+
+    // Branch billing/location pointers are soft references; clear any that
+    // targeted the removed contact so no dangling ids remain.
+    await ctx.step.run("clear-branch-pointers", async () => {
+      await ctx.db
+        .update(orgBranch)
+        .set({ billing_contact_id: null, updated_at: new Date() })
+        .where(eq(orgBranch.billing_contact_id, id));
+      await ctx.db
+        .update(orgBranch)
+        .set({ location_contact_id: null, updated_at: new Date() })
+        .where(eq(orgBranch.location_contact_id, id));
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

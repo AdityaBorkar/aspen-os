@@ -130,17 +130,20 @@ Indexes: unique `uq_master_entity_label_unique` (`entity_type`, `entity_id`, `la
 
 ### `org_branch`
 
-| Column              | Type              | Description           |
-| ------------------- | ----------------- | --------------------- |
-| `code`              | text (unique)     | Branch code           |
-| `name`              | text              |                       |
-| `type`              | `org_branch_type` |                       |
-| `capacity`          | integer           |                       |
-| `parent_org_branch` | text              | Self-ref; null = root |
-| `timezone`          | text              |                       |
-| `opened_date`       | date              |                       |
-| `closed_date`       | date              |                       |
-| `metadata`          | jsonb             |                       |
+| Column                | Type              | Description                |
+| --------------------- | ----------------- | -------------------------- |
+| `code`                | text (unique)     | Branch code                |
+| `name`                | text              |                            |
+| `type`                | `org_branch_type` |                            |
+| `parent_org_branch`   | text              | Self-ref; null = root      |
+| `gstin`               | text              | Optional GSTIN             |
+| `billing_address_id`  | text              | Pointer → `master_address` |
+| `location_address_id` | text              | Pointer → `master_address` |
+| `billing_contact_id`  | text              | Pointer → `master_contact` |
+| `location_contact_id` | text              | Pointer → `master_contact` |
+| `metadata`            | jsonb             |                            |
+
+Address/contact pointers are soft references into the shared master address book (any row in the tenant) and may be `null`.
 
 Indexes: `idx_org_branch_type` (`type`), `idx_org_branch_parent` (`parent_org_branch`).
 

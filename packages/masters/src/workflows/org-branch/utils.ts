@@ -1,4 +1,4 @@
-import { orgBranch } from "#/db-schemas";
+import { masterAddress, masterContact, orgBranch } from "#/db-schemas";
 import type { OrgBranchTreeNode } from "#/schemas/org-branch";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
@@ -7,6 +7,36 @@ import { and, eq, ne } from "drizzle-orm";
 type Db = WorkflowContext["db"];
 
 const MAX_HIERARCHY_DEPTH = 5;
+
+/** Pointers may reference an address anywhere in the tenant, but it must exist. */
+export async function assertAddressReference(db: Db, id: string | null | undefined): Promise<void> {
+  if (!id) {
+    return;
+  }
+  const [row] = await db
+    .select({ id: masterAddress.id })
+    .from(masterAddress)
+    .where(eq(masterAddress.id, id))
+    .limit(1);
+  if (!row) {
+    throw new Error(`Address with id "${id}" not found.`);
+  }
+}
+
+/** Pointers may reference a contact anywhere in the tenant, but it must exist. */
+export async function assertContactReference(db: Db, id: string | null | undefined): Promise<void> {
+  if (!id) {
+    return;
+  }
+  const [row] = await db
+    .select({ id: masterContact.id })
+    .from(masterContact)
+    .where(eq(masterContact.id, id))
+    .limit(1);
+  if (!row) {
+    throw new Error(`Contact with id "${id}" not found.`);
+  }
+}
 
 export async function ensureOrgBranchCodeUnique(
   db: Db,

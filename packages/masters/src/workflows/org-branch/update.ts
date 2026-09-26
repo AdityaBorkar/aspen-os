@@ -1,10 +1,11 @@
 import { orgBranch } from "#/db-schemas";
 import { ORG_BRANCH_EVENTS } from "#/pubsub";
 import { UpdateOrgBranchSchema } from "#/types";
-import { toDateOnly } from "#/utils/dates";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchOrgBranchStep } from "#/workflow-steps/fetch-org-branch";
 import {
+  assertAddressReference,
+  assertContactReference,
   ensureNoHeadquartersExists,
   ensureOrgBranchCodeUnique,
   validateParentOrgBranch,
@@ -36,17 +37,21 @@ export const updateOrgBranch = Workflow.name("masters.org_branch.update")
       await validateParentOrgBranch(ctx.db, input.patch.parentOrgBranch, input.id);
     }
 
+    await assertAddressReference(ctx.db, input.patch.billingAddressId);
+    await assertAddressReference(ctx.db, input.patch.locationAddressId);
+    await assertContactReference(ctx.db, input.patch.billingContactId);
+    await assertContactReference(ctx.db, input.patch.locationContactId);
+
     const values = stripUndefined({
-      capacity: input.patch.capacity,
-      closed_date:
-        input.patch.closedDate === undefined ? undefined : toDateOnly(input.patch.closedDate),
+      billing_address_id: input.patch.billingAddressId,
+      billing_contact_id: input.patch.billingContactId,
       code: input.patch.code?.toUpperCase(),
+      gstin: input.patch.gstin,
+      location_address_id: input.patch.locationAddressId,
+      location_contact_id: input.patch.locationContactId,
       metadata: input.patch.metadata,
       name: input.patch.name,
-      opened_date:
-        input.patch.openedDate === undefined ? undefined : toDateOnly(input.patch.openedDate),
       parent_org_branch: input.patch.parentOrgBranch,
-      timezone: input.patch.timezone,
       type: input.patch.type,
     });
 

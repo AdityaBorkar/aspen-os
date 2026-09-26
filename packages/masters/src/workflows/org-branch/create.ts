@@ -1,8 +1,9 @@
 import { orgBranch } from "#/db-schemas";
 import { ORG_BRANCH_EVENTS } from "#/pubsub";
 import { CreateOrgBranchSchema } from "#/types";
-import { toDateOnly } from "#/utils/dates";
 import {
+  assertAddressReference,
+  assertContactReference,
   ensureNoHeadquartersExists,
   ensureOrgBranchCodeUnique,
   validateParentOrgBranch,
@@ -23,17 +24,23 @@ export const createOrgBranch = Workflow.name("masters.org_branch.create")
       await validateParentOrgBranch(ctx.db, input.parentOrgBranch);
     }
 
+    await assertAddressReference(ctx.db, input.billingAddressId);
+    await assertAddressReference(ctx.db, input.locationAddressId);
+    await assertContactReference(ctx.db, input.billingContactId);
+    await assertContactReference(ctx.db, input.locationContactId);
+
     const [result] = await ctx.db
       .insert(orgBranch)
       .values({
-        capacity: input.capacity ?? null,
-        closed_date: input.closedDate ? toDateOnly(input.closedDate) : null,
+        billing_address_id: input.billingAddressId ?? null,
+        billing_contact_id: input.billingContactId ?? null,
         code: input.code.toUpperCase(),
+        gstin: input.gstin ?? null,
+        location_address_id: input.locationAddressId ?? null,
+        location_contact_id: input.locationContactId ?? null,
         metadata: input.metadata ?? null,
         name: input.name,
-        opened_date: input.openedDate ? toDateOnly(input.openedDate) : null,
         parent_org_branch: input.parentOrgBranch ?? null,
-        timezone: input.timezone ?? null,
         type: input.type,
       })
       .returning();

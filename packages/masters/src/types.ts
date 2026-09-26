@@ -136,6 +136,7 @@ export {
   EntityStatusSchema,
   EntityTypeSchema,
   GetSettingSchema,
+  GstinSchema,
   IdSchema,
   IntegrationTypeSchema,
   LabelFiltersSchema,

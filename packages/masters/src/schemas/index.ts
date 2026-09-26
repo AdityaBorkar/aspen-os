@@ -104,6 +104,7 @@ export { GetSettingSchema, OrgBrandingSchema, SetSettingSchema } from "#/schemas
 export {
   CountryCodeSchema,
   EmailSchema,
+  GstinSchema,
   IdSchema,
   MetadataSchema,
   NameSchema,

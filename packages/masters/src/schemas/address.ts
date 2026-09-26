@@ -53,8 +53,8 @@ export const AddressFiltersSchema = object({
 export type AddressFilters = InferOutput<typeof AddressFiltersSchema>;
 
 export const ListAddressesSchema = object({
-  entityId: IdSchema,
-  entityType: MasterEntityTypeSchema,
+  entityId: optional(IdSchema),
+  entityType: optional(MasterEntityTypeSchema),
   filters: optional(AddressFiltersSchema),
 });
 

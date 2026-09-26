@@ -1,6 +1,6 @@
 import { ORG_BRANCH_TYPE } from "@aspen-os/constants";
 import { uuidv7 } from "@aspen-os/platform/server";
-import { date, index, integer, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
+import { index, jsonb, pgEnum, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
 export const orgBranchTypeEnum = pgEnum("org_branch_type", [
   ORG_BRANCH_TYPE.FACTORY,
@@ -15,16 +15,17 @@ export const orgBranchTypeEnum = pgEnum("org_branch_type", [
 export const orgBranch = pgTable(
   "org_branch",
   {
-    capacity: integer(),
-    closed_date: date(),
+    billing_address_id: text(),
+    billing_contact_id: text(),
     code: text().notNull().unique(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
+    gstin: text(),
     id: uuidv7().primaryKey(),
+    location_address_id: text(),
+    location_contact_id: text(),
     metadata: jsonb(),
     name: text().notNull(),
-    opened_date: date(),
     parent_org_branch: text(),
-    timezone: text(),
     type: orgBranchTypeEnum().notNull(),
     updated_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
   },

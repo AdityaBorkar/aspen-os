@@ -1,4 +1,4 @@
-import { masterAddress } from "#/db-schemas";
+import { masterAddress, orgBranch } from "#/db-schemas";
 import { ADDRESS_EVENTS } from "#/pubsub";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -13,6 +13,19 @@ export const deleteAddress = Workflow.name("masters.address.delete")
     const current = await ctx.step.run(fetchAddressStep, { id: input.id });
 
     await ctx.db.delete(masterAddress).where(eq(masterAddress.id, input.id));
+
+    // Branch billing/location pointers are soft references; clear any that
+    // targeted the removed address so no dangling ids remain.
+    await ctx.step.run("clear-branch-pointers", async () => {
+      await ctx.db
+        .update(orgBranch)
+        .set({ billing_address_id: null, updated_at: new Date() })
+        .where(eq(orgBranch.billing_address_id, input.id));
+      await ctx.db
+        .update(orgBranch)
+        .set({ location_address_id: null, updated_at: new Date() })
+        .where(eq(orgBranch.location_address_id, input.id));
+    });
 
     await ctx.step.run("audit-and-notify", async () => {
       await ctx.audit.write({

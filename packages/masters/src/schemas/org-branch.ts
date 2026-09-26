@@ -1,7 +1,7 @@
 import { OrgBranchTypeSchema } from "#/schemas/enums";
-import { NameSchema, OrgBranchCodeSchema } from "#/schemas/utils";
+import { GstinSchema, IdSchema, NameSchema, OrgBranchCodeSchema } from "#/schemas/utils";
 
-import { date, nullable, number, object, optional, string } from "valibot";
+import { nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 /**
@@ -9,30 +9,35 @@ import type { InferOutput } from "valibot";
  * (`entityType: "org_branch"`, canonical `AddressSchema` in `@aspen-os/masters`),
  * contacts in `master_contact` (`entityType: "org_branch"`), and free-text notes
  * in `note` (org_branch scope). Do not re-add inline address/contact/note fields here.
+ *
+ * Billing/location pointers reference an address/contact row anywhere in the
+ * tenant; `null` clears the pointer.
  */
 export const CreateOrgBranchSchema = object({
-  capacity: optional(nullable(number())),
-  closedDate: optional(date()),
+  billingAddressId: optional(nullable(IdSchema)),
+  billingContactId: optional(nullable(IdSchema)),
   code: OrgBranchCodeSchema,
+  gstin: optional(nullable(GstinSchema)),
+  locationAddressId: optional(nullable(IdSchema)),
+  locationContactId: optional(nullable(IdSchema)),
   metadata: optional(nullable(object({}))),
   name: NameSchema,
-  openedDate: optional(date()),
   parentOrgBranch: optional(nullable(string())),
-  timezone: optional(nullable(string())),
   type: OrgBranchTypeSchema,
 });
 
 export type CreateOrgBranchInput = InferOutput<typeof CreateOrgBranchSchema>;
 
 export const UpdateOrgBranchSchema = object({
-  capacity: optional(nullable(number())),
-  closedDate: optional(date()),
+  billingAddressId: optional(nullable(IdSchema)),
+  billingContactId: optional(nullable(IdSchema)),
   code: optional(OrgBranchCodeSchema),
+  gstin: optional(nullable(GstinSchema)),
+  locationAddressId: optional(nullable(IdSchema)),
+  locationContactId: optional(nullable(IdSchema)),
   metadata: optional(nullable(object({}))),
   name: optional(NameSchema),
-  openedDate: optional(date()),
   parentOrgBranch: optional(nullable(string())),
-  timezone: optional(nullable(string())),
   type: optional(OrgBranchTypeSchema),
 });
 

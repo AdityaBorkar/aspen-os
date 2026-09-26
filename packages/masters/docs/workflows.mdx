@@ -77,14 +77,21 @@ await p.masters.orgBranches.create({
   code: "HQ-001",
   type: "headquarters",
   parentOrgBranch: parentId,
+  gstin: "29ABCDE1234F1Z5",
+  billingAddressId: addressId,
+  locationAddressId: addressId,
+  billingContactId: contactId,
+  locationContactId: contactId,
 });
 await p.masters.orgBranches.get({ id });
 await p.masters.orgBranches.list({ filters: { type, parentOrgBranch } });
 await p.masters.orgBranches.tree({ id }); // subtree rooted at id
-await p.masters.orgBranches.update({ id, patch: { name, capacity } });
+await p.masters.orgBranches.update({ id, patch: { name, gstin: "07ABCDE1234F1Z5" } });
 ```
 
-`code` is unique. `parent_org_branch` is self-referential; root rows have `null`.
+`code` is unique. `parent_org_branch` is self-referential; root rows have `null`. Address/contact
+pointers are soft references and may target any `master_address` / `master_contact` row in the
+tenant; `null` clears them.
 
 ### Payment methods
 
