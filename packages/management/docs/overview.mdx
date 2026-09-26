@@ -32,7 +32,7 @@ No external config; DB/ACL/events declared via `$prepareInfra()`.
 
 ## Dependencies
 
-No module dependencies (`$dependencies: []`). Unit bindings via `$initialize(units: { db: DatabaseUnit; auth: AuthUnit; pubsub: PubSubUnit })` — `db` for control-plane tables and `provisionTenant`/`seedTenantDb`, `auth` for better-auth organization creation in `tenants.onboard`, `pubsub` for domain events. `tenants` is a getter bound to the stored `db` (throws before `$initialize`); `serviceProviders`, `organizations`, `users` are readonly.
+No module dependencies (`$dependencies: []`). Unit bindings via `$initialize(units: Record<string, Unit>)` — `db` for control-plane tables and `provisionTenant`/`seedTenantDb`, `storage` for logo objects via `setManagementStorage()`. `tenants` is a getter bound to the stored `db` (throws before `$initialize`); `serviceProviders`, `organizations`, `users` are readonly. Logo bytes never touch the database; workflows in `services/logo-storage.ts` write through the Storage unit and persist only the logical key.
 
 ## Architecture
 
@@ -40,18 +40,25 @@ No module dependencies (`$dependencies: []`). Unit bindings via `$initialize(uni
 flowchart TB
   subgraph ControlPlane["Control-Plane Database"]
     tenant["tenant"]
-    sp["service_provider"]
+    sp["service_provider<br/>logo = Storage key"]
     spu["service_provider_user"]
-    org["managed_organization<br/>(PG: managed_organization)"]
-    authOrg["organization<br/>(better-auth)"]
+    org["managed_organization<br/>(PG: managed_organization)<br/>branding.logo = Storage key"]
+    authOrg["organization<br/>(better-auth)<br/>logo = Storage key"]
     authUser["user<br/>(better-auth)"]
   end
   subgraph TenantDB["Tenant Databases"]
     empty["tenant_schemas = {}"]
   end
+  subgraph Storage["Storage (S3 + file_metadata)"]
+    logos["logos/tenant|organization|service-provider/<id>/<file>"]
+  end
   MP["ManagementPlane<br/>$name = management"]
   MP --> ControlPlane
   MP -. provisionTenant/seedTenantDb .-> TenantDB
+  MP -. upload/remove/signed URLs .-> Storage
+  authOrg -. logo key .-> logos
+  org -. branding.logo key .-> logos
+  sp -. logo key .-> logos
 ```
 
 `$prepareInfra()` returns control-plane schemas (`tenant`, `service_provider`, `service_provider_user`, `managed_organization`), empty tenant schemas, merged ACL, and domain events.
@@ -60,15 +67,15 @@ flowchart TB
 
 ### Tenants
 
-Control-plane companion to better-auth `organization` (shared `id`). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB and seeds the `organization` row on isolated tenancy.
+Control-plane companion to better-auth `organization` (shared `id`). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB and seeds the `organization` row on isolated tenancy. The tenant logo lives on better-auth `organization.logo` as a Storage logical key (`logos/tenant/<id>/<file>`); upload via `tenants.uploadLogo` / `tenants.issueLogoUploadUrl` + `tenants.attachLogo`, remove via `tenants.removeLogo`, display via `tenants.getLogoUrl`.
 
 ### Service Providers
 
-Implementation partners (`service_provider`). Status `active`/`inactive`; assigned tenants and users queried via `listAssignedTenants`/`listUsers`.
+Implementation partners (`service_provider`). Status `active`/`inactive`; assigned tenants and users queried via `listAssignedTenants`/`listUsers`. `logo` is a Storage logical key (`logos/service-provider/<id>/<file>`); upload via `serviceProviders.uploadLogo` / `issueLogoUploadUrl` + `attachLogo`, remove via `removeLogo`, display via `getLogoUrl`.
 
 ### Managed Organizations
 
-Platform-level organizations (`managed_organization`, PG `managed_organization`) to avoid collision with better-auth `organization`. CRUD via `organizations` group.
+Platform-level organizations (`managed_organization`, PG `managed_organization`) to avoid collision with better-auth `organization`. CRUD via `organizations` group. `branding.logo` is a Storage logical key (`logos/organization/<id>/<file>`); upload via `organizations.uploadLogo` / `issueLogoUploadUrl` + `attachLogo`, remove via `removeLogo`, display via `getLogoUrl`. `create`/`update` accept only Storage keys, never raw bytes or external URLs.
 
 ### Platform Users
 

@@ -39,8 +39,48 @@ const tenants = await p.management.tenants.list({
 await p.management.tenants.update({ id: tenantId, profile: { name, slug }, companion: { plan } });
 
 // Public branding reads (no session required; login page, organization picker)
+// `logo` fields below are Storage keys; resolve display URLs via getLogoUrl.
 const branding = await p.management.tenants.getBySlug({ slug: "acme" });
 const picker = await p.management.tenants.listBranding({ limit: 50, offset: 0 });
+```
+
+### Logos (Storage-backed)
+
+Logo bytes always go through the Storage unit (`logos/<owner>/<id>/<file>`, images only, max 2 MB). The database stores only the logical key: better-auth `organization.logo` for tenants, `managed_organization.branding.logo` for organizations, `service_provider.logo` for service providers. `create`/`update`/`onboard` accept only Storage keys — upload first, then attach.
+
+```ts
+// Server-side upload (bytes in workflow, Storage upload + DB reference in one call)
+await p.management.tenants.uploadLogo({
+  id: tenantId,
+  fileName: "logo.png",
+  contentType: "image/png",
+  body: buffer,
+});
+await p.management.organizations.uploadLogo({
+  id: orgId,
+  fileName: "logo.png",
+  contentType: "image/png",
+  body: buffer,
+});
+await p.management.serviceProviders.uploadLogo({
+  id: spId,
+  fileName: "logo.png",
+  contentType: "image/png",
+  body: buffer,
+});
+
+// Direct-to-Storage upload (client PUTs bytes, then attaches the key)
+const { key, uploadUrl } = await p.management.tenants.issueLogoUploadUrl({
+  id: tenantId,
+  fileName: "logo.png",
+  contentType: "image/png",
+});
+await fetch(uploadUrl, { method: "PUT", body: buffer, headers: { "Content-Type": "image/png" } });
+await p.management.tenants.attachLogo({ id: tenantId, storageKey: key });
+
+// Display + removal
+const { url } = await p.management.tenants.getLogoUrl({ id: tenantId });
+await p.management.tenants.removeLogo({ id: tenantId });
 ```
 
 <Callout type="warn">
@@ -81,7 +121,7 @@ Platform-level organizations (`managed_organization`).
 const org = await p.management.organizations.create({
   name: "Acme Org",
   slug: "acme-org",
-  branding: { logo: "logos/acme.png" },
+  branding: { logo: "logos/organization/<id>/acme.png" },
 });
 const one = await p.management.organizations.get({ id: orgId });
 const orgs = await p.management.organizations.list({ filters: { search, limit: 50, offset: 0 } });

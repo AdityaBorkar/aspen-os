@@ -85,6 +85,33 @@ export {
   UpdateTenantMemberPatchSchema,
   UpdateTenantMemberPayloadSchema,
 } from "#/schemas/tenant-member";
+export type {
+  AttachLogoInput,
+  IssueLogoUploadUrlInput,
+  LogoContentType,
+  LogoOwnerType,
+  LogoStorageKey,
+  LogoUrlInput,
+  RemoveLogoInput,
+  UploadLogoInput,
+} from "#/schemas/logo";
+export {
+  AttachLogoSchema,
+  IssueLogoUploadUrlSchema,
+  LOGO_ALLOWED_CONTENT_TYPES,
+  LOGO_KEY_PREFIX,
+  LOGO_OWNER_TYPE,
+  LogoContentTypeSchema,
+  LogoFileNameSchema,
+  LogoOwnerTypeSchema,
+  LogoStorageKeySchema,
+  LogoUrlSchema,
+  MAX_LOGO_SIZE,
+  NullableLogoStorageKeySchema,
+  OptionalNullableLogoSchema,
+  RemoveLogoSchema,
+  UploadLogoSchema,
+} from "#/schemas/logo";
 export {
   EmailSchema,
   HexColorSchema,

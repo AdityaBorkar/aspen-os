@@ -40,19 +40,19 @@ Indexes: `idx_tenant_status` on `status`, `idx_tenant_service_provider` on `serv
 
 ### `service_provider`
 
-Implementation partner.
+Implementation partner. `logo` stores the Storage logical key (`logos/service-provider/<id>/<file>`); bytes live in Storage (`file_metadata` + S3), never in the database.
 
-| Column        | Type                      | Description         |
-| ------------- | ------------------------- | ------------------- |
-| `address`     | text                      | Address             |
-| `description` | text                      | Description         |
-| `email`       | text                      | Contact email       |
-| `logo`        | text                      | Logo reference      |
-| `name`        | text                      | Display name        |
-| `phone`       | text                      | Contact phone       |
-| `slug`        | text (unique)             | URL-safe identifier |
-| `status`      | `service_provider_status` | `active`            |
-| `website`     | text                      | Website URL         |
+| Column        | Type                      | Description                    |
+| ------------- | ------------------------- | ------------------------------ |
+| `address`     | text                      | Address                        |
+| `description` | text                      | Description                    |
+| `email`       | text                      | Contact email                  |
+| `logo`        | text                      | Logo Storage key (`logos/...`) |
+| `name`        | text                      | Display name                   |
+| `phone`       | text                      | Contact phone                  |
+| `slug`        | text (unique)             | URL-safe identifier            |
+| `status`      | `service_provider_status` | `active`                       |
+| `website`     | text                      | Website URL                    |
 
 Indexes: `idx_service_provider_status` on `status`.
 
@@ -69,13 +69,15 @@ Indexes: `service_provider_user_unique` unique on `(service_provider_id, user_id
 
 ### `managed_organization`
 
-Platform-level organization; PG table `managed_organization`.
+Platform-level organization; PG table `managed_organization`. `branding` carries `{ logo?, primaryColor? }` where `logo` is a Storage logical key (`logos/organization/<id>/<file>`).
 
-| Column     | Type          | Description         |
-| ---------- | ------------- | ------------------- |
-| `branding` | jsonb         | Branding JSON       |
-| `name`     | text          | Display name        |
-| `slug`     | text (unique) | URL-safe identifier |
+| Column     | Type          | Description                          |
+| ---------- | ------------- | ------------------------------------ |
+| `branding` | jsonb         | Branding JSON (`logo` = Storage key) |
+| `name`     | text          | Display name                         |
+| `slug`     | text (unique) | URL-safe identifier                  |
+
+Tenant logos use the same convention on better-auth `organization.logo` (`logos/tenant/<id>/<file>`).
 
 Indexes: `idx_managed_organization_slug` on `slug`, `idx_managed_organization_name` on `name`.
 

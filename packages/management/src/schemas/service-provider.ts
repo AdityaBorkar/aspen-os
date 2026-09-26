@@ -1,4 +1,5 @@
 import { SpStatusSchema } from "#/schemas/enums";
+import { LogoStorageKeySchema } from "#/schemas/logo";
 import {
   EmailSchema,
   LimitSchema,
@@ -15,7 +16,7 @@ export const CreateServiceProviderSchema = object({
   address: optional(nullable(string())),
   description: optional(nullable(string())),
   email: EmailSchema,
-  logo: optional(nullable(string())),
+  logo: optional(nullable(LogoStorageKeySchema)),
   name: NameSchema,
   phone: optional(nullable(string())),
   slug: SlugSchema,
@@ -28,7 +29,7 @@ export const UpdateServiceProviderSchema = object({
   address: optional(string()),
   description: optional(string()),
   email: optional(EmailSchema),
-  logo: optional(string()),
+  logo: optional(nullable(LogoStorageKeySchema)),
   name: optional(NameSchema),
   phone: optional(string()),
   slug: optional(SlugSchema),

@@ -1,10 +1,11 @@
+import { LogoStorageKeySchema } from "#/schemas/logo";
 import { HexColorSchema, LimitSchema, NameSchema, OffsetSchema, SlugSchema } from "#/schemas/utils";
 
 import { nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const OrganizationBrandingSchema = object({
-  logo: optional(nullable(string())),
+  logo: optional(nullable(LogoStorageKeySchema)),
   primaryColor: optional(HexColorSchema),
 });
 

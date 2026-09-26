@@ -26,6 +26,8 @@ export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTI
 
 export const AUDIT_ACTION = {
   ORGANIZATION_CREATED: "organization_created",
+  ORGANIZATION_LOGO_REMOVED: "organization_logo_removed",
+  ORGANIZATION_LOGO_UPLOADED: "organization_logo_uploaded",
   ORGANIZATION_UPDATED: "organization_updated",
   PLATFORM_USER_CREATED: "platform_user_created",
   PLATFORM_USER_DELETED: "platform_user_deleted",
@@ -36,10 +38,14 @@ export const AUDIT_ACTION = {
   SP_ASSIGNED_TO_USER: "sp_assigned_to_user",
   SP_CREATED: "sp_created",
   SP_DEACTIVATED: "sp_deactivated",
+  SP_LOGO_REMOVED: "sp_logo_removed",
+  SP_LOGO_UPLOADED: "sp_logo_uploaded",
   SP_UNASSIGNED: "sp_unassigned",
   SP_UPDATED: "sp_updated",
   TENANT_ACTIVATED: "tenant_activated",
   TENANT_CHURNED: "tenant_churned",
+  TENANT_LOGO_REMOVED: "tenant_logo_removed",
+  TENANT_LOGO_UPLOADED: "tenant_logo_uploaded",
   TENANT_MEMBER_ADDED: "tenant_member_added",
   TENANT_MEMBER_REMOVED: "tenant_member_removed",
   TENANT_MEMBER_UPDATED: "tenant_member_updated",
