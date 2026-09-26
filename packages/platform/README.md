@@ -824,11 +824,13 @@ platform.storage.copy(sourceKey: string, destinationKey: string): Promise<FileOb
 platform.storage.move(sourceKey: string, destinationKey: string): Promise<FileObject>
 platform.storage.archive(key: string, archiveKey?: string): Promise<FileObject>
 platform.storage.getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>
-platform.storage.getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>
+platform.storage.getSignedPutUrl(key: string, options?: SignedPutUrlOptions): Promise<string>
 platform.storage.list(prefix?: string, options?: ListOptions): Promise<{ files: FileObject[]; nextContinuationToken?: string }>
 ```
 
 The `archive()` method copies the file to an archive prefix, removes the original, and marks the metadata record as archived.
+
+Methods take and return logical keys (never the config prefix or tenant); the unit maps them to `<prefix>/<tenantId>/<logical>` S3 keys. Bare `list()` scopes to the caller tenant.
 
 ### RpcUnit
 
@@ -1858,11 +1860,13 @@ platform.storage.copy(sourceKey: string, destinationKey: string): Promise<FileOb
 platform.storage.move(sourceKey: string, destinationKey: string): Promise<FileObject>
 platform.storage.archive(key: string, archiveKey?: string): Promise<FileObject>
 platform.storage.getSignedGetUrl(key: string, options?: SignedUrlOptions): Promise<string>
-platform.storage.getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string>
+platform.storage.getSignedPutUrl(key: string, options?: SignedPutUrlOptions): Promise<string>
 platform.storage.list(prefix?: string, options?: ListOptions): Promise<{ files: FileObject[]; nextContinuationToken?: string }>
 ```
 
 The `archive()` method copies the file to an archive prefix, removes the original, and marks the metadata record as archived.
+
+Methods take and return logical keys (never the config prefix or tenant); the unit maps them to `<prefix>/<tenantId>/<logical>` S3 keys. Bare `list()` scopes to the caller tenant.
 
 ### RpcUnit
 

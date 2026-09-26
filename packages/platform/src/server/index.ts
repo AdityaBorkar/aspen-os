@@ -14,7 +14,16 @@ import type { KvStoreConfig, KvStoreUnit } from "#/server/kv-store";
 import type { LogConfig, LogUnit } from "#/server/log";
 import type { PubSubConfig, PubSubUnit } from "#/server/pubsub";
 import type { RpcConfig, RpcUnit } from "#/server/rpc";
-import type { StorageConfig, StorageUnit } from "#/server/storage";
+import type {
+  FileObject,
+  FileUploadInput,
+  ListOptions,
+  SignedPutUrlOptions,
+  SignedUrlOptions,
+  StorageConfig,
+  StorageProvider,
+  StorageUnit,
+} from "#/server/storage";
 import type {
   Module,
   TenancyMode,
@@ -55,8 +64,14 @@ export type {
   RpcUnit,
   SharedTenantDbConfig,
   SharedTenantProvisioningResult,
+  SignedPutUrlOptions,
+  SignedUrlOptions,
   SingleTenantDbConfig,
+  FileObject,
+  FileUploadInput,
+  ListOptions,
   StorageConfig,
+  StorageProvider,
   StorageUnit,
   TenantProvisioningResult,
 };

@@ -1,2 +1,10 @@
 export { StorageUnit } from "./unit";
-export type { StorageConfig } from "./types";
+export type {
+  FileObject,
+  FileUploadInput,
+  ListOptions,
+  SignedPutUrlOptions,
+  SignedUrlOptions,
+  StorageConfig,
+  StorageProvider,
+} from "./types";

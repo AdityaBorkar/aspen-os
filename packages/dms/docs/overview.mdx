@@ -88,7 +88,7 @@ flowchart TB
 
   masters[master_label<br/>master_contact] -. soft FK .-> S & EL
   masters -. label_created/updated/removed<br/>syncs LC .-> LC
-  storage[(StorageUnit<br/>dms/{tenant}/{fileId}/v{n}/{name})] --- F
+  storage[(StorageUnit<br/>dms/{fileId}/v{n}/{name})] --- F
   F --- C
   F --- V
   FO --- F

@@ -13,24 +13,40 @@ import type {
   FileObject,
   FileUploadInput,
   ListOptions,
+  SignedPutUrlOptions,
   SignedUrlOptions,
   StorageConfig,
 } from "./types";
 
 export interface S3AdapterConfig extends StorageConfig {
   getKey: (key: string) => string;
+  getKeyPrefix: () => string;
+}
+
+function encodeCopySource(bucket: string, physicalKey: string): string {
+  return `${bucket}/${physicalKey
+    .split("/")
+    .map((segment) => encodeURIComponent(segment))
+    .join("/")}`;
 }
 
 export class S3Adapter {
   private readonly s3: S3Client;
   private readonly bucket: string;
   private readonly getKey: (key: string) => string;
+  private readonly getKeyPrefix: () => string;
 
   constructor(config: S3AdapterConfig) {
-    const { provider, bucket, getKey } = config;
+    const { provider, bucket, getKey, getKeyPrefix } = config;
     this.bucket = bucket;
     this.getKey = getKey;
-    this.s3 = new S3Client(provider);
+    this.getKeyPrefix = getKeyPrefix;
+    this.s3 = new S3Client({
+      credentials: provider.credentials,
+      endpoint: provider.endpoint.replace(/\/+$/, ""),
+      forcePathStyle: provider.forcePathStyle,
+      region: provider.region,
+    });
   }
 
   async upload(input: FileUploadInput): Promise<{
@@ -101,10 +117,11 @@ export class S3Adapter {
     });
   }
 
-  async getSignedPutUrl(key: string, options?: SignedUrlOptions): Promise<string> {
+  async getSignedPutUrl(key: string, options?: SignedPutUrlOptions): Promise<string> {
     const command = new PutObjectCommand({
       Bucket: this.bucket,
-      ContentType: options?.responseContentType,
+      CacheControl: options?.cacheControl,
+      ContentType: options?.contentType,
       Key: this.getKey(key),
     });
     return getSignedUrl(this.s3, command, {
@@ -125,7 +142,9 @@ export class S3Adapter {
     prefix?: string,
     options?: ListOptions,
   ): Promise<{ files: FileObject[]; nextContinuationToken?: string }> {
-    const listPrefix = prefix ? this.getKey(prefix) : prefix;
+    const tenantPrefix = this.getKeyPrefix();
+    const normalized = prefix?.replace(/\/+$/, "");
+    const listPrefix = normalized ? this.getKey(normalized) : tenantPrefix;
     const result = await this.s3.send(
       new ListObjectsV2Command({
         Bucket: this.bucket,
@@ -135,14 +154,19 @@ export class S3Adapter {
       }),
     );
 
-    const files: FileObject[] = (result.Contents ?? []).map(
-      (obj: { Key?: string; Size?: number; LastModified?: Date; ETag?: string }) => ({
+    const files: FileObject[] = [];
+    for (const obj of result.Contents ?? []) {
+      const physicalKey = obj.Key ?? "";
+      if (!physicalKey.startsWith(tenantPrefix)) {
+        continue;
+      }
+      files.push({
         etag: obj.ETag ?? "",
-        key: (obj.Key ?? "").replace(prefix ? `${prefix}/` : "", ""),
+        key: physicalKey.slice(tenantPrefix.length),
         lastModified: obj.LastModified ?? new Date(),
         size: obj.Size ?? 0,
-      }),
-    );
+      });
+    }
 
     return { files, nextContinuationToken: result.NextContinuationToken };
   }
@@ -165,7 +189,7 @@ export class S3Adapter {
     await this.s3.send(
       new CopyObjectCommand({
         Bucket: this.bucket,
-        CopySource: `${this.bucket}/${this.getKey(sourceKey)}`,
+        CopySource: encodeCopySource(this.bucket, this.getKey(sourceKey)),
         Key: this.getKey(destinationKey),
       }),
     );

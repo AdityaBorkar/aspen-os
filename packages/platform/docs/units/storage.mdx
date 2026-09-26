@@ -80,7 +80,21 @@ const downloadUrl = await platform.storage.getSignedGetUrl("documents/report.pdf
 });
 const uploadUrl = await platform.storage.getSignedPutUrl("uploads/user-avatar.jpg", {
   expiresIn: 1800,
+  contentType: "image/jpeg",
 });
+```
+
+```ts title="src/server/storage/types.ts"
+interface SignedUrlOptions {
+  expiresIn?: number;
+  responseContentDisposition?: string;
+  responseContentType?: string;
+}
+interface SignedPutUrlOptions {
+  expiresIn?: number;
+  contentType?: string;
+  cacheControl?: string;
+}
 ```
 
 ### Archive / Copy / Move
@@ -124,9 +138,30 @@ All operations update `file_metadata`:
 
 ### Key prefixing
 
+All public methods take and return **logical keys** — caller-owned paths
+that never contain the config `prefix` or tenant. The unit maps them to
+physical S3 keys as `<prefix>/<tenantId>/<logical>` (`prefix/` omitted
+when unset), and `file_metadata.key` stores the logical key.
+
 ```ts
 // config { prefix: "uploads" }, context { tenantId: "tenant_123" }
 // upload "documents/report.pdf" → S3 key "uploads/tenant_123/documents/report.pdf"
+// list("documents") → [{ key: "documents/report.pdf", ... }]
+// list() → all logical keys for "tenant_123" (never the whole bucket)
 ```
+
+Callers must never embed the tenant or prefix themselves. DMS follows
+this rule: `dms/<fileId>/v1/name.pdf` is the logical key, so the S3 key
+becomes `uploads/<tenant>/dms/<fileId>/v1/name.pdf`.
+
+### Providers
+
+Any S3-compatible backend works via `endpoint` + `region` +
+`forcePathStyle`. SeaweedFS / RustFS / MinIO use a real region with
+`forcePathStyle: true`. Cloudflare R2 uses `region: "auto"`,
+`forcePathStyle: false`, and the account endpoint
+(`https://<account>.r2.cloudflarestorage.com`). `CopySource` values are
+URL-encoded per segment, so keys with spaces or unicode round-trip on
+strict backends.
 
 Receives `{ db: DatabaseUnit }` via injection.
