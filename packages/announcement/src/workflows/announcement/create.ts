@@ -1,6 +1,6 @@
+import { CreateAnnouncementSchema } from "#/announcement-types";
 import { announcement } from "#/db-schemas";
 import { ANNOUNCEMENT_EVENTS } from "#/pubsub";
-import { CreateAnnouncementSchema } from "#/types";
 import { resolveAudienceDefinition, validateAudienceStrongRefs } from "#/utils/announcement-utils";
 
 import { Workflow } from "@aspen-os/platform/server";

@@ -1,5 +1,5 @@
+import { AnnouncementFiltersSchema } from "#/announcement-types";
 import { announcement } from "#/db-schemas";
-import { AnnouncementFiltersSchema } from "#/types";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, desc, eq, gte, lte, sql } from "drizzle-orm";

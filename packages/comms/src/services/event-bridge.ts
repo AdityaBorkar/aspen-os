@@ -23,7 +23,7 @@ import type {
   PubSubUnit,
   StandardSchema,
 } from "@aspen-os/platform/server";
-import { isGlobalTenantId } from "@aspen-os/platform/server";
+import { context, getContext, isGlobalTenantId } from "@aspen-os/platform/server";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { array, boolean, nullish, object, optional, string } from "valibot";
 
@@ -53,6 +53,9 @@ const AnnouncementPublishedEventSchema = object({
     title: string(),
   }),
   recipientUserIds: array(string()),
+  // Tenant database name at publish time. The bridge subscribes in the
+  // `$global` scope, so fan-out must re-enter the tenant scope explicitly.
+  tenantId: string(),
 });
 
 const TenantLifecycleEventSchema = object({
@@ -276,36 +279,46 @@ async function handleAnnouncementPublished(
   deps: EventBridgeDeps,
 ): Promise<void> {
   const notify = createNotify(deps.dbUnit);
-  // oxlint-disable eslint/no-await-in-loop
-  for (let index = 0; index < event.recipientUserIds.length; index += ANNOUNCEMENT_FANOUT) {
-    const chunk = event.recipientUserIds.slice(index, index + ANNOUNCEMENT_FANOUT);
-    const outcomes = await Promise.allSettled(
-      chunk.map(async (userId) =>
-        notify.run(
-          {
-            input: {
-              recipient: { id: userId, type: "user" },
-              sourceEntity: { id: event.announcement.id, type: "announcement" },
-              sourceModule: "announcement",
-              title: event.announcement.title,
-              type: "announcement",
+  // The subscription runs in the `$global` scope (control-plane DB), but
+  // notifications, preferences, channels, and settings all live in the tenant
+  // DB. Re-enter the tenant scope so `notify` reads/writes the right database.
+  const tenantDb = await deps.dbUnit.getTenantDb(event.tenantId);
+  const scope = { ...getContext(), db: tenantDb, tenantId: event.tenantId };
+  // `runOptions` carries the control-plane `db`; inside the tenant scope the
+  // ambient tenant db must win, so override it back explicitly.
+  const notifyOptions = { ...runOptions(deps), db: tenantDb };
+  await context.run(scope, async () => {
+    // oxlint-disable eslint/no-await-in-loop
+    for (let index = 0; index < event.recipientUserIds.length; index += ANNOUNCEMENT_FANOUT) {
+      const chunk = event.recipientUserIds.slice(index, index + ANNOUNCEMENT_FANOUT);
+      const outcomes = await Promise.allSettled(
+        chunk.map(async (userId) =>
+          notify.run(
+            {
+              input: {
+                recipient: { id: userId, type: "user" },
+                sourceEntity: { id: event.announcement.id, type: "announcement" },
+                sourceModule: "announcement",
+                title: event.announcement.title,
+                type: "announcement",
+              },
             },
-          },
-          runOptions(deps),
+            notifyOptions,
+          ),
         ),
-      ),
-    );
-    for (const outcome of outcomes) {
-      if (outcome.status === "rejected") {
-        const { reason } = outcome;
-        deps.log?.error(
-          "Announcement fan-out failed for a recipient.",
-          reason instanceof Error ? reason : new Error(String(reason)),
-        );
+      );
+      for (const outcome of outcomes) {
+        if (outcome.status === "rejected") {
+          const { reason } = outcome;
+          deps.log?.error(
+            "Announcement fan-out failed for a recipient.",
+            reason instanceof Error ? reason : new Error(String(reason)),
+          );
+        }
       }
     }
-  }
-  // oxlint-enable eslint/no-await-in-loop
+    // oxlint-enable eslint/no-await-in-loop
+  });
 }
 
 async function handleTenantLifecycle(tenantId: string, deps: EventBridgeDeps): Promise<void> {

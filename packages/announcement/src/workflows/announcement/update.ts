@@ -1,6 +1,6 @@
+import { UpdateAnnouncementSchema } from "#/announcement-types";
 import { announcement } from "#/db-schemas";
 import { ANNOUNCEMENT_EVENTS } from "#/pubsub";
-import { UpdateAnnouncementSchema } from "#/types";
 import {
   fetchAnnouncementById,
   resolveAudienceDefinition,

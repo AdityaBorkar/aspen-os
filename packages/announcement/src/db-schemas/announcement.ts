@@ -3,15 +3,7 @@ import { announcementPriorityEnum, announcementStatusEnum } from "#/db-schemas/e
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, jsonb, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
-export type AnnouncementAudienceType =
-  | "all"
-  | "hr_users"
-  | "employees"
-  | "branches"
-  | "departments"
-  | "groups"
-  | "roles"
-  | "individuals";
+export type AnnouncementAudienceType = "all" | "hr_users" | "groups";
 
 export interface AnnouncementAudience {
   ids?: string[];

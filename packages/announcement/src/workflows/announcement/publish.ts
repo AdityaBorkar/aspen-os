@@ -3,7 +3,7 @@ import { ANNOUNCEMENT_EVENTS } from "#/pubsub";
 import { fetchAnnouncementById, resolveRecipients } from "#/utils/announcement-utils";
 import { assertUpdated } from "#/workflows/utils";
 
-import { Workflow } from "@aspen-os/platform/server";
+import { Workflow, getContext } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { minLength, object, pipe, string } from "valibot";
 
@@ -60,9 +60,18 @@ export const publishAnnouncement = Workflow.name("announcement.publish")
       .map((recipient) => recipient.userId)
       .filter((userId): userId is string => userId !== null);
 
+    // The comms event bridge consumes this in the `$global` scope, so the
+    // tenant database name must travel in the event (workflows only see the
+    // already-scoped `ctx.db`).
+    const tenantId = getContext().tenantId;
+    if (!tenantId) {
+      throw new Error("Announcement publish requires a tenant scope.");
+    }
+
     await ctx.pubsub.publish(ANNOUNCEMENT_EVENTS.PUBLISHED, {
       announcement: { id, title: existing.title },
       recipientUserIds,
+      tenantId,
     });
 
     return updated;

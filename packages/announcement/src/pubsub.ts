@@ -32,6 +32,12 @@ export interface AnnouncementScheduledEvent {
 export interface AnnouncementPublishedEvent {
   announcement: { id: string; title: string };
   recipientUserIds: string[];
+  /**
+   * Tenant database name at publish time (`ctx.tenantId`). The comms event
+   * bridge runs in the `$global` scope, so it needs this to resolve the
+   * tenant DB for per-user fan-out.
+   */
+  tenantId: string;
 }
 
 export interface AnnouncementArchivedEvent {

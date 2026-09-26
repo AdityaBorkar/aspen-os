@@ -47,6 +47,7 @@ export const SETTING_KEYS = {
   ORG_BRANDING: "org.branding",
   ORG_ID: "org.id",
   ORG_LOGO: "org.logo",
+  THEME: "theme",
   TIMEZONE: "timezone",
 } as const;
 

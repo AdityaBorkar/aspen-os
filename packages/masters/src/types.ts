@@ -110,6 +110,7 @@ export type {
   UpdatePaymentMethodInput,
   UnitOfMeasureFilters,
   UpdateUnitOfMeasureInput,
+  ThemeSetting,
 } from "#/schemas";
 export {
   AddressFiltersSchema,
@@ -176,6 +177,7 @@ export {
   UomCategorySchema,
   UomStatusSchema,
   WithIdSchema,
+  ThemeSettingSchema,
 } from "#/schemas";
 export type { AuditAction, AuditEntityType, SettingKey } from "#/utils/constants";
 export {

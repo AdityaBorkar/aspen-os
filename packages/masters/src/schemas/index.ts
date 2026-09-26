@@ -99,8 +99,18 @@ export {
   PaymentMethodFiltersSchema,
   UpdatePaymentMethodSchema,
 } from "#/schemas/payment-method";
-export type { GetSettingInput, OrgBranding, SetSettingInput } from "#/schemas/setting";
-export { GetSettingSchema, OrgBrandingSchema, SetSettingSchema } from "#/schemas/setting";
+export type {
+  GetSettingInput,
+  OrgBranding,
+  SetSettingInput,
+  ThemeSetting,
+} from "#/schemas/setting";
+export {
+  GetSettingSchema,
+  OrgBrandingSchema,
+  SetSettingSchema,
+  ThemeSettingSchema,
+} from "#/schemas/setting";
 export {
   CountryCodeSchema,
   EmailSchema,

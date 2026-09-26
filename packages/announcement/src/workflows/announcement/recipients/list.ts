@@ -1,5 +1,5 @@
+import { RecipientListFiltersSchema } from "#/announcement-types";
 import { announcementRecipient } from "#/db-schemas";
-import { RecipientListFiltersSchema } from "#/types";
 import { fetchAnnouncementById } from "#/utils/announcement-utils";
 
 import { Workflow } from "@aspen-os/platform/server";

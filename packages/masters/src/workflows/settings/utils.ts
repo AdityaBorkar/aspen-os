@@ -1,5 +1,5 @@
 import { masterSetting } from "#/db-schemas";
-import { OrgBrandingSchema } from "#/schemas/setting";
+import { OrgBrandingSchema, ThemeSettingSchema } from "#/schemas/setting";
 import { SETTING_KEYS, SETTING_KEY_PREFIX } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
@@ -33,7 +33,7 @@ export function settingScopeCondition(userId: string | null): SQL {
   return userId === null ? isNull(masterSetting.user_id) : eq(masterSetting.user_id, userId);
 }
 
-/** Well-known org.* settings get shape validation; every other key is stored as-is. */
+/** Well-known settings get shape validation; every other key is stored as-is. */
 export function validateSettingValue(key: string, value: JsonValue): JsonValue {
   if (key === SETTING_KEYS.ORG_ID || key === SETTING_KEYS.ORG_LOGO) {
     const parsed = safeParse(string(), value);
@@ -46,6 +46,13 @@ export function validateSettingValue(key: string, value: JsonValue): JsonValue {
     const parsed = safeParse(OrgBrandingSchema, value);
     if (!parsed.success) {
       throw new Error(`Setting "${key}" must be a branding object`);
+    }
+    return parsed.output;
+  }
+  if (key === SETTING_KEYS.THEME) {
+    const parsed = safeParse(ThemeSettingSchema, value);
+    if (!parsed.success) {
+      throw new Error(`Setting "${key}" must be one of: auto, light, dark`);
     }
     return parsed.output;
   }

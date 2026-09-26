@@ -1,5 +1,5 @@
 import { JsonValueSchema } from "@aspen-os/platform/server";
-import { object, optional, pipe, regex, string } from "valibot";
+import { object, optional, picklist, pipe, regex, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const GetSettingSchema = object({
@@ -14,6 +14,11 @@ export const SetSettingSchema = object({
 });
 
 export type SetSettingInput = InferOutput<typeof SetSettingSchema>;
+
+/** Per-user UI theme; `auto` follows the operating-system preference. */
+export const ThemeSettingSchema = picklist(["auto", "light", "dark"]);
+
+export type ThemeSetting = InferOutput<typeof ThemeSettingSchema>;
 
 const HEX_COLOR_REGEX = /^#[0-9A-Fa-f]{6}$/;
 

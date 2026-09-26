@@ -35,7 +35,7 @@ const announcement = Announcement.create({ country: "INDIA" });
 
 ## Dependencies
 
-Depends on `hrCore` (`$dependencies = ["hrCore"]`) for audience resolution — employees, departments (with subtree expansion), groups, roles, and HR users. `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`. No cron or subscription in `$prepareRuntime()`.
+Depends on `hrCore` (`$dependencies = ["hrCore"]`) for audience resolution — active employees (`all`), active HR users (`hr_users`), and employee groups (`groups`). `$initialize()` binds `DatabaseUnit` and `PubSubUnit`; `$prepareInfra()` contributes `auth.acl`, `db.tenant_schemas`, and `events`. No cron or subscription in `$prepareRuntime()`.
 
 ## Architecture
 
@@ -76,7 +76,7 @@ Announcement scheduling owns no cron — `announcement.scheduled_for` is materia
 
 ## Announcements
 
-`announcement` stores author (`ctx.actorId` required), body/title, `audience` JSON (`type` + `ids`, required), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience through subtree expansion (departments include children), validates strong-refs (`employees`, `groups`, `roles`, `individuals`), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "announcement"`).
+`announcement` stores author (`ctx.actorId` required), body/title, `audience` JSON (`type` + `ids`, required), `priority` (`normal`/`important`/`urgent` via `@aspen-os/constants` `NOTIFICATION_SEVERITY`), `status` (`draft`/`scheduled`/`published`/`archived`), and `scheduled_for`. `announcement_recipient` snapshots delivery at publish time. Only `draft`/`scheduled` are editable; publish is idempotent, resolves audience (`all` active employees, `hr_users` active HR users, `groups` group members), validates strong-refs (group ids), and emits `announcement.published` with `recipientUserIds` (auth `userId`s — employees without HR users are snapshot-only). Read/ack counts are read back from `@aspen-os/comms` notifications (`sourceModule: "announcement"`).
 
 ## Relationships
 

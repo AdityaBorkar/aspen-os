@@ -282,14 +282,27 @@ export class PubSubUnit {
     if (!options) {
       return {};
     }
-    return {
-      expireInSeconds:
-        options.expireInMinutes !== undefined ? options.expireInMinutes * 60 : undefined,
-      priority: options.priority,
-      retryBackoff: options.retryBackoff,
-      retryDelay: options.retryDelay,
-      retryLimit: options.retryLimit,
-      startAfter: options.startAfter,
-    };
+    // pg-boss asserts `!('priority' in options) || Number.isInteger(...)`,
+    // so undefined-valued keys must be omitted, not passed through.
+    const bossOptions: Record<string, unknown> = {};
+    if (options.expireInMinutes !== undefined) {
+      bossOptions.expireInSeconds = options.expireInMinutes * 60;
+    }
+    if (options.priority !== undefined) {
+      bossOptions.priority = options.priority;
+    }
+    if (options.retryBackoff !== undefined) {
+      bossOptions.retryBackoff = options.retryBackoff;
+    }
+    if (options.retryDelay !== undefined) {
+      bossOptions.retryDelay = options.retryDelay;
+    }
+    if (options.retryLimit !== undefined) {
+      bossOptions.retryLimit = options.retryLimit;
+    }
+    if (options.startAfter !== undefined) {
+      bossOptions.startAfter = options.startAfter;
+    }
+    return bossOptions;
   }
 }

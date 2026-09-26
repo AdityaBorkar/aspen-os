@@ -1,7 +1,6 @@
 import { announcement } from "#/db-schemas";
 import type { AnnouncementAudience, AnnouncementAudienceType } from "#/db-schemas/announcement";
 import type { Db } from "#/workflows/db";
-import { collectSubtreeIds } from "#/workflows/trees";
 
 import { eq, sql } from "drizzle-orm";
 
@@ -106,25 +105,6 @@ function dedupeRecipients(recipients: ResolvedRecipient[]): ResolvedRecipient[] 
   return result;
 }
 
-async function expandDepartmentIds(db: Db, departmentIds: string[]): Promise<string[]> {
-  const all = await db.execute<{ id: string; parentId: string | null }>(
-    sql`SELECT id, parent_department AS "parentId" FROM department`,
-  );
-  return collectSubtreeIds(all, departmentIds);
-}
-
-async function resolveHrUsers(db: Db, hrUserIds: string[]): Promise<ResolvedRecipient[]> {
-  if (hrUserIds.length === 0) {
-    return [];
-  }
-
-  const rows = await db.execute<{ hrUserId: string; userId: string }>(
-    sql`SELECT id AS "hrUserId", user_id AS "userId" FROM hr_user WHERE id IN (${inList(hrUserIds)})`,
-  );
-
-  return rows.map((row) => ({ employeeId: null, hrUserId: row.hrUserId, userId: row.userId }));
-}
-
 export async function resolveRecipients(
   db: Db,
   input: { audience: AnnouncementAudience | null | undefined },
@@ -140,23 +120,6 @@ export async function resolveRecipients(
       sql`SELECT id FROM employee WHERE status = 'active'`,
     );
     await pushEmployees(activeEmployees.map((row) => row.id));
-  } else if (type === "employees") {
-    await pushEmployees(ids);
-  } else if (type === "branches") {
-    if (ids.length > 0) {
-      const rows = await db.execute<{ id: string }>(
-        sql`SELECT id FROM employee WHERE branch IN (${inList(ids)})`,
-      );
-      await pushEmployees(rows.map((row) => row.id));
-    }
-  } else if (type === "departments") {
-    const expandedIds = await expandDepartmentIds(db, ids);
-    if (expandedIds.length > 0) {
-      const rows = await db.execute<{ id: string }>(
-        sql`SELECT id FROM employee WHERE department IN (${inList(expandedIds)})`,
-      );
-      await pushEmployees(rows.map((row) => row.id));
-    }
   } else if (type === "groups") {
     if (ids.length > 0) {
       const memberRows = await db.execute<{ employeeId: string }>(
@@ -176,16 +139,6 @@ export async function resolveRecipients(
         userId: row.userId,
       })),
     );
-  } else if (type === "roles") {
-    if (ids.length > 0) {
-      const userRoleRows = await db.execute<{ hrUserId: string }>(
-        sql`SELECT hr_user_id AS "hrUserId" FROM hr_user_role WHERE role_id IN (${inList(ids)})`,
-      );
-      const hrUserIds = [...new Set(userRoleRows.map((row) => row.hrUserId))];
-      recipients.push(...(await resolveHrUsers(db, hrUserIds)));
-    }
-  } else if (type === "individuals") {
-    recipients.push(...(await resolveHrUsers(db, ids)));
   }
 
   return dedupeRecipients(recipients);
@@ -211,25 +164,10 @@ export async function validateAudienceStrongRefs(
     return;
   }
 
-  if (type === "employees") {
-    const rows = await db.execute<{ id: string }>(
-      sql`SELECT id FROM employee WHERE id IN (${inList(ids)})`,
-    );
-    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee ids");
-  } else if (type === "individuals") {
-    const rows = await db.execute<{ id: string }>(
-      sql`SELECT id FROM hr_user WHERE id IN (${inList(ids)})`,
-    );
-    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR user ids");
-  } else if (type === "groups") {
+  if (type === "groups") {
     const rows = await db.execute<{ id: string }>(
       sql`SELECT id FROM employee_group WHERE id IN (${inList(ids)})`,
     );
     throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown employee group ids");
-  } else if (type === "roles") {
-    const rows = await db.execute<{ id: string }>(
-      sql`SELECT id FROM hr_role WHERE id IN (${inList(ids)})`,
-    );
-    throwOnMissing(ids, new Set(rows.map((row) => row.id)), "Unknown HR role ids");
   }
 }

@@ -15,17 +15,14 @@ import {
 } from "valibot";
 import type { InferOutput } from "valibot";
 
+// Audience targeting is intentionally narrow: everyone, all employee users,
+// or an explicit list of employee groups.
 export const AnnouncementAudienceSchema = object({
   ids: optional(array(string())),
   type: enum_({
     all: "all",
-    branches: "branches",
-    departments: "departments",
-    employees: "employees",
     groups: "groups",
     hr_users: "hr_users",
-    individuals: "individuals",
-    roles: "roles",
   }),
 });
 
