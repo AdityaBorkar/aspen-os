@@ -36,6 +36,7 @@ export class IsolatedTenantPlatform<
     config: IsolatedTenantConfig,
     modules: TModules,
   ): IsolatedTenantPlatformInstance<TModules> {
+    const { tenantDbPrefix } = config.db;
     const db = new DatabaseUnit<MergedSchemas<TModules>>(
       {
         controlPlaneDbName: config.db.controlPlaneDbName,
@@ -45,9 +46,15 @@ export class IsolatedTenantPlatform<
         password: config.db.connection.password,
         port: config.db.connection.port,
         resolver: {
-          // SAFETY: the inline resolver is a placeholder; provisionTenant routes global tenant IDs to the control plane.
+          // Default resolver mirrors `DatabaseUnit.resolveDatabaseName` so
+          // `resolveDatabase`, `provisionTenant`, and `getTenantDb` agree.
+          // (The exact `${prefix}_${tenantId}` concatenation is preserved
+          // for backward compatibility with already-provisioned databases;
+          // configure the prefix without a trailing underscore for new deployments.)
+          // SAFETY: empty list is the complete tenant set until a real resolver is configured.
           list: async () => [] as string[],
-          resolve: async (tenantId: string) => tenantId,
+          resolve: async (tenantId: string) =>
+            tenantDbPrefix ? `${tenantDbPrefix}_${tenantId}` : tenantId,
         },
         ssl: config.db.connection.ssl,
         tenantDbDefaults: config.db.tenantDbDefaults,

@@ -120,9 +120,9 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
       throw new Error("getTenantDb is only available in isolated tenancy mode");
     }
 
-    let entry = this.tenantPools.get(tenantId);
+    const database = await this.resolveDatabaseName(tenantId);
+    let entry = this.tenantPools.get(database);
     if (!entry) {
-      const database = await this.resolver?.resolve(tenantId);
       const pool = postgres({
         database,
         host: this.tenantDbDefaults?.host ?? this.config.host,
@@ -134,9 +134,35 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
       });
       const db = drizzle<TSchemas>(pool);
       entry = { db, pool };
-      this.tenantPools.set(tenantId, entry);
+      this.tenantPools.set(database, entry);
     }
     return entry.db;
+  }
+
+  /**
+   * Single source of truth for isolated tenant database names.
+   *
+   * Accepts either a tenant id or an already-resolved database name
+   * (idempotent: a `tenantDbPrefix_` input is returned as-is so callers
+   * passing a `resolveDatabase` result into `pm.run`/`getTenantDb` never
+   * double-apply the prefix). Otherwise the configured resolver wins when
+   * it returns a non-empty name, falling back to the
+   * `tenantDbPrefix_tenantId` convention — the same derivation
+   * `provisionTenant` uses.
+   */
+  async resolveDatabaseName(tenantId: string): Promise<string> {
+    if (this.tenantDbPrefix && tenantId.startsWith(`${this.tenantDbPrefix}_`)) {
+      return tenantId;
+    }
+    try {
+      const resolved = await this.resolver?.resolve(tenantId);
+      if (resolved) {
+        return resolved;
+      }
+    } catch {
+      // Fall through to the naming convention when a custom resolver fails.
+    }
+    return this.tenantDbPrefix ? `${this.tenantDbPrefix}_${tenantId}` : tenantId;
   }
 
   async pushSchemasToTenant(tenantId: string, tenantSchemas: SchemaMap): Promise<void> {
@@ -164,9 +190,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     }
 
     if (this.tenancyMode === "isolated") {
-      const database =
-        options?.databaseName ??
-        (this.tenantDbPrefix ? `${this.tenantDbPrefix}_${tenantId}` : tenantId);
+      const database = options?.databaseName ?? (await this.resolveDatabaseName(tenantId));
 
       const dbConfig: IsolatedTenantDbConfig = {
         database,
