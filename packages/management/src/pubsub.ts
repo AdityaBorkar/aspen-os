@@ -27,7 +27,6 @@ export const PLATFORM_USER_EVENTS = {
 } as const;
 
 export const ORGANIZATION_EVENTS = {
-  CREATED: "organization.created",
   UPDATED: "organization.updated",
 } as const;
 
@@ -134,15 +133,6 @@ export interface PlatformUserSpAssignedEvent {
   userId: string;
 }
 
-export interface OrganizationCreatedEvent {
-  organization: {
-    branding: JsonValue | null;
-    id: string;
-    name: string;
-    slug: string;
-  };
-}
-
 export interface OrganizationUpdatedEvent {
   changes: Record<string, JsonValue>;
   organization: {
@@ -199,7 +189,6 @@ export interface PlatformUserEventMap {
 }
 
 export interface OrganizationEventMap {
-  [ORGANIZATION_EVENTS.CREATED]: OrganizationCreatedEvent;
   [ORGANIZATION_EVENTS.UPDATED]: OrganizationUpdatedEvent;
 }
 

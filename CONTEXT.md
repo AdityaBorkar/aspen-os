@@ -634,15 +634,15 @@ Optional lifecycle method on `Module` interface: `$prepareTenant(tenantId)`. Cal
 _Avoid_: Per-Tenant Init, Tenant Setup
 
 **Tenant**:
-SaaS customer account at platform layer. Implemented as better-auth **Organization** (via better-auth's Organization plugin) — Tenant IS better-auth `organization` row in control-plane DB, w/ companion `tenant` table for extra domain fields (status, plan, SP assignment, database connection params). Carries `name`, `slug`, `logo` (on better-auth org row) + account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on Masters settings (`org.*`) / `management.organizations` read model. "List of Organizations" UI in SOW = projection over Tenants.
+SaaS customer account at platform layer. Implemented as better-auth **Organization** (via better-auth's Organization plugin) — Tenant IS better-auth `organization` row in control-plane DB, w/ 1:1 companion `managed_organization` row for branding + extra domain fields (status, plan, SP assignment, signup/suspension stamps). Carries `name`, `slug`, `logo` (on better-auth org row) + account-level fields (signup date, lifecycle status, plan, SP assignment). Does NOT hold rich profile fields (accentColor, website, industry, taxId, etc.) — those live on Masters settings (`org.*`) / `management.organizations`. "List of Organizations" UI in SOW = projection over Tenants.
 _Avoid_: Organization (when meaning SaaS customer — there is no `@aspen-os/organization` package), Customer Account, Subscription, Workspace
 
 **Tenant Status**:
 Lifecycle state of Tenant: `onboarding` (pre-go-live, SP doing physical-world work) → `active` (live) → `suspended` (voluntarily or involuntarily paused) → `churned` (offboarded). Coarse by design — `onboarding` opaque single stage; internal install/training/handoff sub-steps NOT tracked by platform.
 _Avoid_: Tenant State, Account State, Lifecycle Stage
 
-**Organization (management read model)**:
-Control-plane read projection over tenants (`p.management.organizations`: 4 actions) — not separate profile table. rich company-profile fields live in Masters settings + tenant companion row. 1:1 with Tenant by shared ID.
+**Organization (management companion)**:
+Control-plane companion to a Tenant (`p.management.organizations`: get/list/update + logo surface; no create) — the `managed_organization` row, not a separate profile table. `branding` on the companion; `name`/`slug`/`logo` on the better-auth org row; rich company-profile fields live in Masters settings. 1:1 with Tenant by shared ID (`managed_organization.id` FK → `organization.id`, cascade).
 _Avoid_: Tenant (different concept), Company, better-auth Organization
 
 **Service Provider**:
@@ -674,7 +674,7 @@ Workflow that creates new Tenant end-to-end, run by Management Plane module via 
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 **Management Workflow**:
-Five groups: `p.management.tenants` (15: onboard/get/list/update/activate/suspend/churn/assignServiceProvider/…), `p.management.tenantMembers` (5), `p.management.serviceProviders` (8), `p.management.organizations` (4), `p.management.users` (7). 4 owned control-plane tables (`tenant`, `service_provider`, `service_provider_user`, `managedOrganization`) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`. 22 events across 5 namespaces, 4 ACL resources. `$name = "management"`; `$dependencies = []`; `$initialize` accepts `{ db, auth, pubsub }` but only stores `db`.
+Five groups: `p.management.tenants` (15: onboard/get/list/update/activate/suspend/churn/assignServiceProvider/…), `p.management.tenantMembers` (5), `p.management.serviceProviders` (8), `p.management.organizations` (8: get/list/update + logo surface), `p.management.users` (7). 3 owned control-plane tables (`managed_organization`, `service_provider`, `service_provider_user`) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`. 21 events across 5 namespaces, 4 ACL resources. `$name = "management"`; `$dependencies = []`; `$initialize` accepts `{ db, auth, pubsub }` but only stores `db`.
 _Avoid_: Service, Handler
 
 ## Context Relationships

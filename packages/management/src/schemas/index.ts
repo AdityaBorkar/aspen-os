@@ -26,13 +26,11 @@ export {
   TenantUsageFiltersSchema,
 } from "#/schemas/report";
 export type {
-  CreateOrganizationInput,
   OrganizationBranding,
   OrganizationFilters,
   UpdateOrganizationInput,
 } from "#/schemas/organization";
 export {
-  CreateOrganizationSchema,
   OrganizationBrandingSchema,
   OrganizationFiltersSchema,
   UpdateOrganizationSchema,

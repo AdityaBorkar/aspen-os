@@ -7,15 +7,13 @@ export const churnTenant = defineTenantTransition({
   expected: ["active", "suspended"],
   fromLabel: '"active" or "suspended"',
   name: "tenant.churn",
-  newState: (reason) => ({ churnReason: reason ?? null, status: "churned" }),
+  newState: () => ({ status: "churned" }),
   publish: (ctx, tenantId, reason) =>
     ctx.pubsub.publish(TENANT_EVENTS.CHURNED, {
       reason: reason ?? "unspecified",
       tenantId,
     }),
-  set: (reason) => ({
-    churnReason: reason ?? null,
-    churnedAt: new Date(),
+  set: () => ({
     status: "churned",
     updatedAt: new Date(),
   }),

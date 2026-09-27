@@ -1,6 +1,5 @@
 export type {
   ManagementPlaneEventMap,
-  OrganizationCreatedEvent,
   OrganizationUpdatedEvent,
   PlatformUserCreatedEvent,
   PlatformUserDeletedEvent,
@@ -33,7 +32,6 @@ export {
 export type {
   AttachLogoInput,
   AuditReportFilters,
-  CreateOrganizationInput,
   CreatePlatformUserInput,
   CreateServiceProviderInput,
   CreateTenantMemberInput,
@@ -73,7 +71,6 @@ export {
   AuditActionSchema,
   AuditEntityTypeSchema,
   AuditReportFiltersSchema,
-  CreateOrganizationSchema,
   CreatePlatformUserSchema,
   CreateServiceProviderSchema,
   CreateTenantMemberInputSchema,

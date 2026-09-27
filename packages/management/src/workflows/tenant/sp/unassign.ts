@@ -1,4 +1,4 @@
-import { tenant } from "#/db-schemas";
+import { managedOrganization } from "#/db-schemas";
 import { TENANT_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -21,9 +21,9 @@ export const unassignServiceProvider = Workflow.name("tenant.unassign-sp")
 
     await ctx.step.run("unassign", async () => {
       await ctx.db
-        .update(tenant)
+        .update(managedOrganization)
         .set({ service_provider_id: null, updated_at: new Date() })
-        .where(eq(tenant.id, tenantId));
+        .where(eq(managedOrganization.id, tenantId));
     });
 
     await ctx.step.run("audit-and-notify", async () => {

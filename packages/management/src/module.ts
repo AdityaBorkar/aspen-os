@@ -2,7 +2,6 @@ import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
 import { resetManagementRuntime, setManagementStorage } from "#/runtime";
-import { createOrganization } from "#/workflows/organization/create";
 import { getOrganization } from "#/workflows/organization/get";
 import { listOrganizations } from "#/workflows/organization/list";
 import { getOrganizationLogoUrl } from "#/workflows/organization/logo/get-url";
@@ -36,7 +35,7 @@ import { updateTenantMember } from "#/workflows/tenant-member/update";
 import { activateTenant } from "#/workflows/tenant/activate";
 import { getTenantBySlug } from "#/workflows/tenant/by-slug/get";
 import { getTenantFullBySlug } from "#/workflows/tenant/by-slug/get-full";
-import { resolveTenantDatabase } from "#/workflows/tenant/by-slug/resolve-database";
+import { createResolveTenantDatabase } from "#/workflows/tenant/by-slug/resolve-database";
 import { listTenantsByUser } from "#/workflows/tenant/by-user/list";
 import { churnTenant } from "#/workflows/tenant/churn";
 import { getTenant } from "#/workflows/tenant/get";
@@ -140,7 +139,7 @@ export class ManagementPlane implements Module {
       onboard: createOnboardTenant(this.#requireDb()),
       reactivate: reactivateTenant,
       removeLogo: removeTenantLogo,
-      resolveDatabase: resolveTenantDatabase,
+      resolveDatabase: createResolveTenantDatabase(this.#requireDb()),
       suspend: suspendTenant,
       unassignServiceProvider,
       update: updateTenant,
@@ -174,7 +173,6 @@ export class ManagementPlane implements Module {
 
   readonly organizations = {
     attachLogo: attachOrganizationLogo,
-    create: createOrganization,
     get: getOrganization,
     getLogoUrl: getOrganizationLogoUrl,
     issueLogoUploadUrl: issueOrganizationLogoUploadUrl,

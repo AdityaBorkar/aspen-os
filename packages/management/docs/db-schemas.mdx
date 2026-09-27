@@ -4,7 +4,7 @@ description: Control-plane tables and enums declared by the Management Plane mod
 icon: IconDatabase
 ---
 
-The Management Plane declares control-plane tables and empty tenant schemas. Shared columns `id`, `created_at`, `updated_at` apply to all tables and are not repeated per table; `tenant.id` is text sharing better-auth `organization.id`.
+The Management Plane declares control-plane tables and empty tenant schemas. Shared columns `id` and `updated_at` apply to all tables and are not repeated per table; `managed_organization.id` is the better-auth `organization.id` (1:1 PK/FK).
 
 ## Enums
 
@@ -14,29 +14,6 @@ The Management Plane declares control-plane tables and empty tenant schemas. Sha
 | `service_provider_status` | `active`, `inactive`                           |
 
 ## Tables
-
-### `tenant`
-
-Companion to better-auth `organization`; holds lifecycle, plan, SP assignment, and per-tenant DB connection params.
-
-| Column                | Type                            | Description            |
-| --------------------- | ------------------------------- | ---------------------- |
-| `churn_reason`        | text                            | Churn reason           |
-| `churned_at`          | timestamptz                     | Churn timestamp        |
-| `database_host`       | text                            | Per-tenant DB host     |
-| `database_name`       | text                            | Per-tenant DB name     |
-| `database_password`   | text                            | Per-tenant DB password |
-| `database_port`       | integer                         | Per-tenant DB port     |
-| `database_ssl`        | boolean                         | Per-tenant DB SSL      |
-| `database_user`       | text                            | Per-tenant DB user     |
-| `plan`                | text                            | Subscription plan      |
-| `service_provider_id` | text (FK → service_provider.id) | Assigned SP            |
-| `signup_at`           | timestamptz                     | Signup timestamp       |
-| `status`              | `tenant_status`                 | Lifecycle status       |
-| `suspended_at`        | timestamptz                     | Suspension timestamp   |
-| `suspended_reason`    | text                            | Suspension reason      |
-
-Indexes: `idx_tenant_status` on `status`, `idx_tenant_service_provider` on `service_provider_id`, `idx_tenant_plan` on `plan`.
 
 ### `service_provider`
 
@@ -69,28 +46,28 @@ Indexes: `service_provider_user_unique` unique on `(service_provider_id, user_id
 
 ### `managed_organization`
 
-Platform-level organization; PG table `managed_organization`. `branding` carries `{ logo?, primaryColor? }` where `logo` is a Storage logical key (`logos/organization/<id>/<file>`).
+Tenant companion to the better-auth `organization` row, sharing its primary key 1:1. `name`/`slug` live on better-auth `organization`; `branding` carries `{ logo?, primaryColor? }` where `logo` is a Storage logical key (`logos/organization/<id>/<file>`).
 
-| Column     | Type          | Description                          |
-| ---------- | ------------- | ------------------------------------ |
-| `branding` | jsonb         | Branding JSON (`logo` = Storage key) |
-| `name`     | text          | Display name                         |
-| `slug`     | text (unique) | URL-safe identifier                  |
+| Column                | Type            | Description          |
+| --------------------- | --------------- | -------------------- |
+| `branding`            | jsonb           | Branding JSON        |
+| `plan`                | text            | Subscription plan    |
+| `service_provider_id` | text            | Assigned SP (soft)   |
+| `signup_at`           | timestamptz     | Signup timestamp     |
+| `status`              | `tenant_status` | Lifecycle status     |
+| `suspended_at`        | timestamptz     | Suspension timestamp |
+| `suspended_reason`    | text            | Suspension reason    |
 
-Tenant logos use the same convention on better-auth `organization.logo` (`logos/tenant/<id>/<file>`).
-
-Indexes: `idx_managed_organization_slug` on `slug`, `idx_managed_organization_name` on `name`.
+`id` is a text PK referencing better-auth `organization.id` (`onDelete: cascade`). Indexes: `idx_managed_organization_status` on `status`, `idx_managed_organization_service_provider` on `service_provider_id`, `idx_managed_organization_plan` on `plan`.
 
 ## Relationships
 
 ```mermaid
 flowchart LR
-  tenant -->|service_provider_id| sp[service_provider]
+  org[managed_organization] -->|service_provider_id| sp[service_provider]
   spu[service_provider_user] -->|service_provider_id| sp
   spu -->|user_id| user[better-auth user]
-  tenant -. 1:1 shared id .-> org[better-auth organization]
-  managed_organization -. independent .- tenant
-  managed_organization -. independent .- sp
+  org -->|id 1:1 FK cascade| authOrg[better-auth organization]
 ```
 
-All links are soft (workflow-enforced), except `tenant.id` shares better-auth `organization.id`; no hard DB FKs.
+`managed_organization.id → organization.id` is a hard FK. SP assignment and `service_provider_user` links are soft (workflow-enforced).

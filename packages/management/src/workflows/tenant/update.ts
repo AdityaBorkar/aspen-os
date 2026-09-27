@@ -1,4 +1,4 @@
-import { tenant } from "#/db-schemas";
+import { managedOrganization } from "#/db-schemas";
 import { TENANT_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateTenantCompanionSchema, UpdateTenantProfileSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -33,9 +33,9 @@ export const updateTenant = Workflow.name("tenant.update")
     if (Object.keys(companionData).length > 0) {
       await ctx.step.run("update-companion", async () => {
         const [updated] = await ctx.db
-          .update(tenant)
+          .update(managedOrganization)
           .set({ ...companionData, updated_at: new Date() })
-          .where(eq(tenant.id, tenantId))
+          .where(eq(managedOrganization.id, tenantId))
           .returning();
 
         if (!updated) {

@@ -1,4 +1,4 @@
-import { tenant } from "#/db-schemas";
+import { managedOrganization } from "#/db-schemas";
 import { IdSchema } from "#/types";
 import { AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import type { AuditAction, TenantStatus } from "#/utils/constants";
@@ -23,8 +23,6 @@ interface TenantTransitionConfig {
     reason: string | undefined,
   ) => Promise<string | null>;
   set: (reason: string | undefined) => {
-    churnReason?: string | null;
-    churnedAt?: Date;
     status: TenantStatus;
     suspendedAt?: Date | null;
     suspendedReason?: string | null;
@@ -39,9 +37,9 @@ export function defineTenantTransition(config: TenantTransitionConfig) {
       const { id, reason } = input;
 
       const [current] = await ctx.db
-        .select({ status: tenant.status })
-        .from(tenant)
-        .where(eq(tenant.id, id))
+        .select({ status: managedOrganization.status })
+        .from(managedOrganization)
+        .where(eq(managedOrganization.id, id))
         .limit(1);
 
       if (!current) {
@@ -54,7 +52,10 @@ export function defineTenantTransition(config: TenantTransitionConfig) {
       }
 
       await ctx.step.run("transition", () =>
-        ctx.db.update(tenant).set(config.set(reason)).where(eq(tenant.id, id)),
+        ctx.db
+          .update(managedOrganization)
+          .set(config.set(reason))
+          .where(eq(managedOrganization.id, id)),
       );
 
       await ctx.step.run("audit-and-notify", async () => {

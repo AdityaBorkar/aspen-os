@@ -1,37 +1,14 @@
-import { tenant } from "#/db-schemas";
-import type { NewTenant } from "#/db-schemas/tenant";
+import { managedOrganization } from "#/db-schemas";
 import { TENANT_EVENTS } from "#/pubsub";
 import { IdSchema, ProvisionTenantSchema } from "#/types";
-import type { ProvisionTenantInput } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { requireAuth } from "#/utils/require-auth";
 
 import { Workflow } from "@aspen-os/platform/server";
-import type { DatabaseUnit, TenantProvisioningResult } from "@aspen-os/platform/server";
+import type { DatabaseUnit } from "@aspen-os/platform/server";
 import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
-
-function tenantRecordColumns(
-  tenantId: string,
-  parsed: ProvisionTenantInput,
-  provisioning: TenantProvisioningResult,
-): NewTenant {
-  const isolated = provisioning.tenancyMode === "isolated" ? provisioning : null;
-  return {
-    database_host: isolated?.host ?? null,
-    database_name: isolated?.database ?? null,
-    database_password: isolated?.password ?? null,
-    database_port: isolated?.port ?? null,
-    database_ssl: isolated?.ssl ?? null,
-    database_user: isolated?.user ?? null,
-    id: tenantId,
-    plan: parsed.plan ?? null,
-    service_provider_id: parsed.serviceProviderId ?? null,
-    signup_at: new Date(),
-    status: "onboarding",
-  };
-}
 
 export function createOnboardTenant(dbUnit: DatabaseUnit) {
   return Workflow.name("tenant.onboard")
@@ -59,16 +36,7 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       const tenantId = org.id;
 
       const provisioning = await ctx.step
-        .run("provision-tenant", async () =>
-          dbUnit.provisionTenant(tenantId, {
-            databaseName: parsed.databaseName ?? undefined,
-            host: parsed.databaseHost ?? undefined,
-            password: parsed.databasePassword ?? undefined,
-            port: parsed.databasePort ?? undefined,
-            ssl: parsed.databaseSsl ?? undefined,
-            user: parsed.databaseUser ?? undefined,
-          }),
-        )
+        .run("provision-tenant", async () => dbUnit.provisionTenant(tenantId))
         .catch(async (error) => {
           ctx.log.error(
             `Provisioning failed for tenant "${tenantId}", cleaning up organization`,
@@ -102,7 +70,13 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
       }
 
       await ctx.step.run("record-tenant", async () => {
-        await ctx.db.insert(tenant).values(tenantRecordColumns(tenantId, parsed, provisioning));
+        await ctx.db.insert(managedOrganization).values({
+          id: tenantId,
+          plan: parsed.plan ?? null,
+          service_provider_id: parsed.serviceProviderId ?? null,
+          signup_at: new Date(),
+          status: "onboarding",
+        });
       });
 
       await ctx.step.run("audit-and-notify", async () => {

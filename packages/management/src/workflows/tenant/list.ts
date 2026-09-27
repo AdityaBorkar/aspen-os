@@ -1,4 +1,4 @@
-import { tenant } from "#/db-schemas";
+import { managedOrganization } from "#/db-schemas";
 import { TenantFiltersSchema } from "#/types";
 import { escapeLikeTerm } from "#/utils/escape-like";
 
@@ -20,13 +20,13 @@ export const listTenants = Workflow.name("tenant.list")
       const conditions: SQL[] = [];
 
       if (parsed.status) {
-        conditions.push(eq(tenant.status, parsed.status));
+        conditions.push(eq(managedOrganization.status, parsed.status));
       }
       if (parsed.plan) {
-        conditions.push(eq(tenant.plan, parsed.plan));
+        conditions.push(eq(managedOrganization.plan, parsed.plan));
       }
       if (parsed.serviceProviderId) {
-        conditions.push(eq(tenant.service_provider_id, parsed.serviceProviderId));
+        conditions.push(eq(managedOrganization.service_provider_id, parsed.serviceProviderId));
       }
       if (parsed.search) {
         const term = `%${escapeLikeTerm(parsed.search)}%`;
@@ -44,14 +44,14 @@ export const listTenants = Workflow.name("tenant.list")
           id: organization.id,
           logo: organization.logo,
           name: organization.name,
-          plan: tenant.plan,
-          serviceProviderId: tenant.service_provider_id,
-          signupAt: tenant.signup_at,
+          plan: managedOrganization.plan,
+          serviceProviderId: managedOrganization.service_provider_id,
+          signupAt: managedOrganization.signup_at,
           slug: organization.slug,
-          status: tenant.status,
+          status: managedOrganization.status,
         })
-        .from(tenant)
-        .innerJoin(organization, eq(organization.id, tenant.id))
+        .from(managedOrganization)
+        .innerJoin(organization, eq(organization.id, managedOrganization.id))
         .where(whereClause)
         .orderBy(asc(organization.name))
         .limit(parsed.limit ?? 50)

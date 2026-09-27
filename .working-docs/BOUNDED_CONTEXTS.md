@@ -109,8 +109,8 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ Management Plane          │  │ Comms Module              │   │
 │  │ Module                    │  │ 7 workflow groups         │   │
 │  │ 5 workflow groups         │  │ 1 control-plane + 6       │   │
-│  │ 4 owned + 2 shadow tables │  │ tenant tables (7 total)   │   │
-│  │ 22 events                 │  │ 21 events, 7 ACL res.     │   │
+│  │ 3 owned + 2 shadow tables │  │ tenant tables (7 total)   │   │
+│  │ 21 events                 │  │ 21 events, 7 ACL res.     │   │
 │  │ deps: none                │  │ deps: none                │   │
 │  │ units: db, auth, pubsub   │  │ units: db, kvStore,       │   │
 │  └───────────────────────────┘  │ pubsub, auth              │   │
@@ -297,7 +297,7 @@ There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedur
 | Comms            | Downstream    | Platform, KV Store                          | —                                    | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 9 bridge subscriptions |
 | Workspace        | Downstream    | Platform                                    | —                                    | 8 workflow groups, 8 tables, 30 events, 9 ACL resources, per-schedule crons                                     |
 | DMS              | Downstream    | Platform, Storage                           | —                                    | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
-| Management Plane | Downstream    | Platform                                    | —                                    | 5 workflow groups, 4 owned + 2 shadow tables, 22 events, 4 ACL resources, has build step                        |
+| Management Plane | Downstream    | Platform                                    | —                                    | 5 workflow groups, 3 owned + 2 shadow tables, 21 events, 4 ACL resources, has build step                        |
 | HR               | Downstream    | Platform                                    | Compliance, Announcement             | 10 workflow groups, 51 tables (12 control + 39 tenant), 52 events, 12 ACL resources, 2 crons                    |
 | Announcement     | Downstream    | Platform, HR (reads `employee` + `hr_user`) | Comms (via `announcement.published`) | 1 workflow group (14 methods), 2 tenant tables, 6 events, 1 ACL resource, stateless, no cron                    |
 | Healthcare       | Downstream    | Platform                                    | —                                    | 21 workflow groups, 140 tables (all tenant), 47 events, 19 ACL resources, stateless, has build step             |

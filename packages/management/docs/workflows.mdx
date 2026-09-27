@@ -46,7 +46,7 @@ const picker = await p.management.tenants.listBranding({ limit: 50, offset: 0 })
 
 ### Logos (Storage-backed)
 
-Logo bytes always go through the Storage unit (`logos/<owner>/<id>/<file>`, images only, max 2 MB). The database stores only the logical key: better-auth `organization.logo` for tenants, `managed_organization.branding.logo` for organizations, `service_provider.logo` for service providers. `create`/`update`/`onboard` accept only Storage keys — upload first, then attach.
+Logo bytes always go through the Storage unit (`logos/<owner>/<id>/<file>`, images only, max 2 MB). The database stores only the logical key: better-auth `organization.logo` for tenants, `managed_organization.branding.logo` for organizations, `service_provider.logo` for service providers. `update`/`onboard` accept only Storage keys — upload first, then attach.
 
 ```ts
 // Server-side upload (bytes in workflow, Storage upload + DB reference in one call)
@@ -115,14 +115,9 @@ const users = await p.management.serviceProviders.listUsers({ spId, limit: 50, o
 
 ### Organizations
 
-Platform-level organizations (`managed_organization`).
+The `managed_organization` companion (get/list/update + logo). There is no `create` — the companion row is inserted by `tenants.onboard`.
 
 ```ts
-const org = await p.management.organizations.create({
-  name: "Acme Org",
-  slug: "acme-org",
-  branding: { logo: "logos/organization/<id>/acme.png" },
-});
 const one = await p.management.organizations.get({ id: orgId });
 const orgs = await p.management.organizations.list({ filters: { search, limit: 50, offset: 0 } });
 await p.management.organizations.update({ id: orgId, patch: { name: "Acme Central" } });

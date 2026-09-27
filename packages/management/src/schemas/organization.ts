@@ -11,14 +11,6 @@ export const OrganizationBrandingSchema = object({
 
 export type OrganizationBranding = InferOutput<typeof OrganizationBrandingSchema>;
 
-export const CreateOrganizationSchema = object({
-  branding: optional(nullable(OrganizationBrandingSchema)),
-  name: NameSchema,
-  slug: SlugSchema,
-});
-
-export type CreateOrganizationInput = InferOutput<typeof CreateOrganizationSchema>;
-
 export const UpdateOrganizationSchema = object({
   branding: optional(nullable(OrganizationBrandingSchema)),
   name: optional(NameSchema),

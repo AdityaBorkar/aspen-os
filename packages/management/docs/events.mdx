@@ -40,7 +40,6 @@ The Management Plane defines domain events across `TENANT`, `SERVICE_PROVIDER`, 
 
 ## Organization Events
 
-| Event                  | Payload                                          | Trigger                |
-| ---------------------- | ------------------------------------------------ | ---------------------- |
-| `organization.created` | `{ organization: { id, name, slug, branding } }` | `organizations.create` |
-| `organization.updated` | `{ organization: { id, name }, changes }`        | `organizations.update` |
+| Event                  | Payload                                   | Trigger                |
+| ---------------------- | ----------------------------------------- | ---------------------- |
+| `organization.updated` | `{ organization: { id, name }, changes }` | `organizations.update` |

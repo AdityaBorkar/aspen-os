@@ -39,11 +39,10 @@ No module dependencies (`$dependencies: []`). Unit bindings via `$initialize(uni
 ```mermaid
 flowchart TB
   subgraph ControlPlane["Control-Plane Database"]
-    tenant["tenant"]
+    org["managed_organization<br/>(tenant companion)<br/>branding.logo = Storage key"]
     sp["service_provider<br/>logo = Storage key"]
     spu["service_provider_user"]
-    org["managed_organization<br/>(PG: managed_organization)<br/>branding.logo = Storage key"]
-    authOrg["organization<br/>(better-auth)<br/>logo = Storage key"]
+    authOrg["organization<br/>(better-auth)<br/>name/slug/logo = Storage key"]
     authUser["user<br/>(better-auth)"]
   end
   subgraph TenantDB["Tenant Databases"]
@@ -59,15 +58,16 @@ flowchart TB
   authOrg -. logo key .-> logos
   org -. branding.logo key .-> logos
   sp -. logo key .-> logos
+  org --- authOrg
 ```
 
-`$prepareInfra()` returns control-plane schemas (`tenant`, `service_provider`, `service_provider_user`, `managed_organization`), empty tenant schemas, merged ACL, and domain events.
+`$prepareInfra()` returns control-plane schemas (`managed_organization`, `service_provider`, `service_provider_user`, `tenant_status` enum), empty tenant schemas, merged ACL, and domain events.
 
 ## Key Concepts
 
 ### Tenants
 
-Control-plane companion to better-auth `organization` (shared `id`). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB and seeds the `organization` row on isolated tenancy. The tenant logo lives on better-auth `organization.logo` as a Storage logical key (`logos/tenant/<id>/<file>`); upload via `tenants.uploadLogo` / `tenants.issueLogoUploadUrl` + `tenants.attachLogo`, remove via `tenants.removeLogo`, display via `tenants.getLogoUrl`.
+A tenant is a better-auth `organization` row plus its `managed_organization` companion (shared `id`, PK/FK). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB, seeds the `organization` row on isolated tenancy, and inserts the companion. The tenant logo lives on better-auth `organization.logo` as a Storage logical key (`logos/tenant/<id>/<file>`); upload via `tenants.uploadLogo` / `tenants.issueLogoUploadUrl` + `tenants.attachLogo`, remove via `tenants.removeLogo`, display via `tenants.getLogoUrl`. The isolated database name is derived, not stored: `tenants.resolveDatabase` uses the configured `TenantResolver` or the `tenantDbPrefix_<tenantId>` convention.
 
 ### Service Providers
 
@@ -75,7 +75,7 @@ Implementation partners (`service_provider`). Status `active`/`inactive`; assign
 
 ### Managed Organizations
 
-Platform-level organizations (`managed_organization`, PG `managed_organization`) to avoid collision with better-auth `organization`. CRUD via `organizations` group. `branding.logo` is a Storage logical key (`logos/organization/<id>/<file>`); upload via `organizations.uploadLogo` / `issueLogoUploadUrl` + `attachLogo`, remove via `removeLogo`, display via `getLogoUrl`. `create`/`update` accept only Storage keys, never raw bytes or external URLs.
+The `managed_organization` companion holds branding on top of the tenant lifecycle fields; `name`/`slug` live on better-auth `organization`. `organizations` exposes `get`/`list`/`update` plus the logo surface — `create` is gone because the companion is only created by `tenants.onboard`. `branding.logo` is a Storage logical key (`logos/organization/<id>/<file>`); upload via `organizations.uploadLogo` / `issueLogoUploadUrl` + `attachLogo`, remove via `removeLogo`, display via `getLogoUrl`. `update` accepts only Storage keys, never raw bytes or external URLs.
 
 ### Platform Users
 
@@ -85,17 +85,16 @@ Better-auth `user` rows plus `service_provider_user` membership (1:1 user→SP).
 
 ```mermaid
 flowchart LR
-  tenant -- service_provider_id --> sp
+  org -- service_provider_id --> sp
   spu -- service_provider_id --> sp
   spu -- user_id --> authUser
-  tenant -- id 1:1 --> authOrg
-  org -. independent .- sp
-  org -. independent .- tenant
+  org -- id 1:1 --> authOrg
 ```
 
 Soft logical links; uniqueness on `service_provider_user (service_provider_id, user_id)` and `(user_id)` enforces 1:1 user→SP.
 
 <Callout type="info">
-  `tenants.onboard` creates the better-auth `organization` via `AuthUnit` and deletes it if
-  `provisionTenant` fails. `update` cannot change `tenant.status` — use lifecycle transitions.
+  `tenants.onboard` creates the better-auth `organization` via `AuthUnit`, deletes it if
+  `provisionTenant` fails, then inserts the `managed_organization` companion. `update` cannot change
+  `tenant.status` — use lifecycle transitions.
 </Callout>

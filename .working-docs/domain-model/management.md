@@ -1,6 +1,6 @@
 # Management Plane Domain Model
 
-> Package: `@aspen-os/management`. The control-plane domain — Tenants, Service Providers, Platform Users, Organizations read model, Tenant Members, and the audit trail over them. 4 owned tables (all control-plane) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`.
+> Package: `@aspen-os/management`. The control-plane domain — Tenants, Service Providers, Platform Users, Organizations read model, Tenant Members, and the audit trail over them. 3 owned tables (all control-plane) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`. The former `tenant` table was merged into `managed_organization`, the 1:1 companion of the better-auth `organization` row.
 
 ## Entity-Relationship Diagram
 
@@ -9,52 +9,53 @@
 │                  MANAGEMENT PLANE DOMAIN                             │
 │                                                                     │
 │  ┌──────────────────┐       ┌──────────────────────┐                │
-│  │      Tenant       │──1:N──│   AuditLog           │                │
-│  │  (companion)      │       │  (platform core —    │                │
-│  │  id (PK)          │       │   not module-owned)  │                │
-│  │  status (enum)    │       │  id (PK)             │                │
-│  │  plan             │       │  entityType (text)   │                │
-│  │  serviceProviderId│──N:1─→│  entityId            │                │
-│  │  signupAt         │       │  action (text, 17)   │                │
-│  │  databaseHost     │       │  actorId             │                │
-│  │  databaseName     │       │  performedAt         │                │
-│  │  databasePort     │       │  previousState (jsonb)│               │
-│  │  databaseUser     │       │  newState (jsonb)     │               │
-│  │  databasePassword │       │  changes (jsonb)      │               │
-│  │  databaseSsl      │       │  metadata (jsonb)     │               │
-│  │  suspendedAt      │       └──────────────────────┘                │
-│  │  suspendedReason  │                                               │
-│  │  churnedAt        │       ┌──────────────────────┐                │
-│  │  churnReason      │       │  ServiceProvider      │                │
-│  └────────┬──────────┘       │  id (PK)              │                │
-│           │                  │  name                 │                │
-│           │ 1:1              │  slug (uniq)          │                │
-│           │                  │  status (enum)        │                │
-│           ▼                  │  description          │                │
-│  ┌──────────────────┐       │  email, phone         │                │
-│  │  better-auth     │       │  address, website     │                │
-│  │  Organization    │       │  logo                 │                │
-│  │  (the Tenant)    │       └──────────┬───────────┘                │
-│  │  id (PK)         │                  │ 1:N                        │
-│  │  name / slug / logo │               ▼                            │
-│  │  (control plane) │       ┌──────────────────────┐                │
-│  └──────────────────┘       │  ServiceProviderUser  │                │
+│  │  managed          │──1:N──│   AuditLog           │                │
+│  │  Organization     │       │  (platform core —    │                │
+│  │  (Tenant          │       │   not module-owned)  │                │
+│  │   companion)      │       │  id (PK)             │                │
+│  │  id (PK/FK)       │──N:1─→│  entityType (text)   │                │
+│  │  status (enum)    │       │  action (text, 17)   │                │
+│  │  plan             │       │  actorId             │                │
+│  │  serviceProviderId│       │  performedAt         │                │
+│  │  signupAt         │       │  previousState (jsonb)│               │
+│  │  branding         │       │  newState (jsonb)     │               │
+│  │  suspendedAt      │       │  changes (jsonb)      │               │
+│  │  suspendedReason  │       │  metadata (jsonb)     │               │
+│  └────────┬──────────┘       └──────────────────────┘                │
+│           │                                                         │
+│           │ 1:1 (id = organization.id, FK cascade)                  │
+│           ▼                                                         │
+│  ┌──────────────────┐       ┌──────────────────────┐                │
+│  │  better-auth     │       │  ServiceProvider      │                │
+│  │  Organization    │       │  id (PK)              │                │
+│  │  (the Tenant)    │       │  name                 │                │
+│  │  id (PK)         │       │  slug (uniq)          │                │
+│  │  name/slug/logo  │       │  status (enum)        │                │
+│  │  (control plane) │       │  description          │                │
+│  └──────────────────┘       │  email, phone         │                │
+│                              │  address, website     │                │
+│                              │  logo                 │                │
+│                              └──────────┬───────────┘                │
+│                                         │ 1:N                        │
+│                                         ▼                            │
+│                              ┌──────────────────────┐                │
+│                              │  ServiceProviderUser  │                │
 │                              │  id (PK)              │                │
-│  ┌──────────────────┐       │  userId (FK→User)     │                │
-│  │ aspen-os         │       │  serviceProviderId    │                │
-│  │ Organization     │       │    (FK→ServiceProvider)│               │
-│  │ (rich profile    │       │  (1:1 join, no spId    │               │
-│  │  companion,      │       │   column on user)      │               │
-│  │  per-tenant)     │       └──────────┬───────────┘                │
-│  │ id = tenant id   │                  │ 1:N                        │
-│  └──────────────────┘                  ▼                            │
-│                                        ┌──────────────┐             │
-│                                        │  User        │             │
-│                                        │  (better-auth)│            │
-│                                        └──────────────┘             │
+│                              │  userId (FK→User)     │                │
+│                              │  serviceProviderId    │                │
+│                              │    (FK→ServiceProvider)│               │
+│                              │  (1:1 join, no spId    │               │
+│                              │   column on user)      │               │
+│                              └──────────┬───────────┘                │
+│                                         │ 1:N                        │
+│                                         ▼                            │
+│                              ┌──────────────┐                        │
+│                              │  User        │                        │
+│                              │  (better-auth)│                       │
+│                              └──────────────┘                        │
 │                                                                     │
-│  Owned tables (control_plane):   tenant, service_provider,          │
-│    service_provider_user, managedOrganization                       │
+│  Owned tables (control_plane):   managed_organization,              │
+│    service_provider, service_provider_user                          │
 │  Shadow re-exports (not pushed):   organization, user (platform)     │
 │                                                                     │
 │  Roles: platform_admin, sp_user, tenant_admin, tenant_user           │
@@ -76,14 +77,13 @@
 **Invariants**:
 
 - Status transitions: `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced by the shared `defineTenantTransition` factory; `update` cannot set `status`)
-- `suspendedAt`/`suspendedReason` set when suspended; `churnedAt`/`churnReason` set when churned
+- `suspendedAt`/`suspendedReason` set when suspended; `churn` only flips `status` (no churn reason/timestamp is persisted)
 - At most one active Service Provider assignment (`serviceProviderId`)
-- Database connection params (`databaseHost`, `databaseName`, `databasePort`, `databaseUser`, `databasePassword`, `databaseSsl`) record the per-tenant DB connection
 - `onboarding` is an opaque single stage — internal install/training/handoff sub-steps are NOT tracked
 
-**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, records the tenant row, writes an audit entry, publishes `tenant.provisioned`), `get(id)` (joins `organization` + `tenant` tables), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)`.
+**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, inserts the `managed_organization` companion, writes an audit entry, publishes `tenant.provisioned`), `get(id)` (joins better-auth `organization` + `managed_organization`), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)`.
 
-**Relationships**: 1:1 with better-auth Organization (shares ID); N:1 with ServiceProvider (`serviceProviderId`).
+**Relationships**: 1:1 with better-auth Organization via `managed_organization.id` (hard FK, shares ID, cascade delete); N:1 with ServiceProvider (`serviceProviderId`, soft).
 
 ### Service Provider (Aggregate Root)
 
@@ -122,7 +122,7 @@
 - Written inline in each management workflow via `ctx.audit.write(...)` (NOT via a shared `logAuditStep`)
 - Polymorphic: `entityType` + `entityId` references any management entity
 
-## Domain Events — 22
+## Domain Events — 21
 
 ### Tenant Events (8)
 
@@ -156,12 +156,11 @@
 | `platform_user.role_assigned` | `{ userId, role }`              | Role assigned to platform user    |
 | `platform_user.sp_assigned`   | `{ userId, spId, role }`        | User assigned to service provider |
 
-### Organization Events (2)
+### Organization Events (1)
 
-| Event                  | Payload                                          | Trigger              |
-| ---------------------- | ------------------------------------------------ | -------------------- |
-| `organization.created` | `{ organization: { id, name, slug, branding } }` | Organization created |
-| `organization.updated` | `{ organization: { id, name }, changes }`        | Organization updated |
+| Event                  | Payload                                   | Trigger              |
+| ---------------------- | ----------------------------------------- | -------------------- |
+| `organization.updated` | `{ organization: { id, name }, changes }` | Organization updated |
 
 ### Tenant Member Events (3)
 
@@ -211,6 +210,6 @@
 2. **SP user resolved via `service_provider_user` table** — a join table (1:1 from user to SP via FK), replacing the earlier `user.spId` column design. Role `'sp_user'` requires a matching `service_provider_user` row; enforced in workflow.
 3. **Tenant status transitions** — `onboarding` → `active` → `suspended` ↔ `active` → `churned` (enforced in workflow).
 4. **Audit log append-only** — no updates or deletes; written via platform `ctx.audit.write(...)` inline in each workflow (the platform's `audit_log` table, not a module-local table).
-5. **Tenant-Organization ID sharing** — tenant companion table ID = better-auth organization ID (1:1 relationship).
+5. **Tenant-Organization ID sharing** — `managed_organization.id` is the better-auth `organization.id` (1:1, hard FK with cascade delete). Name/slug/logo/createdAt live on the organization row; branding and lifecycle fields live on the companion.
 6. **Provisioning idempotency** — `CREATE DATABASE` catches "already exists" errors and continues.
 7. **Control-plane only** — platform admins and all reports work ONLY against the control-plane DB; reports never cross into per-tenant DBs.

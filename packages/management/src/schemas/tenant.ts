@@ -2,16 +2,10 @@ import { TenantStatusSchema } from "#/schemas/enums";
 import { LogoStorageKeySchema } from "#/schemas/logo";
 import { LimitSchema, NameSchema, OffsetSchema, SlugSchema } from "#/schemas/utils";
 
-import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
+import { nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const ProvisionTenantSchema = object({
-  databaseHost: optional(nullable(string())),
-  databaseName: optional(nullable(string())),
-  databasePassword: optional(nullable(string())),
-  databasePort: optional(nullable(pipe(number(), integer()))),
-  databaseSsl: optional(nullable(boolean())),
-  databaseUser: optional(nullable(string())),
   logo: optional(nullable(LogoStorageKeySchema)),
   name: NameSchema,
   plan: optional(nullable(string())),

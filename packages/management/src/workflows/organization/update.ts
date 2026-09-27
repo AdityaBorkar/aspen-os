@@ -6,6 +6,7 @@ import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchOrganizationStep } from "#/workflow-steps/fetch-organization";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { organization } from "@aspen-os/platform/server/db-schemas";
 import { eq } from "drizzle-orm";
 import { object } from "valibot";
 
@@ -18,18 +19,35 @@ export const updateOrganization = Workflow.name("organization.update")
   )
   .handler(async (input, ctx) => {
     const { id, patch } = input;
-    await ctx.step.run(fetchOrganizationStep, { id });
+    const current = await ctx.step.run(fetchOrganizationStep, { id });
 
     const data = stripUndefined(patch);
     if (Object.keys(data).length === 0) {
-      return ctx.step.run(fetchOrganizationStep, { id });
+      return current;
     }
 
+    // `name`/`slug` are owned by the better-auth organization row; `branding`
+    // is the companion's own column.
+    const { branding, name, slug } = data;
+    const organizationData = stripUndefined({ name, slug });
+
     await ctx.step.run("update-record", async () => {
-      await ctx.db
+      if (Object.keys(organizationData).length > 0) {
+        await ctx.db.update(organization).set(organizationData).where(eq(organization.id, id));
+      }
+
+      const [companion] = await ctx.db
         .update(managedOrganization)
-        .set({ ...data, updated_at: new Date() })
-        .where(eq(managedOrganization.id, id));
+        .set({
+          branding: branding !== undefined ? branding : current.branding,
+          updated_at: new Date(),
+        })
+        .where(eq(managedOrganization.id, id))
+        .returning();
+
+      if (!companion) {
+        throw new Error(`Organization with id "${id}" not found.`);
+      }
     });
 
     const updated = await ctx.step.run(fetchOrganizationStep, { id });

@@ -40,7 +40,7 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | DMS             | 12     | all tenant (`dms_` prefix)                                                                        |
 | HR (3 pkgs)     | 51     | 12 control-plane (hr-core setup/access) + 39 tenant (hr-core 14, hr-attendance 11, hr-leave 14)   |
 | Announcement    | 2      | all tenant (`announcement`, `announcement_recipient`)                                             |
-| Management      | 4      | all control-plane (4 owned + 2 shadow re-exports)                                                 |
+| Management      | 3      | all control-plane (3 owned + 2 shadow re-exports)                                                 |
 | Workspace       | 8      | all tenant (`workspace_` prefix)                                                                  |
 | Healthcare      | 140    | all tenant (`healthcare_` prefix) + 13 `healthcare_*` pgEnums                                     |
 
