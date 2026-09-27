@@ -54,6 +54,8 @@ export class LogUnit {
       );
     });
     this.flushTimer = setInterval(async () => this.buffer?.flush(), 5000);
+    // Background flush must not keep the process alive on its own.
+    this.flushTimer.unref?.();
   }
 
   async $prepareInfra(): Promise<void> {}
