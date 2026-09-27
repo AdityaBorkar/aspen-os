@@ -11,11 +11,22 @@ import { addActivity, validateParentTask } from "#/workflows/utils";
 import { Workflow } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
-import { object } from "valibot";
+import { boolean, nullable, object, optional, string } from "valibot";
 
 const UpdateInputSchema = object({
   id: IdSchema,
   patch: UpdateTaskSchema,
+  // Pre-resolved transition verdict for split deployments, where the tenant
+  // database cannot see `task_status_transition`/`task_status`. Callers that
+  // already validated via `status.validate-transition` (and resolved the
+  // target category via `status.get`) pass the verdict to skip the inline
+  // control-plane reads. Omitted in single-DB deployments (checked inline).
+  transitionCheck: optional(
+    object({
+      allowed: boolean(),
+      toStatusCategory: nullable(string()),
+    }),
+  ),
 });
 
 export const updateTask = Workflow.name("task.update")
@@ -34,22 +45,23 @@ export const updateTask = Workflow.name("task.update")
 
     const parentChanged = input.patch.parentId !== undefined && input.patch.parentId !== null;
 
-    const [, transitionAllowed] = await Promise.all([
-      parentChanged && input.patch.parentId
-        ? validateParentTask(ctx.db, {
-            currentTaskId: input.id,
-            parentId: input.patch.parentId,
-            projectId: current.project_id,
-          })
-        : Promise.resolve(),
+    const transitionAllowed =
       statusChanged && input.patch.statusId
-        ? validateTransition.run({
+        ? (input.transitionCheck?.allowed ??
+          (await validateTransition.run({
             fromStatusId: current.status_id,
             projectId: current.project_id,
             toStatusId: input.patch.statusId,
-          })
-        : Promise.resolve(true),
-    ]);
+          })))
+        : true;
+
+    if (parentChanged && input.patch.parentId) {
+      await validateParentTask(ctx.db, {
+        currentTaskId: input.id,
+        parentId: input.patch.parentId,
+        projectId: current.project_id,
+      });
+    }
 
     if (statusChanged && input.patch.statusId) {
       if (!transitionAllowed) {
@@ -114,12 +126,16 @@ export const updateTask = Workflow.name("task.update")
       ];
 
       if (statusChanged && input.patch.statusId) {
-        const [nextStatus] = await ctx.db
-          .select({ category: status.category })
-          .from(status)
-          .where(eq(status.id, input.patch.statusId))
-          .limit(1);
-        const toStatusCategory = nextStatus?.category ?? null;
+        const toStatusCategory =
+          input.transitionCheck?.toStatusCategory ??
+          (
+            await ctx.db
+              .select({ category: status.category })
+              .from(status)
+              .where(eq(status.id, input.patch.statusId))
+              .limit(1)
+          )[0]?.category ??
+          null;
         notifications.push(
           ctx.pubsub.publish(TASK_EVENTS.STATUS_CHANGED, {
             fromStatus: current.status_id,

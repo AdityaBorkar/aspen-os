@@ -2,7 +2,7 @@ import { task } from "#/db-schemas/task";
 import { taskAssignee } from "#/db-schemas/task-assignee";
 import type { TaskFilters } from "#/types";
 
-import { and, eq, exists, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 
 export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | undefined {
@@ -48,10 +48,11 @@ export function buildTaskWhereClause(filters: TaskFilters | undefined): SQL | un
     }
   }
   if (filters.assigneeId) {
+    // NOTE: `exists` needs parenthesised SQL here — drizzle's `exists()`
+    // helper renders a raw fragment without parens (`exists select 1 …`,
+    // a syntax error), so the subquery is inlined with explicit parens.
     conditions.push(
-      exists(
-        sql`select 1 from ${taskAssignee} where ${taskAssignee.task_id} = ${task.id} and ${taskAssignee.user_id} = ${filters.assigneeId}`,
-      ),
+      sql`exists (select 1 from ${taskAssignee} where ${taskAssignee.task_id} = ${task.id} and ${taskAssignee.user_id} = ${filters.assigneeId})`,
     );
   }
 

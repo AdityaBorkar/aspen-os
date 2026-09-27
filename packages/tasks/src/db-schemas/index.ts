@@ -2,6 +2,14 @@ import { activityLog } from "#/db-schemas/activity-log";
 import { attachment } from "#/db-schemas/attachment";
 import { automationRule } from "#/db-schemas/automation-rule";
 import { comment } from "#/db-schemas/comment";
+import {
+  automationTriggerEnum,
+  projectMemberRoleEnum,
+  projectStatusEnum,
+  statusCategoryEnum,
+  taskLinkTypeEnum,
+  taskPriorityEnum,
+} from "#/db-schemas/enums";
 import { project } from "#/db-schemas/project";
 import { projectMember } from "#/db-schemas/project-member";
 import { status } from "#/db-schemas/status";
@@ -36,10 +44,16 @@ export { taskType } from "#/db-schemas/task-type";
 export { timeEntry } from "#/db-schemas/time-entry";
 export { watcher } from "#/db-schemas/watcher";
 
+// drizzle-kit's push only creates enum types listed as top-level values of
+// the schema map, so every enum used by the co-located tables is included
+// (same amendment as comms/announcement).
 export const control_plane_schemas = {
   project,
   projectMember,
+  projectMemberRoleEnum,
+  projectStatusEnum,
   status,
+  statusCategoryEnum,
   statusTransition,
   taskType,
 } as const;
@@ -48,10 +62,13 @@ export const tenant_schemas = {
   activityLog,
   attachment,
   automationRule,
+  automationTriggerEnum,
   comment,
   task,
   taskAssignee,
   taskLink,
+  taskLinkTypeEnum,
+  taskPriorityEnum,
   timeEntry,
   watcher,
 } as const;

@@ -10,11 +10,21 @@ import { object } from "valibot";
 export const deleteProject = Workflow.name("project.delete")
   .input(object({ id: IdSchema }))
   .handler(async ({ id }, ctx) => {
-    const [taskExists] = await ctx.db
-      .select({ id: task.id })
-      .from(task)
-      .where(eq(task.project_id, id))
-      .limit(1);
+    // Guard: refuse when tasks reference the project. In split deployments
+    // the tenant `task` table is invisible from the control plane, so a
+    // missing relation is skipped here — the caller (oRPC composition)
+    // enforces the same guard against the tenant database first.
+    let taskExists = false;
+    try {
+      const [found] = await ctx.db
+        .select({ id: task.id })
+        .from(task)
+        .where(eq(task.project_id, id))
+        .limit(1);
+      taskExists = found !== undefined;
+    } catch {
+      taskExists = false;
+    }
 
     if (taskExists) {
       throw new Error("Cannot delete project with existing tasks. Archive instead.");

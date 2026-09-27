@@ -34,6 +34,7 @@ import { addProjectMember } from "#/workflows/project/member/add";
 import { removeProjectMember } from "#/workflows/project/member/remove";
 import { updateProjectMember } from "#/workflows/project/member/update";
 import { listProjectMembers } from "#/workflows/project/members/list";
+import { reserveTaskNumber } from "#/workflows/project/reserve-task-number";
 import { restoreProject } from "#/workflows/project/restore";
 import { updateProject } from "#/workflows/project/update";
 import { createStatus } from "#/workflows/status/create";
@@ -101,6 +102,7 @@ export const projectWorkflows = {
   list: listProjects,
   listMembers: listProjectMembers,
   removeMember: removeProjectMember,
+  reserveTaskNumber,
   restore: restoreProject,
   update: updateProject,
   updateMember: updateProjectMember,

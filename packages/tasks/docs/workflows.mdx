@@ -29,6 +29,12 @@ await p.tasks.projects.listMembers({ projectId });
 
 `key` is 2–10 uppercase letters, unique. `leadId` auto-added as `admin`. `delete` throws if tasks exist.
 
+```ts
+const { displayNumber, taskSeq } = await p.tasks.projects.reserveTaskNumber({ projectId });
+```
+
+`reserveTaskNumber` atomically increments `task_project.task_counter` and returns the next `KEY-SEQ`. Split deployments reserve first, then `task.create` with the preassigned `number`/`taskNumber` (a failed create leaves a harmless gap); single-DB callers omit both and the number generates inline. `delete` checks the tenant `task` table best-effort — split callers enforce the guard against the tenant database first (same error).
+
 ### Tasks
 
 ```ts
@@ -60,6 +66,8 @@ await p.tasks.tasks.unassign({ taskId, userId });
 await p.tasks.tasks.getAssignees({ taskId });
 await p.tasks.tasks.getLoggedHours({ taskId });
 ```
+
+`update` accepts an optional `transitionCheck: { allowed, toStatusCategory }` alongside `{ id, patch }`. Split callers pre-resolve it via `statuses.validateTransition` + `statuses.get` (the tenant database cannot see the control-plane transition tables); omitted in single-DB deployments (checked inline). Status changes still publish `task.status_changed` with the resolved category.
 
 `number` is `KEY-SEQ` from `task_project.task_counter`. Parent must be same project; depth ≤3; cycles rejected. `isLead` clears prior lead.
 

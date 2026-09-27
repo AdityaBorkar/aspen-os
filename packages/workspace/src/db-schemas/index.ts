@@ -1,6 +1,14 @@
 import { workspaceDashboard } from "#/db-schemas/dashboard";
 import { workspaceDraft } from "#/db-schemas/draft";
 import { workspaceDraftComment } from "#/db-schemas/draft-comment";
+import {
+  workspaceAccessEnum,
+  workspaceDraftStatusEnum,
+  workspaceFilterViewAccessEnum,
+  workspaceFilterViewTypeEnum,
+  workspaceItemTypeEnum,
+  workspaceWidgetTypeEnum,
+} from "#/db-schemas/enums";
 import { workspaceFilterView } from "#/db-schemas/filter-view";
 import { workspacePin } from "#/db-schemas/pin";
 import { workspaceRecent } from "#/db-schemas/recent";
@@ -37,4 +45,15 @@ export const workspaceTables = {
 
 export const control_plane_schemas = {} as const;
 
-export const tenant_schemas = workspaceTables;
+// drizzle-kit's push only creates enum types listed as top-level values of
+// the schema map, so every enum used by the co-located tables is included
+// (same amendment as comms/announcement).
+export const tenant_schemas = {
+  ...workspaceTables,
+  workspaceAccessEnum,
+  workspaceDraftStatusEnum,
+  workspaceFilterViewAccessEnum,
+  workspaceFilterViewTypeEnum,
+  workspaceItemTypeEnum,
+  workspaceWidgetTypeEnum,
+};

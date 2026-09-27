@@ -21,7 +21,10 @@ export const createTask = Workflow.name("task.create")
       });
     }
 
-    const { displayNumber, taskSeq } = await generateTaskNumber(ctx.db, input.projectId);
+    const { displayNumber, taskSeq } =
+      input.taskNumber != null && input.number != null
+        ? { displayNumber: input.number, taskSeq: input.taskNumber }
+        : await generateTaskNumber(ctx.db, input.projectId);
 
     const [result] = await ctx.db
       .insert(task)
