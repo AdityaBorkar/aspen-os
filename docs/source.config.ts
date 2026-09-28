@@ -38,5 +38,6 @@ export const workspace = definePackageDocs("workspace");
 export const notes = definePackageDocs("notes");
 export const calendar = definePackageDocs("calendar");
 export const accounting = definePackageDocs("accounting");
+export const products = definePackageDocs("products");
 
 export default defineConfig();

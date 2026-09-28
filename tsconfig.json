@@ -51,6 +51,7 @@
     { "path": "./packages/pharmacy" },
     { "path": "./packages/tasks" },
     { "path": "./packages/workspace" },
-    { "path": "./packages/accounting" }
+    { "path": "./packages/accounting" },
+    { "path": "./packages/products" }
   ]
 }

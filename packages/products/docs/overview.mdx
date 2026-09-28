@@ -1,0 +1,13 @@
+---
+title: Overview
+description: Architecture and module structure of Products.
+icon: IconOverview
+---
+
+# Overview
+
+`@aspen-os/products` (`$name = "products"`, `$dependencies = ["masters"]`) is the centralized item master. All tables are tenant-scope with `products_` prefix.
+
+Groups: `items`, `groups`, `brands`, `manufacturers`, `attributes`, `variants`, `barcodes`, `alternatives`, `itemUoms`, `reorderRules`, `settings`, `lookups`.
+
+Stateless: no cron. Reorder scan lives in inventory; this module exposes reorder rows via `reorderRules` and `lookups.getReorderRules`.
