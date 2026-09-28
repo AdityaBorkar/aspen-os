@@ -1,7 +1,7 @@
 import { inventoryBatch } from "#/db-schemas/batch";
 import { inventoryStockLedger } from "#/db-schemas/stock-ledger";
 import { inventoryWarehouse } from "#/db-schemas/warehouse";
-import { asDb, getBatchBalances, getStockStates } from "#/services/stock-service";
+import { getBatchBalances, getStockKey, getStockStates } from "#/services/stock-service";
 import type { DbOrTx } from "#/services/stock-service";
 
 import { and, desc, eq, inArray, sql } from "drizzle-orm";
@@ -34,6 +34,8 @@ export type SuggestedLine =
       warehouseId: null;
     };
 
+type AllocatedLine = Omit<Extract<SuggestedLine, { warehouseId: string }>, "itemId">;
+
 interface WarehouseCandidate {
   available: number;
   firstReceipt: string;
@@ -42,8 +44,7 @@ interface WarehouseCandidate {
 }
 
 async function availableWarehouses(db: DbOrTx, itemId: string): Promise<WarehouseCandidate[]> {
-  const handle = asDb(db);
-  const rows = await handle
+  const rows = await db
     .select({
       firstReceipt: sql<string>`min(${inventoryStockLedger.posting_date})`,
       onHand: sql<string>`sum(${inventoryStockLedger.qty_delta})`,
@@ -56,10 +57,10 @@ async function availableWarehouses(db: DbOrTx, itemId: string): Promise<Warehous
       sql`min(${inventoryStockLedger.posting_date}), min(${inventoryStockLedger.created_at})`,
     );
   const pairs = rows.map((row) => ({ itemId, warehouseId: row.warehouseId }));
-  const states = await getStockStates(handle, pairs);
+  const states = await getStockStates(db, pairs);
   const candidates: WarehouseCandidate[] = [];
   for (const row of rows) {
-    const state = states.get(`${itemId}::${row.warehouseId}`);
+    const state = states.get(getStockKey(itemId, row.warehouseId));
     const available = state?.available ?? 0;
     const onHand = state?.onHand ?? Number(row.onHand ?? 0);
     if (available <= 0) {
@@ -80,11 +81,10 @@ async function expiryByBatch(
   itemId: string,
   batchNos: string[],
 ): Promise<Map<string, string | null>> {
-  const handle = asDb(db);
   if (batchNos.length === 0) {
     return new Map();
   }
-  const masters = await handle
+  const masters = await db
     .select()
     .from(inventoryBatch)
     .where(and(eq(inventoryBatch.item_id, itemId), inArray(inventoryBatch.batch_id, batchNos)));
@@ -111,35 +111,14 @@ function orderByExpiry(
   });
 }
 
-async function allocateBatches(
-  db: DbOrTx,
-  itemId: string,
-  warehouseId: string,
+function splitByExpiry(
+  entries: { balance: number; batchNo: string }[],
+  expiries: Map<string, string | null>,
   qty: number,
-  availableQty: number,
-  batchNo: string | null,
-): Promise<Omit<Extract<SuggestedLine, { warehouseId: string }>, "itemId">[]> {
-  const handle = asDb(db);
-  if (batchNo) {
-    const balances = await getBatchBalances(handle, itemId, warehouseId, [batchNo]);
-    const balance = balances.get(batchNo) ?? 0;
-    const take = Math.min(qty, Math.max(balance, 0));
-    return [{ availableQty: balance, batchNo, qty: take, warehouseId }];
-  }
-  const balances = await getBatchBalances(handle, itemId, warehouseId);
-  const entries = [...balances]
-    .filter(([, balance]) => balance > 0)
-    .map(([name, balance]) => ({ balance, batchNo: name }));
-  if (entries.length === 0) {
-    return [{ availableQty, batchNo: null, qty, warehouseId }];
-  }
-  const expiries = await expiryByBatch(
-    handle,
-    itemId,
-    entries.map((entry) => entry.batchNo),
-  );
+  warehouseId: string,
+): AllocatedLine[] {
   const ordered = orderByExpiry(entries, expiries);
-  const lines: Omit<Extract<SuggestedLine, { warehouseId: string }>, "itemId">[] = [];
+  const lines: AllocatedLine[] = [];
   let remaining = qty;
   for (const entry of ordered) {
     if (remaining <= 0) {
@@ -152,35 +131,70 @@ async function allocateBatches(
   return lines;
 }
 
+async function allocateBatches(
+  db: DbOrTx,
+  itemId: string,
+  warehouseId: string,
+  qty: number,
+  availableQty: number,
+  batchNo: string | null,
+): Promise<AllocatedLine[]> {
+  if (batchNo) {
+    const balances = await getBatchBalances(db, itemId, warehouseId, [batchNo]);
+    const balance = balances.get(batchNo) ?? 0;
+    const take = Math.min(qty, Math.max(balance, 0));
+    return [{ availableQty: balance, batchNo, qty: take, warehouseId }];
+  }
+  const balances = await getBatchBalances(db, itemId, warehouseId);
+  const entries = [...balances]
+    .filter(([, balance]) => balance > 0)
+    .map(([name, balance]) => ({ balance, batchNo: name }));
+  if (entries.length === 0) {
+    return [{ availableQty, batchNo: null, qty, warehouseId }];
+  }
+  const expiries = await expiryByBatch(
+    db,
+    itemId,
+    entries.map((entry) => entry.batchNo),
+  );
+  return splitByExpiry(entries, expiries, qty, warehouseId);
+}
+
 async function suggestForItem(
   db: DbOrTx,
   item: SuggestRequestItem,
   scope: Set<string> | null,
 ): Promise<SuggestedLine[]> {
-  const handle = asDb(db);
-  const candidates = await availableWarehouses(handle, item.itemId);
+  const candidates = await availableWarehouses(db, item.itemId);
+  const inScope = scope
+    ? candidates.filter((candidate) => scope.has(candidate.warehouseId))
+    : candidates;
+  const allocations = await Promise.all(
+    inScope.map((candidate) =>
+      allocateBatches(
+        db,
+        item.itemId,
+        candidate.warehouseId,
+        Math.min(item.qty, candidate.available),
+        candidate.available,
+        item.batchNo ?? null,
+      ),
+    ),
+  );
   const lines: SuggestedLine[] = [];
   let remaining = item.qty;
-  for (const candidate of candidates) {
+  for (const batchLines of allocations) {
     if (remaining <= 0) {
       break;
     }
-    if (scope && !scope.has(candidate.warehouseId)) {
-      continue;
-    }
-    const take = Math.min(remaining, candidate.available);
-    const batchLines = await allocateBatches(
-      handle,
-      item.itemId,
-      candidate.warehouseId,
-      take,
-      candidate.available,
-      item.batchNo ?? null,
-    );
     let allocated = 0;
     for (const batchLine of batchLines) {
-      lines.push({ ...batchLine, itemId: item.itemId });
-      allocated += batchLine.qty;
+      const take = Math.min(batchLine.qty, remaining - allocated);
+      if (take <= 0) {
+        continue;
+      }
+      lines.push({ ...batchLine, itemId: item.itemId, qty: take });
+      allocated += take;
     }
     remaining -= allocated;
   }
@@ -201,25 +215,21 @@ export async function suggestPickLocations(
   db: DbOrTx,
   request: SuggestRequest,
 ): Promise<SuggestedLine[]> {
-  const handle = asDb(db);
   let scope: Set<string> | null = null;
   if (request.parentWarehouseId) {
-    const children = await handle
+    const children = await db
       .select({ id: inventoryWarehouse.id })
       .from(inventoryWarehouse)
       .where(eq(inventoryWarehouse.parent_id, request.parentWarehouseId));
     scope = new Set([request.parentWarehouseId, ...children.map((child) => child.id)]);
   }
 
-  const perItem = await Promise.all(
-    request.items.map((item) => suggestForItem(handle, item, scope)),
-  );
+  const perItem = await Promise.all(request.items.map((item) => suggestForItem(db, item, scope)));
   return perItem.flat();
 }
 
 export async function latestWarehouseByItem(db: DbOrTx, itemId: string): Promise<string | null> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({ warehouseId: inventoryStockLedger.warehouse_id })
     .from(inventoryStockLedger)
     .where(eq(inventoryStockLedger.item_id, itemId))

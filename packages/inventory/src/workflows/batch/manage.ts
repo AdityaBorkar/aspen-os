@@ -3,7 +3,7 @@ import { inventoryStockLedger } from "#/db-schemas/stock-ledger";
 import { BATCH_EVENTS } from "#/pubsub";
 import { toDateOnly } from "#/services/stock-math";
 import { getBatchBalance } from "#/services/stock-posting";
-import { requireWarehouse, asDb } from "#/services/stock-service";
+import { requireWarehouse } from "#/services/stock-service";
 import {
   BatchFiltersSchema,
   CreateBatchSchema,
@@ -195,11 +195,10 @@ export const moveBatch = Workflow.name("inventory.batch.move")
       throw new Error("Source and target warehouses must differ.");
     }
     const result = await ctx.db.transaction(async (tx) => {
-      const db = asDb(tx);
-      await requireWarehouse(db, parsed.sourceWarehouseId);
-      await requireWarehouse(db, parsed.targetWarehouseId);
+      await requireWarehouse(tx, parsed.sourceWarehouseId);
+      await requireWarehouse(tx, parsed.targetWarehouseId);
       const today = toDateOnly(new Date().toISOString());
-      const [batch] = await db
+      const [batch] = await tx
         .select()
         .from(inventoryBatch)
         .where(
@@ -208,7 +207,8 @@ export const moveBatch = Workflow.name("inventory.batch.move")
             eq(inventoryBatch.batch_id, parsed.batchNo),
           ),
         )
-        .limit(1);
+        .limit(1)
+        .for("update");
       const source = assertReturned(
         batch,
         `Batch "${parsed.batchNo}" does not exist for this item.`,
@@ -216,7 +216,7 @@ export const moveBatch = Workflow.name("inventory.batch.move")
       if (source.status === "expired" || (source.expiry_date && source.expiry_date < today)) {
         throw new Error(`Batch "${parsed.batchNo}" is expired and cannot be moved.`);
       }
-      const balance = await getBatchBalance(db, {
+      const balance = await getBatchBalance(tx, {
         batchNo: parsed.batchNo,
         itemId: parsed.itemId,
         warehouseId: parsed.sourceWarehouseId,
@@ -225,7 +225,7 @@ export const moveBatch = Workflow.name("inventory.batch.move")
         throw new Error(`Insufficient batch stock to move (have ${balance}, need ${parsed.qty}).`);
       }
 
-      const [rateRow] = await db
+      const [rateRow] = await tx
         .select({
           qty: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
           total: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
@@ -239,9 +239,13 @@ export const moveBatch = Workflow.name("inventory.batch.move")
           ),
         );
       const batchQty = Number(rateRow?.qty ?? 0);
-      const rate = batchQty > 0 ? Number(rateRow?.total ?? 0) / batchQty : 0;
+      const batchTotal = Number(rateRow?.total ?? 0);
+      if (!Number.isFinite(batchQty) || !Number.isFinite(batchTotal)) {
+        throw new Error("Batch valuation aggregate is not finite.");
+      }
+      const rate = batchQty > 0 ? batchTotal / batchQty : 0;
 
-      await db.insert(inventoryStockLedger).values([
+      await tx.insert(inventoryStockLedger).values([
         {
           batch_no: parsed.batchNo,
           item_id: parsed.itemId,

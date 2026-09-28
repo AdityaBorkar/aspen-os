@@ -1,6 +1,6 @@
 import { inventoryWarehouse } from "#/db-schemas/warehouse";
 import { WAREHOUSE_EVENTS } from "#/pubsub";
-import { requireWarehouse } from "#/services/stock-service";
+import { requireGroupParent } from "#/services/stock-service";
 import { CreateWarehouseSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertReturned } from "#/workflows/utils";
@@ -16,16 +16,7 @@ export const createWarehouse = Workflow.name("inventory.warehouse.create")
     const parsed = parse(CreateWarehouseSchema, input);
 
     if (parsed.parentId) {
-      const parent = await requireWarehouse(ctx.db, parsed.parentId, {
-        allowDisabled: true,
-        allowGroup: true,
-      });
-      if (!parent.is_group) {
-        throw new Error("A warehouse can only be created under a group warehouse.");
-      }
-      if (parent.is_disabled) {
-        throw new Error("Cannot create a warehouse under a disabled parent.");
-      }
+      await requireGroupParent(ctx.db, parsed.parentId);
     }
 
     const [warehouse] = await ctx.db

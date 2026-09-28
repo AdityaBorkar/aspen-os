@@ -13,7 +13,7 @@ import { fetchReservationStep } from "#/workflow-steps/fetch-inventory";
 import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
 
@@ -189,24 +189,26 @@ export const releaseManyReservations = Workflow.name("inventory.reservation.rele
   .input(object({ input: ReleaseReservationsSchema }))
   .handler(async ({ input }, ctx): Promise<ReleaseManyResult> => {
     const parsed = parse(ReleaseReservationsSchema, input);
-    const released: (typeof inventoryReservationEntry.$inferSelect)[] = [];
-    const skipped: string[] = [];
+    const currents = [];
     for (const id of parsed.ids) {
-      const current = await ctx.step.run(fetchReservationStep, { id });
-      if (current.status === "cancelled") {
-        skipped.push(id);
-        continue;
-      }
-      if (current.status === "delivered") {
-        throw new Error(`Reservation "${id}" is delivered and cannot be released.`);
-      }
-      const [updated] = await ctx.db
-        .update(inventoryReservationEntry)
-        .set({ status: "cancelled", updated_at: new Date() })
-        .where(eq(inventoryReservationEntry.id, id))
-        .returning();
-      released.push(assertReturned(updated, `Failed to release reservation "${id}".`));
+      currents.push(await ctx.step.run(fetchReservationStep, { id }));
     }
+    const skipped = currents.filter((row) => row.status === "cancelled").map((row) => row.id);
+    const delivered = currents.find((row) => row.status === "delivered");
+    if (delivered) {
+      throw new Error(`Reservation "${delivered.id}" is delivered and cannot be released.`);
+    }
+    const toRelease = currents.filter((row) => row.status !== "cancelled").map((row) => row.id);
+    const released =
+      toRelease.length === 0
+        ? []
+        : await ctx.db.transaction(async (tx) =>
+            tx
+              .update(inventoryReservationEntry)
+              .set({ status: "cancelled", updated_at: new Date() })
+              .where(inArray(inventoryReservationEntry.id, toRelease))
+              .returning(),
+          );
     await ctx.audit.write({
       action: AUDIT_ACTION.RELEASED,
       crudAction: "update",

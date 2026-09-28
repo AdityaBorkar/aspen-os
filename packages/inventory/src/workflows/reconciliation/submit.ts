@@ -8,9 +8,9 @@ import { ensureBatchExists, reverseVoucher } from "#/services/stock-posting";
 import {
   assertFreezeAllowed,
   getEffectiveSetting,
+  getStockKey,
   getStockStates,
   requireWarehouse,
-  asDb,
 } from "#/services/stock-service";
 import { ReconciliationFiltersSchema, SubmitReconciliationSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -112,21 +112,7 @@ function buildLegsForItem(
       serialsToDeliver: [],
     };
   }
-  return {
-    legs: [
-      {
-        batchNo: item.batch_no,
-        itemId: item.item_id,
-        qtyDelta: 0,
-        rate: targetRate,
-        serialNo: null,
-        voucherItemId: item.id,
-        warehouseId: item.warehouse_id,
-      },
-    ],
-    serialsToCreate: [],
-    serialsToDeliver: [],
-  };
+  return { legs: [], serialsToCreate: [], serialsToDeliver: [] };
 }
 
 export const submitReconciliation = Workflow.name("inventory.reconciliation.submit")
@@ -164,7 +150,9 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
       items.map((item) => ({ itemId: item.item_id, warehouseId: item.warehouse_id })),
     );
     const uniqueWarehouses = [...new Set(items.map((item) => item.warehouse_id))];
-    await Promise.all(uniqueWarehouses.map((warehouseId) => requireWarehouse(ctx.db, warehouseId)));
+    for (const warehouseId of uniqueWarehouses) {
+      await requireWarehouse(ctx.db, warehouseId);
+    }
 
     const allLegs: ReconciliationLeg[] = [];
     const serialsToCreate: {
@@ -177,7 +165,7 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
     const serialsToDeliver: string[] = [];
     const batchesToEnsure = new Map<string, { batchNo: string; itemId: string }>();
     for (const item of items) {
-      const state = states.get(`${item.item_id}::${item.warehouse_id}`);
+      const state = states.get(getStockKey(item.item_id, item.warehouse_id));
       const onHand = state?.onHand ?? 0;
       const currentAvg = onHand > 0 ? (state?.value ?? 0) / onHand : 0;
       const built = buildLegsForItem(item, onHand, currentAvg);
@@ -201,16 +189,13 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
     }
 
     const ledgerIds = await ctx.db.transaction(async (tx) => {
-      const db = asDb(tx);
-      await Promise.all(
-        [...batchesToEnsure.values()].map((entry) =>
-          ensureBatchExists(db, entry.itemId, entry.batchNo),
-        ),
-      );
+      for (const batch of batchesToEnsure.values()) {
+        await ensureBatchExists(tx, batch.itemId, batch.batchNo);
+      }
       const inserted =
         allLegs.length === 0
           ? []
-          : await db
+          : await tx
               .insert(inventoryStockLedger)
               .values(
                 allLegs.map((leg) => ({
@@ -229,7 +214,7 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
               )
               .returning({ id: inventoryStockLedger.id });
       if (serialsToCreate.length > 0) {
-        await db.insert(inventorySerial).values(
+        await tx.insert(inventorySerial).values(
           serialsToCreate.map((entry) => ({
             batch_no: entry.batchNo,
             item_id: entry.itemId,
@@ -241,20 +226,18 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
           })),
         );
       }
-      await Promise.all(
-        serialsToDeliver.map((serialNo) =>
-          db
-            .update(inventorySerial)
-            .set({
-              delivery_id: header.id,
-              status: "delivered",
-              updated_at: new Date(),
-              warehouse_id: null,
-            })
-            .where(eq(inventorySerial.serial_no, serialNo)),
-        ),
-      );
-      await db
+      for (const serialNo of serialsToDeliver) {
+        await tx
+          .update(inventorySerial)
+          .set({
+            delivery_id: header.id,
+            status: "delivered",
+            updated_at: new Date(),
+            warehouse_id: null,
+          })
+          .where(eq(inventorySerial.serial_no, serialNo));
+      }
+      await tx
         .update(inventoryReconciliation)
         .set({ status: "submitted", updated_at: new Date() })
         .where(eq(inventoryReconciliation.id, parsed.id));
@@ -318,17 +301,18 @@ export const cancelReconciliation = Workflow.name("inventory.reconciliation.canc
     if (reconciliation.status !== "submitted") {
       throw new Error("Only submitted reconciliations can be cancelled.");
     }
-    const reversalIds = await ctx.db.transaction(async (tx) =>
-      reverseVoucher(tx, {
+    const reversalIds = await ctx.db.transaction(async (tx) => {
+      const ids = await reverseVoucher(tx, {
         cancelVoucherType: "reconciliation_cancel",
         voucherId: parsed.id,
         voucherType: "reconciliation",
-      }),
-    );
-    await ctx.db
-      .update(inventoryReconciliation)
-      .set({ status: "cancelled", updated_at: new Date() })
-      .where(eq(inventoryReconciliation.id, parsed.id));
+      });
+      await tx
+        .update(inventoryReconciliation)
+        .set({ status: "cancelled", updated_at: new Date() })
+        .where(eq(inventoryReconciliation.id, parsed.id));
+      return ids;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CANCELLED,

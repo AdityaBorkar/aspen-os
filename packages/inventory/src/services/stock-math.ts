@@ -1,7 +1,7 @@
 import { STOCK_ENTRY_PURPOSE } from "#/utils/constants";
 import type { StockEntryPurpose } from "#/utils/constants";
 
-interface PurposeLegality {
+export interface PurposeLegality {
   allowIn: boolean;
   allowOut: boolean;
   needsSource: boolean;
@@ -65,26 +65,6 @@ const PURPOSE_LEGALITY = {
   },
 } satisfies Record<StockEntryPurpose, PurposeLegality>;
 
-export interface PurposeWarehouseRule {
-  needsSource: boolean;
-  needsTarget: boolean;
-}
-
-export function getPurposeWarehouseRule(purpose: StockEntryPurpose): PurposeWarehouseRule {
-  const rule = PURPOSE_LEGALITY[purpose];
-  return { needsSource: rule.needsSource, needsTarget: rule.needsTarget };
-}
-
-export interface RowLegRule {
-  allowIn: boolean;
-  allowOut: boolean;
-}
-
-export function getRowLegRule(purpose: StockEntryPurpose): RowLegRule {
-  const rule = PURPOSE_LEGALITY[purpose];
-  return { allowIn: rule.allowIn, allowOut: rule.allowOut };
-}
-
 function assertDifferentWarehouses(
   purpose: StockEntryPurpose,
   sourceWarehouseId: string | null,
@@ -100,25 +80,46 @@ function assertDifferentWarehouses(
   }
 }
 
+export type WarehouseScope = "header" | "row";
+
+export function validateWarehouses(
+  purpose: StockEntryPurpose,
+  sourceWarehouseId: string | null,
+  targetWarehouseId: string | null,
+  scope: WarehouseScope,
+): void {
+  const rule = PURPOSE_LEGALITY[purpose];
+  if (scope === "header") {
+    if (rule.needsSource && !sourceWarehouseId) {
+      throw new Error(`Purpose "${purpose}" requires a source warehouse.`);
+    }
+    if (rule.needsTarget && !targetWarehouseId) {
+      throw new Error(`Purpose "${purpose}" requires a target warehouse.`);
+    }
+  } else if (!sourceWarehouseId && !targetWarehouseId) {
+    throw new Error(
+      `Purpose "${purpose}" rows need a source warehouse, a target warehouse, or both.`,
+    );
+  }
+  if (sourceWarehouseId && !rule.allowOut) {
+    throw new Error(
+      `Purpose "${purpose}" ${scope === "header" ? "must" : "rows must"} not carry a source warehouse.`,
+    );
+  }
+  if (targetWarehouseId && !rule.allowIn) {
+    throw new Error(
+      `Purpose "${purpose}" ${scope === "header" ? "must" : "rows must"} not carry a target warehouse.`,
+    );
+  }
+  assertDifferentWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
+}
+
 export function validateHeaderWarehouses(
   purpose: StockEntryPurpose,
   sourceWarehouseId: string | null,
   targetWarehouseId: string | null,
 ): void {
-  const rule = PURPOSE_LEGALITY[purpose];
-  if (rule.needsSource && !sourceWarehouseId) {
-    throw new Error(`Purpose "${purpose}" requires a source warehouse.`);
-  }
-  if (rule.needsTarget && !targetWarehouseId) {
-    throw new Error(`Purpose "${purpose}" requires a target warehouse.`);
-  }
-  if (!rule.allowOut && sourceWarehouseId) {
-    throw new Error(`Purpose "${purpose}" must not carry a source warehouse.`);
-  }
-  if (!rule.allowIn && targetWarehouseId) {
-    throw new Error(`Purpose "${purpose}" must not carry a target warehouse.`);
-  }
-  assertDifferentWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
+  validateWarehouses(purpose, sourceWarehouseId, targetWarehouseId, "header");
 }
 
 export function validateRowLegs(
@@ -126,27 +127,7 @@ export function validateRowLegs(
   sourceWarehouseId: string | null,
   targetWarehouseId: string | null,
 ): void {
-  const rule = PURPOSE_LEGALITY[purpose];
-  if (!sourceWarehouseId && !targetWarehouseId) {
-    throw new Error(
-      `Purpose "${purpose}" rows need a source warehouse, a target warehouse, or both.`,
-    );
-  }
-  if (sourceWarehouseId && !rule.allowOut) {
-    throw new Error(`Purpose "${purpose}" rows must not carry a source warehouse.`);
-  }
-  if (targetWarehouseId && !rule.allowIn) {
-    throw new Error(`Purpose "${purpose}" rows must not carry a target warehouse.`);
-  }
-  assertDifferentWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
-}
-
-export function validatePurposeWarehouses(
-  purpose: StockEntryPurpose,
-  sourceWarehouseId: string | null,
-  targetWarehouseId: string | null,
-): void {
-  validateHeaderWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
+  validateWarehouses(purpose, sourceWarehouseId, targetWarehouseId, "row");
 }
 
 export function distributeAdditionalCosts(basicAmounts: number[], totalCost: number): number[] {
@@ -155,20 +136,6 @@ export function distributeAdditionalCosts(basicAmounts: number[], totalCost: num
     return basicAmounts.map(() => 0);
   }
   return basicAmounts.map((amount) => (amount / total) * totalCost);
-}
-
-// oxlint-disable-next-line eslint/max-params -- weighted-average needs all four operands; an options object would obscure the formula
-export function movingAverageRate(
-  onHandQty: number,
-  onHandValue: number,
-  receiptQty: number,
-  receiptRate: number,
-): number {
-  const qty = onHandQty + receiptQty;
-  if (qty <= 0) {
-    return receiptRate;
-  }
-  return (onHandValue + receiptQty * receiptRate) / qty;
 }
 
 export function fifoIssueRate(oldestReceiptRate: number | null, fallbackRate: number): number {
@@ -257,8 +224,4 @@ export function isFrozenWindow(
     }
   }
   return false;
-}
-
-export function availableQty(onHand: number, reserved: number): number {
-  return onHand - reserved;
 }

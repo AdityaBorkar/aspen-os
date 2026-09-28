@@ -5,18 +5,14 @@ import { inventoryWarehouse } from "#/db-schemas/warehouse";
 import { isFrozen, toDateOnly } from "#/services/stock-math";
 import type { ValuationMethod } from "#/utils/constants";
 
-import { and, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, desc, eq, gt, inArray, or, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 export type DB = PostgresJsDatabase;
 export type Tx = Parameters<Parameters<DB["transaction"]>[0]>[0];
 export type DbOrTx = DB | Tx;
 
-// SAFETY: Transaction handles share the select/insert/update/delete/execute surface used below;
-// this single coercion point keeps every query helper free of per-call assertions.
-export function asDb(db: DbOrTx): DB {
-  return db;
-}
+export const ACTIVE_RESERVATION_STATUSES = ["reserved", "partially_delivered"] as const;
 
 export interface EffectiveSetting {
   allowNegativeStock: boolean;
@@ -30,8 +26,7 @@ export interface EffectiveSetting {
 }
 
 export async function getEffectiveSetting(db: DbOrTx): Promise<EffectiveSetting> {
-  const handle = asDb(db);
-  const [row] = await handle.select().from(inventorySetting).limit(1);
+  const [row] = await db.select().from(inventorySetting).limit(1);
   return {
     allowNegativeStock: row?.allow_negative_stock ?? false,
     autoReserveOnPurchase: row?.auto_reserve_on_purchase ?? false,
@@ -72,8 +67,14 @@ export function assertFreezeAllowed(
 }
 
 function toNumber(value: string | number | null | undefined): number {
-  const parsed = Number(value ?? 0);
-  return Number.isFinite(parsed) ? parsed : 0;
+  if (value === null || value === undefined) {
+    return 0;
+  }
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Expected a finite numeric aggregate, received "${String(value)}".`);
+  }
+  return parsed;
 }
 
 export async function getOnHandQty(
@@ -81,8 +82,7 @@ export async function getOnHandQty(
   itemId: string,
   warehouseId: string,
 ): Promise<number> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({ total: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)` })
     .from(inventoryStockLedger)
     .where(
@@ -104,8 +104,7 @@ export async function getStockValuation(
   itemId: string,
   warehouseId: string,
 ): Promise<StockValuation> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({
       qty: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
       value: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
@@ -125,8 +124,7 @@ export async function getReservedQty(
   itemId: string,
   warehouseId: string,
 ): Promise<number> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({
       total: sql<string>`coalesce(sum(${inventoryReservationEntry.reserved_qty} - ${inventoryReservationEntry.delivered_qty}), 0)`,
     })
@@ -135,7 +133,7 @@ export async function getReservedQty(
       and(
         eq(inventoryReservationEntry.item_id, itemId),
         eq(inventoryReservationEntry.warehouse_id, warehouseId),
-        sql`${inventoryReservationEntry.status} IN ('reserved', 'partially_delivered')`,
+        inArray(inventoryReservationEntry.status, [...ACTIVE_RESERVATION_STATUSES]),
       ),
     );
   return toNumber(row?.total);
@@ -146,10 +144,9 @@ export async function getAvailableQty(
   itemId: string,
   warehouseId: string,
 ): Promise<number> {
-  const handle = asDb(db);
   const [onHand, reserved] = await Promise.all([
-    getOnHandQty(handle, itemId, warehouseId),
-    getReservedQty(handle, itemId, warehouseId),
+    getOnHandQty(db, itemId, warehouseId),
+    getReservedQty(db, itemId, warehouseId),
   ]);
   return onHand - reserved;
 }
@@ -170,6 +167,10 @@ function stockKey(itemId: string, warehouseId: string): string {
   return `${itemId}::${warehouseId}`;
 }
 
+export function getStockKey(itemId: string, warehouseId: string): string {
+  return stockKey(itemId, warehouseId);
+}
+
 export async function getStockStates(
   db: DbOrTx,
   pairs: StockPair[],
@@ -186,23 +187,48 @@ export async function getStockStates(
   if (pairs.length === 0) {
     return states;
   }
-  const handle = asDb(db);
-  const filters = pairs.map((pair) =>
-    and(
-      eq(inventoryStockLedger.item_id, pair.itemId),
-      eq(inventoryStockLedger.warehouse_id, pair.warehouseId),
+  const pairFilter = or(
+    ...pairs.map((pair) =>
+      and(
+        eq(inventoryStockLedger.item_id, pair.itemId),
+        eq(inventoryStockLedger.warehouse_id, pair.warehouseId),
+      ),
     ),
   );
-  const ledgerRows = await handle
-    .select({
-      itemId: inventoryStockLedger.item_id,
-      qty: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
-      value: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
-      warehouseId: inventoryStockLedger.warehouse_id,
-    })
-    .from(inventoryStockLedger)
-    .where(or(...filters))
-    .groupBy(inventoryStockLedger.item_id, inventoryStockLedger.warehouse_id);
+  const reservationFilter = or(
+    ...pairs.map((pair) =>
+      and(
+        eq(inventoryReservationEntry.item_id, pair.itemId),
+        eq(inventoryReservationEntry.warehouse_id, pair.warehouseId),
+      ),
+    ),
+  );
+  const [ledgerRows, reservationRows] = await Promise.all([
+    db
+      .select({
+        itemId: inventoryStockLedger.item_id,
+        qty: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
+        value: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
+        warehouseId: inventoryStockLedger.warehouse_id,
+      })
+      .from(inventoryStockLedger)
+      .where(pairFilter)
+      .groupBy(inventoryStockLedger.item_id, inventoryStockLedger.warehouse_id),
+    db
+      .select({
+        itemId: inventoryReservationEntry.item_id,
+        total: sql<string>`coalesce(sum(${inventoryReservationEntry.reserved_qty} - ${inventoryReservationEntry.delivered_qty}), 0)`,
+        warehouseId: inventoryReservationEntry.warehouse_id,
+      })
+      .from(inventoryReservationEntry)
+      .where(
+        and(
+          reservationFilter,
+          inArray(inventoryReservationEntry.status, [...ACTIVE_RESERVATION_STATUSES]),
+        ),
+      )
+      .groupBy(inventoryReservationEntry.item_id, inventoryReservationEntry.warehouse_id),
+  ]);
   for (const row of ledgerRows) {
     const key = stockKey(row.itemId, row.warehouseId);
     const current = states.get(key) ?? { available: 0, onHand: 0, reserved: 0, value: 0 };
@@ -210,27 +236,6 @@ export async function getStockStates(
     current.value = toNumber(row.value);
     states.set(key, current);
   }
-  const reservationRows = await handle
-    .select({
-      itemId: inventoryReservationEntry.item_id,
-      total: sql<string>`coalesce(sum(${inventoryReservationEntry.reserved_qty} - ${inventoryReservationEntry.delivered_qty}), 0)`,
-      warehouseId: inventoryReservationEntry.warehouse_id,
-    })
-    .from(inventoryReservationEntry)
-    .where(
-      and(
-        or(
-          ...pairs.map((pair) =>
-            and(
-              eq(inventoryReservationEntry.item_id, pair.itemId),
-              eq(inventoryReservationEntry.warehouse_id, pair.warehouseId),
-            ),
-          ),
-        ),
-        sql`${inventoryReservationEntry.status} IN ('reserved', 'partially_delivered')`,
-      ),
-    )
-    .groupBy(inventoryReservationEntry.item_id, inventoryReservationEntry.warehouse_id);
   for (const row of reservationRows) {
     const key = stockKey(row.itemId, row.warehouseId);
     const current = states.get(key) ?? { available: 0, onHand: 0, reserved: 0, value: 0 };
@@ -249,7 +254,6 @@ export async function getBatchBalances(
   warehouseId: string,
   batchNos?: string[],
 ): Promise<Map<string, number>> {
-  const handle = asDb(db);
   const balances = new Map<string, number>();
   const conditions = [
     eq(inventoryStockLedger.item_id, itemId),
@@ -259,9 +263,9 @@ export async function getBatchBalances(
   if (batchNos && batchNos.length > 0) {
     conditions.push(inArray(inventoryStockLedger.batch_no, batchNos));
   }
-  const rows = await handle
+  const rows = await db
     .select({
-      balance: sql<string>`sum(${inventoryStockLedger.qty_delta})`,
+      balance: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
       batchNo: inventoryStockLedger.batch_no,
     })
     .from(inventoryStockLedger)
@@ -282,26 +286,20 @@ async function getBoundaryRate(
   warehouseId: string,
   which: "latest" | "oldest",
 ): Promise<number | null> {
-  const handle = asDb(db);
-  const receiptOnly =
-    which === "oldest"
-      ? and(
-          eq(inventoryStockLedger.item_id, itemId),
-          eq(inventoryStockLedger.warehouse_id, warehouseId),
-          sql`${inventoryStockLedger.qty_delta} > 0`,
-        )
-      : and(
-          eq(inventoryStockLedger.item_id, itemId),
-          eq(inventoryStockLedger.warehouse_id, warehouseId),
-        );
   const ordering =
     which === "oldest"
       ? [inventoryStockLedger.posting_date, inventoryStockLedger.created_at]
       : [desc(inventoryStockLedger.posting_date), desc(inventoryStockLedger.created_at)];
-  const [row] = await handle
+  const [row] = await db
     .select({ rate: inventoryStockLedger.valuation_rate })
     .from(inventoryStockLedger)
-    .where(receiptOnly)
+    .where(
+      and(
+        eq(inventoryStockLedger.item_id, itemId),
+        eq(inventoryStockLedger.warehouse_id, warehouseId),
+        gt(inventoryStockLedger.qty_delta, 0),
+      ),
+    )
     .orderBy(...ordering)
     .limit(1);
   return row?.rate ?? null;
@@ -333,8 +331,7 @@ export async function requireWarehouse(
   id: string,
   checks: WarehouseChecks = {},
 ): Promise<typeof inventoryWarehouse.$inferSelect> {
-  const handle = asDb(db);
-  const [warehouse] = await handle
+  const [warehouse] = await db
     .select()
     .from(inventoryWarehouse)
     .where(eq(inventoryWarehouse.id, id))
@@ -351,23 +348,25 @@ export async function requireWarehouse(
   return warehouse;
 }
 
-export async function requireStockWarehouse(
+export async function requireGroupParent(
   db: DbOrTx,
-  id: string,
+  parentId: string,
 ): Promise<typeof inventoryWarehouse.$inferSelect> {
-  return requireWarehouse(db, id);
-}
-
-export async function requireGroupWarehouse(
-  db: DbOrTx,
-  id: string,
-): Promise<typeof inventoryWarehouse.$inferSelect> {
-  return requireWarehouse(db, id, { allowDisabled: true, allowGroup: true });
+  const parent = await requireWarehouse(db, parentId, {
+    allowDisabled: true,
+    allowGroup: true,
+  });
+  if (!parent.is_group) {
+    throw new Error("A warehouse can only be created or moved under a group warehouse.");
+  }
+  if (parent.is_disabled) {
+    throw new Error("Cannot create or move a warehouse under a disabled parent.");
+  }
+  return parent;
 }
 
 export async function hasLedgerHistory(db: DbOrTx, warehouseId: string): Promise<boolean> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({ id: inventoryStockLedger.id })
     .from(inventoryStockLedger)
     .where(eq(inventoryStockLedger.warehouse_id, warehouseId))
@@ -376,8 +375,7 @@ export async function hasLedgerHistory(db: DbOrTx, warehouseId: string): Promise
 }
 
 export async function hasChildren(db: DbOrTx, warehouseId: string): Promise<boolean> {
-  const handle = asDb(db);
-  const [row] = await handle
+  const [row] = await db
     .select({ id: inventoryWarehouse.id })
     .from(inventoryWarehouse)
     .where(eq(inventoryWarehouse.parent_id, warehouseId))

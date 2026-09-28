@@ -1,5 +1,5 @@
 import { inventoryPutawayRule } from "#/db-schemas/putaway-rule";
-import { getOnHandQty, requireWarehouse, asDb } from "#/services/stock-service";
+import { getOnHandQty, requireWarehouse } from "#/services/stock-service";
 import type { DbOrTx } from "#/services/stock-service";
 import {
   CreatePutawayRuleSchema,
@@ -21,8 +21,7 @@ export async function getPutawayAvailability(
   db: DbOrTx,
   ruleId: string,
 ): Promise<{ freeSpace: number; onHandQty: number; ruleId: string }> {
-  const handle = asDb(db);
-  const [rule] = await handle
+  const [rule] = await db
     .select()
     .from(inventoryPutawayRule)
     .where(eq(inventoryPutawayRule.id, ruleId))

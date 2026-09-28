@@ -228,38 +228,58 @@ export const amendStockEntry = Workflow.name("inventory.stock-entry.amend")
         .from(inventoryAdditionalCost)
         .where(eq(inventoryAdditionalCost.stock_entry_id, parsed.id));
 
-      const {
-        created_at: _headerCreated,
-        id: _headerId,
-        updated_at: _headerUpdated,
-        ...headerRest
-      } = source;
-      void _headerCreated;
-      void _headerId;
-      void _headerUpdated;
       const [next] = await tx
         .insert(inventoryStockEntry)
-        .values({ ...headerRest, amend_from: source.id, status: "draft" })
+        .values({
+          add_to_transit: source.add_to_transit,
+          allow_zero_valuation: source.allow_zero_valuation,
+          amend_from: source.id,
+          apply_putaway_rule: source.apply_putaway_rule,
+          inspection_required: source.inspection_required,
+          is_opening: source.is_opening,
+          party_id: source.party_id,
+          posting_date: source.posting_date,
+          posting_time: source.posting_time,
+          purpose: source.purpose,
+          source_warehouse_id: source.source_warehouse_id,
+          status: "draft",
+          target_warehouse_id: source.target_warehouse_id,
+          work_order_id: source.work_order_id,
+        })
         .returning();
       const created = assertReturned(next, "Failed to create amended draft.");
       if (items.length > 0) {
         await tx.insert(inventoryStockEntryItem).values(
-          items.map((item) => {
-            const { created_at: _itemCreated, id: _itemId, ...itemRest } = item;
-            void _itemCreated;
-            void _itemId;
-            return { ...itemRest, stock_entry_id: created.id };
-          }),
+          items.map((item) => ({
+            allow_negative_stock: item.allow_negative_stock,
+            basic_rate: item.basic_rate,
+            batch_no: item.batch_no,
+            conversion_factor: item.conversion_factor,
+            item_id: item.item_id,
+            qty: item.qty,
+            requires_batch: item.requires_batch,
+            requires_serial: item.requires_serial,
+            sales_order_id: item.sales_order_id,
+            sales_order_item_id: item.sales_order_item_id,
+            sample_qty: item.sample_qty,
+            serial_nos: item.serial_nos,
+            source_warehouse_id: item.source_warehouse_id,
+            stock_entry_id: created.id,
+            target_warehouse_id: item.target_warehouse_id,
+            uom: item.uom,
+            valuation_method: item.valuation_method,
+            valuation_rate: item.valuation_rate,
+          })),
         );
       }
       if (costs.length > 0) {
         await tx.insert(inventoryAdditionalCost).values(
-          costs.map((cost) => {
-            const { created_at: _costCreated, id: _costId, ...costRest } = cost;
-            void _costCreated;
-            void _costId;
-            return { ...costRest, stock_entry_id: created.id };
-          }),
+          costs.map((cost) => ({
+            amount: cost.amount,
+            description: cost.description,
+            expense_account: cost.expense_account,
+            stock_entry_id: created.id,
+          })),
         );
       }
       return created;

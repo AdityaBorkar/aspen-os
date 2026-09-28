@@ -1,6 +1,6 @@
 import { inventoryWarehouse } from "#/db-schemas/warehouse";
 import { WAREHOUSE_EVENTS } from "#/pubsub";
-import { hasChildren, hasLedgerHistory, requireWarehouse } from "#/services/stock-service";
+import { hasChildren, hasLedgerHistory, requireGroupParent } from "#/services/stock-service";
 import { IdSchema, UpdateWarehouseSchema, WarehouseFiltersSchema, WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchWarehouseStep } from "#/workflow-steps/fetch-inventory";
@@ -70,13 +70,7 @@ export const updateWarehouse = Workflow.name("inventory.warehouse.update")
         throw new Error("A warehouse cannot be its own parent.");
       }
       if (parsed.parentId !== null) {
-        const parent = await requireWarehouse(ctx.db, parsed.parentId, {
-          allowDisabled: true,
-          allowGroup: true,
-        });
-        if (!parent.is_group) {
-          throw new Error("A warehouse can only be moved under a group warehouse.");
-        }
+        await requireGroupParent(ctx.db, parsed.parentId);
       }
       if (await hasLedgerHistory(ctx.db, id)) {
         throw new Error("Cannot move a warehouse with stock history.");

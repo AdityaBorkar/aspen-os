@@ -5,9 +5,9 @@ import { PICK_LIST_EVENTS, RESERVATION_EVENTS } from "#/pubsub";
 import { suggestPickLocations } from "#/services/pick-suggest";
 import {
   getEffectiveSetting,
+  getStockKey,
   getStockStates,
   requireWarehouse,
-  asDb,
 } from "#/services/stock-service";
 import {
   CreatePickListSchema,
@@ -19,7 +19,6 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPickListStep } from "#/workflow-steps/fetch-inventory";
-import { checkReservationAvailability } from "#/workflows/reservation/manage";
 import { assertReturned, paginationOf, requireStatus, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -205,7 +204,7 @@ export const refreshPickListStock = Workflow.name("inventory.pick-list.refresh-s
           pickItemId: item.id,
         };
       }
-      const state = states.get(`${item.item_id}::${item.warehouse_id}`);
+      const state = states.get(getStockKey(item.item_id, item.warehouse_id));
       return {
         availableQty: state?.available ?? 0,
         itemId: item.item_id,
@@ -329,28 +328,40 @@ export const reservePickList = Workflow.name("inventory.pick-list.reserve")
     const current = await ctx.step.run(fetchPickListStep, { id: input.id });
     requireStatus(current.status, ["submitted"], "reserve stock", "pick list");
     const created = await ctx.db.transaction(async (tx) => {
-      const db = asDb(tx);
-      const setting = await getEffectiveSetting(db);
+      const setting = await getEffectiveSetting(tx);
       if (!setting.enableStockReservation) {
         throw new Error("Stock reservation is disabled in inventory settings.");
       }
-      const items = await db
+      const items = await tx
         .select()
         .from(inventoryPickListItem)
         .where(eq(inventoryPickListItem.pick_list_id, input.id));
       if (items.length === 0) {
         throw new Error("Cannot reserve an empty pick list.");
       }
-      for (const item of items) {
-        if (!item.warehouse_id) {
-          throw new Error(`Pick item for "${item.item_id}" has no warehouse location.`);
-        }
-        await checkReservationAvailability(db, item.item_id, item.warehouse_id, item.qty);
-      }
       const locatedItems = items.filter(
         (item): item is typeof item & { warehouse_id: string } => item.warehouse_id !== null,
       );
-      const rows = await db
+      if (locatedItems.length !== items.length) {
+        const missing = items.find((item) => item.warehouse_id === null);
+        throw new Error(`Pick item for "${missing?.item_id}" has no warehouse location.`);
+      }
+      const states = await getStockStates(
+        tx,
+        locatedItems.map((item) => ({
+          itemId: item.item_id,
+          warehouseId: item.warehouse_id,
+        })),
+      );
+      for (const item of locatedItems) {
+        const available = states.get(getStockKey(item.item_id, item.warehouse_id))?.available ?? 0;
+        if (available - item.qty < 0) {
+          throw new Error(
+            `Cannot reserve ${item.qty} units of "${item.item_id}": only ${available} available.`,
+          );
+        }
+      }
+      const rows = await tx
         .insert(inventoryReservationEntry)
         .values(
           locatedItems.map((item) => ({

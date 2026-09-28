@@ -1,5 +1,5 @@
 import { REORDER_EVENTS } from "#/pubsub";
-import { getAvailableQty, asDb } from "#/services/stock-service";
+import { getAvailableQty } from "#/services/stock-service";
 import type { DbOrTx } from "#/services/stock-service";
 import { SCHEDULED_JOBS } from "#/utils/constants";
 
@@ -39,9 +39,23 @@ export function breachKey(breach: Pick<ReorderBreach, "itemId" | "requestForWare
   return `${breach.itemId}::${breach.requestForWarehouseId}`;
 }
 
+function toFiniteNumber(value: string | number | null | undefined, field: string): number {
+  const parsed = Number(value ?? 0);
+  if (!Number.isFinite(parsed)) {
+    throw new Error(`Reorder rule has a non-finite "${field}": "${String(value)}".`);
+  }
+  return parsed;
+}
+
+// Cross-module read: the products module owns `products_reorder_rule`
+// (see @aspen-os/products `productsReorderRule`). Inventory needs its active
+// rows to evaluate breaches, and the platform merges both modules' schemas
+// into one tenant database, so this provider reads that shared table
+// directly. Keep all products-table knowledge isolated here behind
+// `ReorderRuleProvider` so the rest of inventory stays decoupled and tests
+// can inject an in-memory provider.
 export async function defaultReorderRuleProvider(db: DbOrTx): Promise<ReorderRuleRow[]> {
-  const handle = asDb(db);
-  const rows = await handle.execute<{
+  const rows = await db.execute<{
     check_in_group_id: string;
     item_id: string;
     material_request_type: string;
@@ -55,8 +69,8 @@ export async function defaultReorderRuleProvider(db: DbOrTx): Promise<ReorderRul
     check_in_group_id: row.check_in_group_id,
     item_id: row.item_id,
     material_request_type: row.material_request_type,
-    reorder_level: Number(row.reorder_level ?? 0),
-    reorder_qty: Number(row.reorder_qty ?? 0),
+    reorder_level: toFiniteNumber(row.reorder_level, "reorder_level"),
+    reorder_qty: toFiniteNumber(row.reorder_qty, "reorder_qty"),
     request_for_warehouse_id: row.request_for_warehouse_id,
   }));
 }
@@ -101,14 +115,6 @@ export interface ReorderScanOptions {
 }
 
 async function notifyBreach(deps: ReorderScannerDeps, breach: ReorderBreach): Promise<void> {
-  await deps.pubsub.publish(REORDER_EVENTS.TRIGGERED, {
-    availableQty: breach.availableQty,
-    itemId: breach.itemId,
-    materialRequestType: breach.materialRequestType,
-    reorderLevel: breach.reorderLevel,
-    reorderQty: breach.reorderQty,
-    requestForWarehouseId: breach.requestForWarehouseId,
-  });
   await deps.audit.write({
     action: "reorder_triggered",
     entityId: breach.itemId,
@@ -118,6 +124,14 @@ async function notifyBreach(deps: ReorderScannerDeps, breach: ReorderBreach): Pr
       reorderLevel: breach.reorderLevel,
       warehouseId: breach.requestForWarehouseId,
     },
+  });
+  await deps.pubsub.publish(REORDER_EVENTS.TRIGGERED, {
+    availableQty: breach.availableQty,
+    itemId: breach.itemId,
+    materialRequestType: breach.materialRequestType,
+    reorderLevel: breach.reorderLevel,
+    reorderQty: breach.reorderQty,
+    requestForWarehouseId: breach.requestForWarehouseId,
   });
 }
 
@@ -129,20 +143,9 @@ export async function scanReorderBreaches(
   const fresh = options.seenKeys
     ? breaches.filter((breach) => !options.seenKeys?.has(breachKey(breach)))
     : breaches;
-  const outcomes = await Promise.allSettled(fresh.map((breach) => notifyBreach(deps, breach)));
-  const failedKeys: string[] = [];
-  for (const [index, outcome] of outcomes.entries()) {
-    if (outcome.status === "rejected") {
-      const breach = fresh[index];
-      if (breach) {
-        failedKeys.push(`${breachKey(breach)}: ${String(outcome.reason)}`);
-      }
-    }
-  }
-  if (failedKeys.length > 0) {
-    throw new Error(
-      `Reorder scan delivered partially (${failedKeys.length} failed): ${failedKeys.join("; ")}`,
-    );
+  for (const breach of fresh) {
+    await notifyBreach(deps, breach);
+    options.seenKeys?.add(breachKey(breach));
   }
   return fresh;
 }
