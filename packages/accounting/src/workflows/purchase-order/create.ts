@@ -78,7 +78,7 @@ export const createPurchaseOrder = Workflow.name("accounting.purchase-order.crea
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: order.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { status: order.status, supplierId: order.supplier_id },
       });
       await ctx.pubsub.publish(PURCHASE_ORDER_EVENTS.CREATED, { purchaseOrderId: order.id });

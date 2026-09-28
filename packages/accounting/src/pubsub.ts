@@ -5,6 +5,7 @@ export const FISCAL_YEAR_EVENTS = {
 
 export const QUOTATION_EVENTS = {
   CANCELLED: "accounting.quotation_cancelled",
+  CONVERTED: "accounting.quotation_converted",
   SUBMITTED: "accounting.quotation_submitted",
 } as const;
 
@@ -40,6 +41,7 @@ export const RFQ_EVENTS = {
 } as const;
 
 export const SUPPLIER_QUOTATION_EVENTS = {
+  CONVERTED: "accounting.supplier_quotation_converted",
   RECEIVED: "accounting.supplier_quotation_received",
 } as const;
 
@@ -129,6 +131,11 @@ export interface QuotationCancelledEvent {
   quotationId: string;
 }
 
+export interface QuotationConvertedEvent {
+  quotationId: string;
+  salesOrderId: string;
+}
+
 export interface SalesOrderLifecycleEvent {
   salesOrderId: string;
 }
@@ -155,6 +162,11 @@ export interface RfqIssuedEvent {
 }
 
 export interface SupplierQuotationReceivedEvent {
+  supplierQuotationId: string;
+}
+
+export interface SupplierQuotationConvertedEvent {
+  purchaseOrderId: string;
   supplierQuotationId: string;
 }
 
@@ -205,6 +217,7 @@ export interface FiscalYearEventMap {
 
 export interface QuotationEventMap {
   [QUOTATION_EVENTS.CANCELLED]: QuotationCancelledEvent;
+  [QUOTATION_EVENTS.CONVERTED]: QuotationConvertedEvent;
   [QUOTATION_EVENTS.SUBMITTED]: QuotationSubmittedEvent;
 }
 
@@ -240,6 +253,7 @@ export interface RfqEventMap {
 }
 
 export interface SupplierQuotationEventMap {
+  [SUPPLIER_QUOTATION_EVENTS.CONVERTED]: SupplierQuotationConvertedEvent;
   [SUPPLIER_QUOTATION_EVENTS.RECEIVED]: SupplierQuotationReceivedEvent;
 }
 

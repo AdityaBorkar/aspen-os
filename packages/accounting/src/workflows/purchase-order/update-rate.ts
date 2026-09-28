@@ -57,7 +57,7 @@ export const updateRateFromLastPurchase = Workflow.name("accounting.purchase-ord
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { ratesRefreshed: true },
       });
     });

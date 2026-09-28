@@ -1,11 +1,11 @@
-import { accountingAccount } from "#/db-schemas/chart";
 import { accountingPurchaseInvoice } from "#/db-schemas/purchase";
 import { PURCHASE_INVOICE_EVENTS } from "#/pubsub";
 import { resolvePayableAccount } from "#/services/accounts-service";
 import { assertPeriodOpen } from "#/services/fiscal-service";
 import { postGlEntries } from "#/services/gl-service";
+import { assertLedgerAccount, nextInvoiceStatus } from "#/services/invoice-common";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { parseMoney, roundMoney, toMoney } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney, roundMoney, toMoney } from "#/utils/money";
 import { assertUpdated } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -33,20 +33,10 @@ export const writeOffPurchaseInvoice = Workflow.name("accounting.purchase-invoic
       throw new Error(`Purchase invoice "${id}" not found.`);
     }
     const outstanding = parseMoney(invoice.outstanding_amount);
-    if (amount - outstanding > 0.005) {
+    if (amount - outstanding > GL_TOLERANCE) {
       throw new Error("Write-off amount cannot exceed outstanding.");
     }
-    const [account] = await ctx.db
-      .select()
-      .from(accountingAccount)
-      .where(eq(accountingAccount.id, writeOffAccount))
-      .limit(1);
-    if (!account) {
-      throw new Error(`Write-off account "${writeOffAccount}" not found.`);
-    }
-    if (account.is_group) {
-      throw new Error("Write-off account must be a ledger.");
-    }
+    await assertLedgerAccount(ctx.db, writeOffAccount, "write-off");
 
     const year = await assertPeriodOpen({ db: ctx.db, postingDate: invoice.posting_date });
     const payableAccount = await resolvePayableAccount(ctx.db);
@@ -71,12 +61,7 @@ export const writeOffPurchaseInvoice = Workflow.name("accounting.purchase-invoic
       const nextWrittenOff = roundMoney(parseMoney(invoice.written_off_amount) + amount);
       const nextOutstanding = roundMoney(outstanding - amount);
       const nextAllocated = parseMoney(invoice.allocated_amount);
-      let { status } = invoice;
-      if (nextOutstanding <= 0.005) {
-        status = "paid";
-      } else if (nextWrittenOff > 0.005 || nextAllocated > 0.005) {
-        status = "partly_paid";
-      }
+      const status = nextInvoiceStatus(Math.max(0, nextOutstanding), nextAllocated, nextWrittenOff);
       await tx
         .update(accountingPurchaseInvoice)
         .set({
@@ -100,10 +85,10 @@ export const writeOffPurchaseInvoice = Workflow.name("accounting.purchase-invoic
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_INVOICE,
         newState: { writtenOff: amount },
       });
-      if (parseMoney(row.outstanding_amount) <= 0.005) {
+      if (parseMoney(row.outstanding_amount) <= GL_TOLERANCE) {
         await ctx.pubsub.publish(PURCHASE_INVOICE_EVENTS.PAID, { purchaseInvoiceId: id });
       }
     });

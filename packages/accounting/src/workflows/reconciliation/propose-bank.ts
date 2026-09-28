@@ -1,5 +1,5 @@
 import { accountingBankStatementLine, accountingPaymentEntry } from "#/db-schemas/payment";
-import { parseMoney } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney } from "#/utils/money";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -17,18 +17,28 @@ export const proposeBankMatches = Workflow.name("accounting.reconciliation.propo
         .select()
         .from(accountingPaymentEntry)
         .where(eq(accountingPaymentEntry.status, "submitted"));
+      const byAccount = new Map<string, typeof payments>();
+      for (const payment of payments) {
+        for (const account of [payment.paid_from, payment.paid_to]) {
+          if (!account) {
+            continue;
+          }
+          const list = byAccount.get(account) ?? [];
+          list.push(payment);
+          byAccount.set(account, list);
+        }
+      }
       const proposals: { paymentId: string; statementLineId: string }[] = [];
       for (const line of lines) {
-        for (const payment of payments) {
+        const candidates = byAccount.get(line.bank_account) ?? [];
+        for (const payment of candidates) {
           const sameAmount =
-            Math.abs(parseMoney(line.amount) - parseMoney(payment.paid_amount)) < 0.005;
+            Math.abs(parseMoney(line.amount) - parseMoney(payment.paid_amount)) < GL_TOLERANCE;
           const sameRef =
             !line.reference_no ||
             !payment.reference_no ||
             line.reference_no === payment.reference_no;
-          const sameAccount =
-            payment.paid_from === line.bank_account || payment.paid_to === line.bank_account;
-          if (sameAmount && sameRef && sameAccount) {
+          if (sameAmount && sameRef) {
             proposals.push({ paymentId: payment.id, statementLineId: line.id });
             break;
           }

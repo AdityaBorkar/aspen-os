@@ -96,7 +96,7 @@ export const createDebitNote = Workflow.name("accounting.purchase-invoice.debit-
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: note.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_INVOICE,
         newState: { returnAgainst: id },
       });
       await ctx.pubsub.publish(DEBIT_NOTE_EVENTS.ISSUED, {

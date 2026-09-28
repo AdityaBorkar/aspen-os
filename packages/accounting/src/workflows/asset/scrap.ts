@@ -1,6 +1,7 @@
 import { accountingAsset } from "#/db-schemas/asset";
 import { ASSET_EVENTS } from "#/pubsub";
 import { DisposeAssetSchema } from "#/schemas/asset";
+import { assertPeriodOpen } from "#/services/fiscal-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertUpdated } from "#/workflows/utils";
 
@@ -14,7 +15,7 @@ export const scrapAsset = Workflow.name("accounting.asset.scrap")
   .input(InputSchema)
   .handler(async ({ disposal, id }, ctx) => {
     const parsed = parse(DisposeAssetSchema, disposal);
-    void parsed;
+    await assertPeriodOpen({ db: ctx.db, postingDate: parsed.disposalDate });
     const [asset] = await ctx.db
       .select()
       .from(accountingAsset)
@@ -38,7 +39,7 @@ export const scrapAsset = Workflow.name("accounting.asset.scrap")
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.ASSET,
-        newState: { status: "scrapped" },
+        newState: { disposalDate: parsed.disposalDate, status: "scrapped" },
       });
       await ctx.pubsub.publish(ASSET_EVENTS.DISPOSED, { assetId: id });
     });

@@ -42,7 +42,7 @@ export const createRfq = Workflow.name("accounting.rfq.create")
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: rfq.id,
-        entityType: AUDIT_ENTITY_TYPE.MATERIAL_REQUEST,
+        entityType: AUDIT_ENTITY_TYPE.RFQ,
         newState: { status: rfq.status },
       });
       await ctx.pubsub.publish(RFQ_EVENTS.ISSUED, { rfqId: rfq.id });

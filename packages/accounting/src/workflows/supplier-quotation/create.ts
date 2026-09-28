@@ -65,7 +65,7 @@ export const createSupplierQuotation = Workflow.name("accounting.supplier-quotat
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: quotation.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.SUPPLIER_QUOTATION,
         newState: { supplierId: quotation.supplier_id },
       });
       await ctx.pubsub.publish(SUPPLIER_QUOTATION_EVENTS.RECEIVED, {

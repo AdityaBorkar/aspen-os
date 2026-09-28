@@ -1,12 +1,9 @@
 import { accountingGlEntry } from "#/db-schemas/chart";
 import { assertBalanced, parseMoney, roundMoney, toMoney } from "#/utils/money";
+import { normalizePartyType } from "#/utils/party";
+import type { Db } from "#/workflows/db";
 
 import { eq } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type Db = PostgresJsDatabase;
-type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
-type DbOrTx = Db | Tx;
 
 export interface GlRowInput {
   accountId: string;
@@ -17,22 +14,12 @@ export interface GlRowInput {
 }
 
 export interface PostGlInput {
-  db: DbOrTx;
+  db: Db;
   fiscalYear: string;
   postingDate: string;
   rows: GlRowInput[];
   voucherId: string;
   voucherType: string;
-}
-
-function toGlPartyType(value: string | null | undefined): "customer" | "vendor" | null {
-  if (value === "customer") {
-    return "customer";
-  }
-  if (value === "vendor") {
-    return "vendor";
-  }
-  return null;
 }
 
 export async function postGlEntries(input: PostGlInput): Promise<void> {
@@ -47,16 +34,14 @@ export async function postGlEntries(input: PostGlInput): Promise<void> {
   if (rows.length === 0) {
     throw new Error("GL posting requires at least one row.");
   }
-  // SAFETY: DbOrTx covers both the request db and the transaction handle, which share the same insert surface.
-  const handle = db as Db;
-  await handle.insert(accountingGlEntry).values(
+  await db.insert(accountingGlEntry).values(
     rows.map((row) => ({
       account_id: row.accountId,
       credit: toMoney(roundMoney(row.credit ?? 0)),
       debit: toMoney(roundMoney(row.debit ?? 0)),
       fiscal_year: fiscalYear,
       party_id: row.partyId ?? null,
-      party_type: toGlPartyType(row.partyType),
+      party_type: normalizePartyType(row.partyType),
       posting_date: postingDate,
       voucher_id: voucherId,
       voucher_type: voucherType,
@@ -65,7 +50,7 @@ export async function postGlEntries(input: PostGlInput): Promise<void> {
 }
 
 export interface ReverseGlInput {
-  db: DbOrTx;
+  db: Db;
   fiscalYear: string;
   postingDate: string;
   voucherId: string;
@@ -74,9 +59,7 @@ export interface ReverseGlInput {
 
 export async function reverseGlEntries(input: ReverseGlInput): Promise<void> {
   const { db, fiscalYear, postingDate, voucherId, voucherType } = input;
-  // SAFETY: DbOrTx covers both the request db and the transaction handle, which share the same select/insert surface.
-  const handle = db as Db;
-  const existing = await handle
+  const existing = await db
     .select()
     .from(accountingGlEntry)
     .where(eq(accountingGlEntry.voucher_id, voucherId));
@@ -84,7 +67,7 @@ export async function reverseGlEntries(input: ReverseGlInput): Promise<void> {
   if (scoped.length === 0) {
     return;
   }
-  await handle.insert(accountingGlEntry).values(
+  await db.insert(accountingGlEntry).values(
     scoped.map((row) => ({
       account_id: row.account_id,
       credit: row.debit,
@@ -100,13 +83,11 @@ export async function reverseGlEntries(input: ReverseGlInput): Promise<void> {
 }
 
 export async function sumGlForVoucher(input: {
-  db: DbOrTx;
+  db: Db;
   voucherId: string;
 }): Promise<{ credit: number; debit: number }> {
   const { db, voucherId } = input;
-  // SAFETY: DbOrTx covers both the request db and the transaction handle, which share the same select surface.
-  const handle = db as Db;
-  const rows = await handle
+  const rows = await db
     .select({ credit: accountingGlEntry.credit, debit: accountingGlEntry.debit })
     .from(accountingGlEntry)
     .where(eq(accountingGlEntry.voucher_id, voucherId));

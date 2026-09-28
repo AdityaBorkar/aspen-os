@@ -1,9 +1,11 @@
 import { accountingPaymentEntry, accountingPaymentReference } from "#/db-schemas/payment";
 import { accountingPurchaseInvoice } from "#/db-schemas/purchase";
 import { accountingSalesInvoice } from "#/db-schemas/sales";
+import { assertPeriodOpen } from "#/services/fiscal-service";
 import { reverseGlEntries } from "#/services/gl-service";
+import { restorePaymentFromBalance } from "#/services/invoice-common";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { parseMoney, roundMoney, toMoney } from "#/utils/money";
+import { parseMoney, toMoney } from "#/utils/money";
 import { assertUpdated } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -32,8 +34,11 @@ export const cancelPaymentEntry = Workflow.name("accounting.payment.cancel")
       .from(accountingPaymentReference)
       .where(eq(accountingPaymentReference.payment_id, id));
 
+    const year = await assertPeriodOpen({ db: ctx.db, postingDate: entry.posting_date });
+
     await ctx.db.transaction(async (tx) => {
       for (const reference of references) {
+        const amount = parseMoney(reference.allocated_amount);
         if (reference.reference_type === "Sales Invoice") {
           const [invoice] = await tx
             .select()
@@ -41,47 +46,39 @@ export const cancelPaymentEntry = Workflow.name("accounting.payment.cancel")
             .where(eq(accountingSalesInvoice.id, reference.reference_id))
             .limit(1);
           if (invoice) {
-            const amount = parseMoney(reference.allocated_amount);
-            const outstanding = roundMoney(parseMoney(invoice.outstanding_amount) + amount);
-            const allocated = roundMoney(parseMoney(invoice.allocated_amount) - amount);
-            let { status } = invoice;
-            if (allocated <= 0.005) {
-              status = "unpaid";
-            } else {
-              status = "partly_paid";
-            }
+            const restored = restorePaymentFromBalance(
+              invoice.outstanding_amount,
+              invoice.allocated_amount,
+              amount,
+            );
             await tx
               .update(accountingSalesInvoice)
               .set({
-                allocated_amount: toMoney(Math.max(0, allocated)),
-                outstanding_amount: toMoney(outstanding),
-                status,
+                allocated_amount: toMoney(restored.allocated),
+                outstanding_amount: toMoney(restored.outstanding),
+                status: restored.status,
                 updated_at: new Date(),
               })
               .where(eq(accountingSalesInvoice.id, invoice.id));
           }
-        } else if (reference.reference_type === "Purchase Invoice") {
+        } else {
           const [invoice] = await tx
             .select()
             .from(accountingPurchaseInvoice)
             .where(eq(accountingPurchaseInvoice.id, reference.reference_id))
             .limit(1);
           if (invoice) {
-            const amount = parseMoney(reference.allocated_amount);
-            const outstanding = roundMoney(parseMoney(invoice.outstanding_amount) + amount);
-            const allocated = roundMoney(parseMoney(invoice.allocated_amount) - amount);
-            let { status } = invoice;
-            if (allocated <= 0.005) {
-              status = "unpaid";
-            } else {
-              status = "partly_paid";
-            }
+            const restored = restorePaymentFromBalance(
+              invoice.outstanding_amount,
+              invoice.allocated_amount,
+              amount,
+            );
             await tx
               .update(accountingPurchaseInvoice)
               .set({
-                allocated_amount: toMoney(Math.max(0, allocated)),
-                outstanding_amount: toMoney(outstanding),
-                status,
+                allocated_amount: toMoney(restored.allocated),
+                outstanding_amount: toMoney(restored.outstanding),
+                status: restored.status,
                 updated_at: new Date(),
               })
               .where(eq(accountingPurchaseInvoice.id, invoice.id));
@@ -94,7 +91,7 @@ export const cancelPaymentEntry = Workflow.name("accounting.payment.cancel")
 
       await reverseGlEntries({
         db: tx,
-        fiscalYear: "cancellation",
+        fiscalYear: year.name,
         postingDate: entry.posting_date,
         voucherId: id,
         voucherType: "Payment Entry",

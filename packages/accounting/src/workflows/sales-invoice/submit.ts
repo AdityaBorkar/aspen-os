@@ -8,9 +8,14 @@ import { CREDIT_NOTE_EVENTS, SALES_INVOICE_EVENTS } from "#/pubsub";
 import { resolveIncomeAccount, resolveReceivableAccount } from "#/services/accounts-service";
 import { assertPeriodOpen } from "#/services/fiscal-service";
 import { postGlEntries } from "#/services/gl-service";
+import {
+  groupLineAmounts,
+  orderBillingPercent,
+  orderBillingStatus,
+} from "#/services/invoice-common";
 import { computeDocumentTotals } from "#/services/totals-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { parseMoney, roundMoney, toMoney } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney, roundMoney, toMoney } from "#/utils/money";
 import { assertUpdated } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -90,14 +95,11 @@ export const submitSalesInvoice = Workflow.name("accounting.sales-invoice.submit
           partyId: invoice.customer_id,
           partyType: "customer",
         });
-        const incomeByAccount = new Map<string, number>();
-        for (const item of items) {
-          const key = item.income_account ?? defaultIncome;
-          incomeByAccount.set(
-            key,
-            roundMoney((incomeByAccount.get(key) ?? 0) + parseMoney(item.amount)),
-          );
-        }
+        const incomeByAccount = groupLineAmounts(
+          items,
+          (item) => item.income_account ?? defaultIncome,
+          (item) => parseMoney(item.amount),
+        );
         for (const [accountId, amount] of incomeByAccount) {
           rows.push({ accountId, credit: roundMoney(Math.abs(amount)) });
         }
@@ -130,7 +132,7 @@ export const submitSalesInvoice = Workflow.name("accounting.sales-invoice.submit
           const credit = Math.abs(parseMoney(invoice.grand_total));
           const nextOutstanding = roundMoney(parseMoney(original.outstanding_amount) - credit);
           let originalStatus = original.status;
-          if (nextOutstanding <= 0.005) {
+          if (nextOutstanding <= GL_TOLERANCE) {
             originalStatus = "paid";
           } else if (nextOutstanding < parseMoney(original.grand_total)) {
             originalStatus = "partly_paid";
@@ -181,16 +183,10 @@ export const submitSalesInvoice = Workflow.name("accounting.sales-invoice.submit
             totalQty += parseMoney(row.qty);
             billedQty += parseMoney(row.billed_qty);
           }
-          const billedPercent = totalQty > 0 ? roundMoney((billedQty / totalQty) * 100) : 0;
+          const billedPercent = orderBillingPercent(totalQty, billedQty);
           const deliveredPercent = parseMoney(order.delivered_percent);
-          let { status } = order;
-          if (billedPercent >= 100 && deliveredPercent >= 100) {
-            status = "completed";
-          } else if (billedPercent >= 100) {
-            status = "to_deliver";
-          } else if (deliveredPercent >= 100) {
-            status = "to_bill";
-          }
+          const nextStatus = orderBillingStatus(billedPercent, deliveredPercent, "delivered");
+          const status = nextStatus ?? order.status;
           await tx
             .update(accountingSalesOrder)
             .set({ billed_percent: String(billedPercent), status, updated_at: new Date() })
@@ -211,7 +207,7 @@ export const submitSalesInvoice = Workflow.name("accounting.sales-invoice.submit
         action: AUDIT_ACTION.SUBMITTED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.SALES_INVOICE,
         newState: { status: "unpaid" },
       });
       if (invoice.is_return) {

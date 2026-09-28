@@ -37,7 +37,7 @@ export const closeFiscalYear = Workflow.name("accounting.fiscal-year.close")
         action: AUDIT_ACTION.CLOSED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.ACCOUNT,
+        entityType: AUDIT_ENTITY_TYPE.FISCAL_YEAR,
         newState: { status: "closed" },
       });
       await ctx.pubsub.publish(FISCAL_YEAR_EVENTS.CLOSED, { fiscalYearId: id });

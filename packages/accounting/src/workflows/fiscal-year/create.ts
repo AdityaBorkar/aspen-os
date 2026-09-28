@@ -35,7 +35,7 @@ export const createFiscalYear = Workflow.name("accounting.fiscal-year.create")
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ACCOUNT,
+        entityType: AUDIT_ENTITY_TYPE.FISCAL_YEAR,
         newState: { name: row.name, status: row.status },
       });
       await ctx.pubsub.publish(FISCAL_YEAR_EVENTS.STARTED, {

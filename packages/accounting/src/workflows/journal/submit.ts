@@ -7,11 +7,11 @@ import { JOURNAL_EVENTS } from "#/pubsub";
 import { assertPeriodOpen } from "#/services/fiscal-service";
 import { postGlEntries } from "#/services/gl-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { parseMoney, roundMoney } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney, roundMoney } from "#/utils/money";
 import { assertUpdated } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { object, string } from "valibot";
 
 const InputSchema = object({ id: string() });
@@ -42,17 +42,19 @@ export const submitJournalEntry = Workflow.name("accounting.journal.submit")
       throw new Error("Journal entry requires at least two lines.");
     }
 
+    const accountIds = [...new Set(lines.map((line) => line.account_id))];
+    const accounts = await ctx.db
+      .select()
+      .from(accountingAccount)
+      .where(inArray(accountingAccount.id, accountIds));
+    const accountsById = new Map(accounts.map((account) => [account.id, account]));
+
     let totalDebit = 0;
     let totalCredit = 0;
     for (const line of lines) {
-      const accountId = line.account_id;
-      const [account] = await ctx.db
-        .select()
-        .from(accountingAccount)
-        .where(eq(accountingAccount.id, accountId))
-        .limit(1);
+      const account = accountsById.get(line.account_id);
       if (!account) {
-        throw new Error(`Account "${accountId}" not found.`);
+        throw new Error(`Account "${line.account_id}" not found.`);
       }
       if (account.is_group) {
         throw new Error(`Group account "${account.name}" cannot post. Use a ledger.`);
@@ -60,13 +62,11 @@ export const submitJournalEntry = Workflow.name("accounting.journal.submit")
       if (account.is_disabled) {
         throw new Error(`Account "${account.name}" is disabled.`);
       }
-      const debit = parseMoney(line.debit);
-      const credit = parseMoney(line.credit);
-      totalDebit = roundMoney(totalDebit + debit);
-      totalCredit = roundMoney(totalCredit + credit);
+      totalDebit = roundMoney(totalDebit + parseMoney(line.debit));
+      totalCredit = roundMoney(totalCredit + parseMoney(line.credit));
     }
 
-    if (Math.abs(totalDebit - totalCredit) > 0.005) {
+    if (Math.abs(totalDebit - totalCredit) > GL_TOLERANCE) {
       throw new Error("Journal entry is unbalanced.");
     }
 

@@ -37,7 +37,7 @@ export const cancelPurchaseOrder = Workflow.name("accounting.purchase-order.canc
         action: AUDIT_ACTION.CANCELLED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { status: "cancelled" },
       });
       await ctx.pubsub.publish(PURCHASE_ORDER_EVENTS.CANCELLED, { purchaseOrderId: id });

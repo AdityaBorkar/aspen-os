@@ -12,9 +12,14 @@ import {
 } from "#/services/accounts-service";
 import { assertPeriodOpen } from "#/services/fiscal-service";
 import { postGlEntries } from "#/services/gl-service";
+import {
+  groupLineAmounts,
+  orderBillingPercent,
+  orderBillingStatus,
+} from "#/services/invoice-common";
 import { computeDocumentTotals } from "#/services/totals-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { parseMoney, roundMoney, toMoney } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney, roundMoney, toMoney } from "#/utils/money";
 import { assertUpdated } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -82,11 +87,11 @@ export const submitPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
           partyId: invoice.supplier_id,
           partyType: "vendor",
         });
-        const byAccount = new Map<string, number>();
-        for (const item of items) {
-          const key = item.expense_account ?? stockAccount;
-          byAccount.set(key, roundMoney((byAccount.get(key) ?? 0) + parseMoney(item.amount)));
-        }
+        const byAccount = groupLineAmounts(
+          items,
+          (item) => item.expense_account ?? stockAccount,
+          (item) => parseMoney(item.amount),
+        );
         for (const [accountId, amount] of byAccount) {
           rows.push({ accountId, credit: Math.abs(amount) });
         }
@@ -100,11 +105,11 @@ export const submitPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
           partyId: invoice.supplier_id,
           partyType: "vendor",
         });
-        const byAccount = new Map<string, number>();
-        for (const item of items) {
-          const key = item.expense_account ?? stockAccount;
-          byAccount.set(key, roundMoney((byAccount.get(key) ?? 0) + parseMoney(item.amount)));
-        }
+        const byAccount = groupLineAmounts(
+          items,
+          (item) => item.expense_account ?? stockAccount,
+          (item) => parseMoney(item.amount),
+        );
         for (const [accountId, amount] of byAccount) {
           rows.push({ accountId, debit: roundMoney(Math.abs(amount)) });
         }
@@ -137,7 +142,7 @@ export const submitPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
           const credit = Math.abs(parseMoney(invoice.grand_total));
           const nextOutstanding = roundMoney(parseMoney(original.outstanding_amount) - credit);
           let originalStatus = original.status;
-          if (nextOutstanding <= 0.005) {
+          if (nextOutstanding <= GL_TOLERANCE) {
             originalStatus = "paid";
           } else if (nextOutstanding < parseMoney(original.grand_total)) {
             originalStatus = "partly_paid";
@@ -188,16 +193,10 @@ export const submitPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
             totalQty += parseMoney(row.qty);
             billedQty += parseMoney(row.billed_qty);
           }
-          const billedPercent = totalQty > 0 ? roundMoney((billedQty / totalQty) * 100) : 0;
+          const billedPercent = orderBillingPercent(totalQty, billedQty);
           const receivedPercent = parseMoney(order.received_percent);
-          let { status } = order;
-          if (billedPercent >= 100 && receivedPercent >= 100) {
-            status = "completed";
-          } else if (billedPercent >= 100) {
-            status = "to_receive";
-          } else if (receivedPercent >= 100) {
-            status = "to_bill";
-          }
+          const nextStatus = orderBillingStatus(billedPercent, receivedPercent, "received");
+          const status = nextStatus ?? order.status;
           await tx
             .update(accountingPurchaseOrder)
             .set({ billed_percent: String(billedPercent), status, updated_at: new Date() })
@@ -218,7 +217,7 @@ export const submitPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
         action: AUDIT_ACTION.SUBMITTED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_INVOICE,
         newState: { status: "unpaid" },
       });
       if (invoice.is_return) {

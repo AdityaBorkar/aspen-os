@@ -1,9 +1,7 @@
 import { accountingFiscalYear } from "#/db-schemas/chart";
+import type { Db } from "#/workflows/db";
 
 import { and, lte, gte, eq } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type Db = PostgresJsDatabase;
 
 export interface FiscalYearRow {
   end_date: string;

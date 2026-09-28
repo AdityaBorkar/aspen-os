@@ -2,6 +2,7 @@ import { accountingPaymentEntry, accountingPaymentReference } from "#/db-schemas
 import { accountingPurchaseInvoice } from "#/db-schemas/purchase";
 import { accountingSalesInvoice } from "#/db-schemas/sales";
 import { PAYMENT_EVENTS } from "#/pubsub";
+import { restorePaymentFromBalance } from "#/services/invoice-common";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { parseMoney, roundMoney, toMoney } from "#/utils/money";
 
@@ -47,14 +48,17 @@ export const unreconcilePayment = Workflow.name("accounting.reconciliation.unrec
           .where(eq(accountingSalesInvoice.id, referenceId))
           .limit(1);
         if (invoice) {
-          const outstanding = roundMoney(parseMoney(invoice.outstanding_amount) + amount);
-          const allocated = roundMoney(parseMoney(invoice.allocated_amount) - amount);
+          const restored = restorePaymentFromBalance(
+            invoice.outstanding_amount,
+            invoice.allocated_amount,
+            amount,
+          );
           await tx
             .update(accountingSalesInvoice)
             .set({
-              allocated_amount: toMoney(Math.max(0, allocated)),
-              outstanding_amount: toMoney(outstanding),
-              status: allocated <= 0.005 ? "unpaid" : "partly_paid",
+              allocated_amount: toMoney(restored.allocated),
+              outstanding_amount: toMoney(restored.outstanding),
+              status: restored.status,
               updated_at: new Date(),
             })
             .where(eq(accountingSalesInvoice.id, invoice.id));
@@ -66,14 +70,17 @@ export const unreconcilePayment = Workflow.name("accounting.reconciliation.unrec
           .where(eq(accountingPurchaseInvoice.id, referenceId))
           .limit(1);
         if (invoice) {
-          const outstanding = roundMoney(parseMoney(invoice.outstanding_amount) + amount);
-          const allocated = roundMoney(parseMoney(invoice.allocated_amount) - amount);
+          const restored = restorePaymentFromBalance(
+            invoice.outstanding_amount,
+            invoice.allocated_amount,
+            amount,
+          );
           await tx
             .update(accountingPurchaseInvoice)
             .set({
-              allocated_amount: toMoney(Math.max(0, allocated)),
-              outstanding_amount: toMoney(outstanding),
-              status: allocated <= 0.005 ? "unpaid" : "partly_paid",
+              allocated_amount: toMoney(restored.allocated),
+              outstanding_amount: toMoney(restored.outstanding),
+              status: restored.status,
               updated_at: new Date(),
             })
             .where(eq(accountingPurchaseInvoice.id, invoice.id));

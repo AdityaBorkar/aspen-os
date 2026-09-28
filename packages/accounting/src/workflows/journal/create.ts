@@ -1,22 +1,13 @@
 import { accountingJournalEntry, accountingJournalLine } from "#/db-schemas/chart";
 import { CreateJournalEntrySchema } from "#/schemas/chart";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, PARTY_TYPE } from "#/utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertBalanced, roundMoney, toMoney } from "#/utils/money";
+import { normalizePartyType } from "#/utils/party";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
 
 const InputSchema = object({ input: CreateJournalEntrySchema });
-
-function toPartyType(value: string | null | undefined): "customer" | "vendor" | null {
-  if (value === PARTY_TYPE.CUSTOMER) {
-    return PARTY_TYPE.CUSTOMER;
-  }
-  if (value === PARTY_TYPE.VENDOR) {
-    return PARTY_TYPE.VENDOR;
-  }
-  return null;
-}
 
 export const createJournalEntry = Workflow.name("accounting.journal.create")
   .input(InputSchema)
@@ -72,7 +63,7 @@ export const createJournalEntry = Workflow.name("accounting.journal.create")
         is_advance: line.isAdvance ?? false,
         journal_id: row.id,
         party_id: line.partyId ?? null,
-        party_type: toPartyType(line.partyType),
+        party_type: normalizePartyType(line.partyType),
         reference_id: line.referenceId ?? null,
         reference_type: line.referenceType ?? null,
       })),

@@ -81,7 +81,7 @@ export const loadJournalTemplate = Workflow.name("accounting.journal-template.lo
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: entry.id,
-        entityType: AUDIT_ENTITY_TYPE.JOURNAL,
+        entityType: AUDIT_ENTITY_TYPE.JOURNAL_TEMPLATE,
         newState: { templateId },
       });
     });

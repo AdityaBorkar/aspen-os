@@ -1,10 +1,9 @@
-import { accountingAccount, accountingGlEntry } from "#/db-schemas/chart";
+import { accountingAccount } from "#/db-schemas/chart";
 import { StatementFiltersSchema } from "#/schemas/reports";
+import { fetchGlEntries } from "#/services/gl-queries";
 import { parseMoney, roundMoney } from "#/utils/money";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, gte, lte } from "drizzle-orm";
-import type { SQL } from "drizzle-orm";
 
 export const cashFlow = Workflow.name("accounting.report.cash-flow")
   .input(StatementFiltersSchema)
@@ -16,20 +15,7 @@ export const cashFlow = Workflow.name("accounting.report.cash-flow")
           .filter((account) => account.account_type === "bank" || account.account_type === "cash")
           .map((account) => account.id),
       );
-      const conditions: SQL[] = [];
-      if (input.fiscalYear) {
-        conditions.push(eq(accountingGlEntry.fiscal_year, input.fiscalYear));
-      }
-      if (input.fromDate) {
-        conditions.push(gte(accountingGlEntry.posting_date, input.fromDate));
-      }
-      if (input.toDate) {
-        conditions.push(lte(accountingGlEntry.posting_date, input.toDate));
-      }
-      const entries = await ctx.db
-        .select()
-        .from(accountingGlEntry)
-        .where(and(...conditions));
+      const entries = await fetchGlEntries(ctx.db, input);
       let inflow = 0;
       let outflow = 0;
       for (const entry of entries) {

@@ -25,7 +25,7 @@ export const createTermsTemplate = Workflow.name("accounting.terms.create")
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.TERMS_TEMPLATE,
         newState: { name: row.name },
       });
     });

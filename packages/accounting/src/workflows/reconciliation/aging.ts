@@ -1,9 +1,10 @@
 import { accountingPurchaseInvoice } from "#/db-schemas/purchase";
 import { accountingSalesInvoice } from "#/db-schemas/sales";
 import { AgingQuerySchema } from "#/schemas/payment";
-import { parseMoney, todayDateOnly } from "#/utils/money";
+import { GL_TOLERANCE, parseMoney, roundMoney, todayDateOnly } from "#/utils/money";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { and, gt, notInArray } from "drizzle-orm";
 
 export interface AgingBucket {
   current: number;
@@ -15,7 +16,12 @@ export interface AgingBucket {
   total: number;
 }
 
-function bucketFor(dueDate: string | null, asOf: string): string {
+const OPEN_STATUSES = ["draft", "cancelled", "paid"] as const;
+
+function bucketFor(
+  dueDate: string | null,
+  asOf: string,
+): keyof Omit<AgingBucket, "partyId" | "total"> {
   if (!dueDate || dueDate >= asOf) {
     return "current";
   }
@@ -34,6 +40,26 @@ function bucketFor(dueDate: string | null, asOf: string): string {
   return "over90";
 }
 
+function accumulate(
+  buckets: Map<string, AgingBucket>,
+  partyId: string,
+  dueDate: string | null,
+  outstanding: number,
+  asOf: string,
+): void {
+  if (outstanding <= GL_TOLERANCE) {
+    return;
+  }
+  let bucket = buckets.get(partyId);
+  if (!bucket) {
+    bucket = { current: 0, days30: 0, days60: 0, days90: 0, over90: 0, partyId, total: 0 };
+    buckets.set(partyId, bucket);
+  }
+  const key = bucketFor(dueDate, asOf);
+  bucket[key] = roundMoney(bucket[key] + outstanding);
+  bucket.total = roundMoney(bucket.total + outstanding);
+}
+
 export const agingReport = Workflow.name("accounting.reconciliation.aging")
   .input(AgingQuerySchema)
   .handler(async (input, ctx) =>
@@ -41,80 +67,42 @@ export const agingReport = Workflow.name("accounting.reconciliation.aging")
       const asOf = input.asOf ?? todayDateOnly();
       const buckets = new Map<string, AgingBucket>();
 
-      const ensure = (partyId: string): AgingBucket => {
-        const existing = buckets.get(partyId);
-        if (existing) {
-          return existing;
-        }
-        const fresh: AgingBucket = {
-          current: 0,
-          days30: 0,
-          days60: 0,
-          days90: 0,
-          over90: 0,
-          partyId,
-          total: 0,
-        };
-        buckets.set(partyId, fresh);
-        return fresh;
-      };
-
-      const sales = await ctx.db.select().from(accountingSalesInvoice);
+      const sales = await ctx.db
+        .select()
+        .from(accountingSalesInvoice)
+        .where(
+          and(
+            notInArray(accountingSalesInvoice.status, [...OPEN_STATUSES]),
+            gt(accountingSalesInvoice.outstanding_amount, "0"),
+          ),
+        );
       for (const invoice of sales) {
-        if (
-          invoice.status === "draft" ||
-          invoice.status === "cancelled" ||
-          invoice.status === "paid"
-        ) {
-          continue;
-        }
-        const outstanding = parseMoney(invoice.outstanding_amount);
-        if (outstanding <= 0.005) {
-          continue;
-        }
-        const bucket = ensure(invoice.customer_id);
-        const key = bucketFor(invoice.due_date, asOf);
-        if (key === "current") {
-          bucket.current += outstanding;
-        } else if (key === "days30") {
-          bucket.days30 += outstanding;
-        } else if (key === "days60") {
-          bucket.days60 += outstanding;
-        } else if (key === "days90") {
-          bucket.days90 += outstanding;
-        } else {
-          bucket.over90 += outstanding;
-        }
-        bucket.total += outstanding;
+        accumulate(
+          buckets,
+          invoice.customer_id,
+          invoice.due_date,
+          parseMoney(invoice.outstanding_amount),
+          asOf,
+        );
       }
 
-      const purchases = await ctx.db.select().from(accountingPurchaseInvoice);
+      const purchases = await ctx.db
+        .select()
+        .from(accountingPurchaseInvoice)
+        .where(
+          and(
+            notInArray(accountingPurchaseInvoice.status, [...OPEN_STATUSES]),
+            gt(accountingPurchaseInvoice.outstanding_amount, "0"),
+          ),
+        );
       for (const invoice of purchases) {
-        if (
-          invoice.status === "draft" ||
-          invoice.status === "cancelled" ||
-          invoice.status === "paid"
-        ) {
-          continue;
-        }
-        const outstanding = parseMoney(invoice.outstanding_amount);
-        if (outstanding <= 0.005) {
-          continue;
-        }
-        const bucket = ensure(invoice.supplier_id);
-        const key = bucketFor(invoice.due_date, asOf);
-        if (key === "current") {
-          bucket.current += outstanding;
-        } else if (key === "days30") {
-          bucket.days30 += outstanding;
-        } else if (key === "days60") {
-          bucket.days60 += outstanding;
-        } else if (key === "days90") {
-          bucket.days90 += outstanding;
-        } else {
-          bucket.over90 += outstanding;
-        }
-        bucket.total += outstanding;
+        accumulate(
+          buckets,
+          invoice.supplier_id,
+          invoice.due_date,
+          parseMoney(invoice.outstanding_amount),
+          asOf,
+        );
       }
 
       return [...buckets.values()];

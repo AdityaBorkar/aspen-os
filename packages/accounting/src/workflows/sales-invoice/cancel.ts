@@ -1,5 +1,6 @@
 import { accountingSalesInvoice } from "#/db-schemas/sales";
 import { SALES_INVOICE_EVENTS } from "#/pubsub";
+import { assertPeriodOpen } from "#/services/fiscal-service";
 import { reverseGlEntries } from "#/services/gl-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { assertUpdated } from "#/workflows/utils";
@@ -30,9 +31,10 @@ export const cancelSalesInvoice = Workflow.name("accounting.sales-invoice.cancel
 
     await ctx.db.transaction(async (tx) => {
       if (invoice.status !== "draft") {
+        const year = await assertPeriodOpen({ db: tx, postingDate: invoice.posting_date });
         await reverseGlEntries({
           db: tx,
-          fiscalYear: "cancellation",
+          fiscalYear: year.name,
           postingDate: invoice.posting_date,
           voucherId: id,
           voucherType: "Sales Invoice",
@@ -56,7 +58,7 @@ export const cancelSalesInvoice = Workflow.name("accounting.sales-invoice.cancel
         action: AUDIT_ACTION.CANCELLED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.SALES_INVOICE,
         newState: { status: "cancelled" },
       });
       await ctx.pubsub.publish(SALES_INVOICE_EVENTS.CANCELLED, { salesInvoiceId: id });

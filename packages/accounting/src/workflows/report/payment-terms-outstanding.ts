@@ -10,14 +10,16 @@ export const paymentTermsOutstanding = Workflow.name("accounting.report.payment-
   .input(OverdueQuerySchema)
   .handler(async (_input, ctx) =>
     ctx.step.run("query", async () => {
-      const sales = await ctx.db
-        .select()
-        .from(accountingSalesInvoice)
-        .where(gt(accountingSalesInvoice.outstanding_amount, "0"));
-      const purchases = await ctx.db
-        .select()
-        .from(accountingPurchaseInvoice)
-        .where(gt(accountingPurchaseInvoice.outstanding_amount, "0"));
+      const [sales, purchases] = await Promise.all([
+        ctx.db
+          .select()
+          .from(accountingSalesInvoice)
+          .where(gt(accountingSalesInvoice.outstanding_amount, "0")),
+        ctx.db
+          .select()
+          .from(accountingPurchaseInvoice)
+          .where(gt(accountingPurchaseInvoice.outstanding_amount, "0")),
+      ]);
       return {
         payables: purchases.map((row) => ({
           dueDate: row.due_date,

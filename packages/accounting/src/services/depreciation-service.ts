@@ -1,4 +1,4 @@
-import { parseMoney, roundMoney, toDateOnly } from "#/utils/money";
+import { roundMoney, toDateOnly } from "#/utils/money";
 
 export interface DepreciationBookInput {
   availableForUseDate: string;
@@ -14,24 +14,27 @@ export interface ScheduledDepreciationRow {
   expectedDate: string;
 }
 
-function periodsPerYear(frequency: string): number {
+export interface DepreciationPeriods {
+  perYear: number;
+  stepMonths: number;
+}
+
+function periodsFor(frequency: string): DepreciationPeriods {
   if (frequency === "monthly") {
-    return 12;
+    return { perYear: 12, stepMonths: 1 };
   }
   if (frequency === "quarterly") {
-    return 4;
+    return { perYear: 4, stepMonths: 3 };
   }
-  return 1;
+  return { perYear: 1, stepMonths: 12 };
+}
+
+function periodsPerYear(frequency: string): number {
+  return periodsFor(frequency).perYear;
 }
 
 function monthsPerPeriod(frequency: string): number {
-  if (frequency === "monthly") {
-    return 1;
-  }
-  if (frequency === "quarterly") {
-    return 3;
-  }
-  return 12;
+  return periodsFor(frequency).stepMonths;
 }
 
 function addMonths(base: string, months: number): string {
@@ -39,6 +42,43 @@ function addMonths(base: string, months: number): string {
   const next = new Date(date);
   next.setUTCMonth(next.getUTCMonth() + months);
   return toDateOnly(next);
+}
+
+function periodicRate(annualRate: number, perYear: number): number {
+  const clamped = Math.min(Math.max(annualRate, 0), 1);
+  return 1 - (1 - clamped) ** (1 / perYear);
+}
+
+function decliningSchedule(
+  availableForUseDate: string,
+  bookStart: number,
+  periodRate: number,
+  residualValue: number,
+  stepMonths: number,
+  totalPeriods: number,
+): ScheduledDepreciationRow[] {
+  const rows: ScheduledDepreciationRow[] = [];
+  let book = bookStart;
+  for (let index = 1; index <= totalPeriods; index += 1) {
+    const isLast = index === totalPeriods;
+    let amount = roundMoney(book * periodRate);
+    const maxAllowed = roundMoney(book - residualValue);
+    if (amount > maxAllowed) {
+      amount = maxAllowed;
+    }
+    if (isLast) {
+      amount = roundMoney(book - residualValue);
+    }
+    if (amount <= 0) {
+      break;
+    }
+    book = roundMoney(book - amount);
+    rows.push({ amount, expectedDate: addMonths(availableForUseDate, index * stepMonths) });
+    if (book <= residualValue + 0.005) {
+      break;
+    }
+  }
+  return rows;
 }
 
 export function buildDepreciationSchedule(
@@ -60,10 +100,10 @@ export function buildDepreciationSchedule(
   const perYear = periodsPerYear(frequency);
   const totalPeriods = life * perYear;
   const stepMonths = monthsPerPeriod(frequency);
-  const rows: ScheduledDepreciationRow[] = [];
 
   if (depreciationMethod === "straight_line") {
     const perPeriod = roundMoney(depreciable / totalPeriods);
+    const rows: ScheduledDepreciationRow[] = [];
     let remaining = depreciable;
     for (let index = 1; index <= totalPeriods; index += 1) {
       const isLast = index === totalPeriods;
@@ -76,54 +116,23 @@ export function buildDepreciationSchedule(
 
   if (depreciationMethod === "written_down_value") {
     const annualRate = 1 - (residualValue / Math.max(grossValue, 0.01)) ** (1 / life);
-    const clampedRate = Math.min(Math.max(annualRate, 0), 1);
-    const periodRate = 1 - (1 - clampedRate) ** (1 / perYear);
-    let book = grossValue;
-    for (let index = 1; index <= totalPeriods; index += 1) {
-      const isLast = index === totalPeriods;
-      let amount = roundMoney(book * periodRate);
-      const maxAllowed = roundMoney(book - residualValue);
-      if (amount > maxAllowed) {
-        amount = maxAllowed;
-      }
-      if (isLast) {
-        amount = roundMoney(book - residualValue);
-      }
-      if (amount <= 0) {
-        break;
-      }
-      book = roundMoney(book - amount);
-      rows.push({ amount, expectedDate: addMonths(availableForUseDate, index * stepMonths) });
-      if (book <= residualValue + 0.005) {
-        break;
-      }
-    }
-    return rows;
+    return decliningSchedule(
+      availableForUseDate,
+      grossValue,
+      periodicRate(annualRate, perYear),
+      residualValue,
+      stepMonths,
+      totalPeriods,
+    );
   }
 
-  let bookValue = grossValue;
   const straightRate = 1 / life;
-  const ddbAnnual = Math.min(straightRate * 2, 1);
-  const ddbPeriod = 1 - (1 - ddbAnnual) ** (1 / perYear);
-  for (let index = 1; index <= totalPeriods; index += 1) {
-    const isLast = index === totalPeriods;
-    let amount = roundMoney(bookValue * ddbPeriod);
-    const maxAllowed = roundMoney(bookValue - residualValue);
-    if (amount > maxAllowed) {
-      amount = maxAllowed;
-    }
-    if (isLast) {
-      amount = roundMoney(bookValue - residualValue);
-    }
-    if (amount <= 0) {
-      break;
-    }
-    void parseMoney("0");
-    bookValue = roundMoney(bookValue - amount);
-    rows.push({ amount, expectedDate: addMonths(availableForUseDate, index * stepMonths) });
-    if (bookValue <= residualValue + 0.005) {
-      break;
-    }
-  }
-  return rows;
+  return decliningSchedule(
+    availableForUseDate,
+    grossValue,
+    periodicRate(Math.min(straightRate * 2, 1), perYear),
+    residualValue,
+    stepMonths,
+    totalPeriods,
+  );
 }

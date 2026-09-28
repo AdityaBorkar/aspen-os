@@ -1,10 +1,8 @@
 import { accountingTaxRule } from "#/db-schemas/tax";
 import { parseMoney, roundMoney } from "#/utils/money";
+import type { Db } from "#/workflows/db";
 
-import { eq } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type Db = PostgresJsDatabase;
+import { inArray } from "drizzle-orm";
 
 export interface TotalsLineInput {
   discountAmount?: number;
@@ -19,6 +17,7 @@ export interface TaxRuleRow {
   charge_type: string;
   rate: string | number | null;
   row_index: number | null;
+  template_id: string;
 }
 
 export interface ComputeTotalsInput {
@@ -41,7 +40,7 @@ export interface ComputedTotals {
   taxTotal: number;
 }
 
-function lineNet(line: TotalsLineInput): number {
+export function lineNet(line: TotalsLineInput): number {
   const qty = line.qty ?? 1;
   const rate = line.rate ?? 0;
   const gross = qty * rate;
@@ -49,79 +48,92 @@ function lineNet(line: TotalsLineInput): number {
   return roundMoney(gross - percentDiscount - (line.discountAmount ?? 0));
 }
 
+function taxesFor(net: number, rules: TaxRuleRow[]): ComputedTaxRow[] {
+  const rows: ComputedTaxRow[] = [];
+  let previousTotal = 0;
+  for (const typed of rules) {
+    const rate = parseMoney(typed.rate);
+    let base = net;
+    if (typed.charge_type === "on_previous_row") {
+      base = previousTotal === 0 ? net : previousTotal;
+    }
+    const amount =
+      typed.charge_type === "actual" ? roundMoney(rate) : roundMoney((base * rate) / 100);
+    previousTotal = roundMoney(previousTotal + amount);
+    rows.push({
+      accountHead: typed.account_head,
+      amount,
+      chargeType: typed.charge_type,
+      rate,
+    });
+  }
+  return rows;
+}
+
+function mergeTaxRow(taxRows: ComputedTaxRow[], row: ComputedTaxRow): void {
+  const existing = taxRows.find((candidate) => candidate.accountHead === row.accountHead);
+  if (existing) {
+    existing.amount = roundMoney(existing.amount + row.amount);
+  } else {
+    taxRows.push(row);
+  }
+}
+
 export async function computeDocumentTotals(input: ComputeTotalsInput): Promise<ComputedTotals> {
   const { db, lines, taxTemplateId } = input;
+  const lineNets = lines.map((line) => lineNet(line));
   let netTotal = 0;
-  for (const line of lines) {
-    netTotal = roundMoney(netTotal + lineNet(line));
+  for (const net of lineNets) {
+    netTotal = roundMoney(netTotal + net);
   }
 
-  async function rulesFor(templateId: string): Promise<TaxRuleRow[]> {
+  const templateIds = new Set<string>();
+  if (taxTemplateId) {
+    templateIds.add(taxTemplateId);
+  }
+  for (const line of lines) {
+    if (line.itemTaxTemplateId) {
+      templateIds.add(line.itemTaxTemplateId);
+    }
+  }
+
+  const rulesByTemplate = new Map<string, TaxRuleRow[]>();
+  if (templateIds.size > 0) {
     const rules = await db
       .select({
         account_head: accountingTaxRule.account_head,
         charge_type: accountingTaxRule.charge_type,
         rate: accountingTaxRule.rate,
         row_index: accountingTaxRule.row_index,
+        template_id: accountingTaxRule.template_id,
       })
       .from(accountingTaxRule)
-      .where(eq(accountingTaxRule.template_id, templateId));
-    return [...rules]
-      .sort((first, second) => (first.row_index ?? 0) - (second.row_index ?? 0))
-      .map((rule) => ({
-        account_head: rule.account_head,
-        charge_type: rule.charge_type,
-        rate: rule.rate,
-        row_index: rule.row_index,
-      }));
-  }
-
-  function taxesFor(net: number, rules: TaxRuleRow[]): ComputedTaxRow[] {
-    const rows: ComputedTaxRow[] = [];
-    let previousTotal = 0;
-    for (const typed of rules) {
-      const rate = parseMoney(typed.rate);
-      let base = net;
-      if (typed.charge_type === "on_previous_row") {
-        base = previousTotal === 0 ? net : previousTotal;
-      }
-      let amount = 0;
-      if (typed.charge_type === "actual") {
-        amount = roundMoney(rate);
-      } else {
-        amount = roundMoney((base * rate) / 100);
-      }
-      previousTotal = roundMoney(previousTotal + amount);
-      rows.push({
-        accountHead: typed.account_head,
-        amount,
-        chargeType: typed.charge_type,
-        rate,
-      });
+      .where(inArray(accountingTaxRule.template_id, [...templateIds]));
+    for (const rule of rules) {
+      const list = rulesByTemplate.get(rule.template_id) ?? [];
+      list.push(rule);
+      rulesByTemplate.set(rule.template_id, list);
     }
-    return rows;
+    for (const list of rulesByTemplate.values()) {
+      list.sort((first, second) => (first.row_index ?? 0) - (second.row_index ?? 0));
+    }
   }
 
   const taxRows: ComputedTaxRow[] = [];
   if (taxTemplateId) {
-    const rules = await rulesFor(taxTemplateId);
-    for (const row of taxesFor(netTotal, rules)) {
+    for (const row of taxesFor(netTotal, rulesByTemplate.get(taxTemplateId) ?? [])) {
       taxRows.push(row);
     }
   }
 
-  for (const line of lines) {
-    if (line.itemTaxTemplateId) {
-      const rules = await rulesFor(line.itemTaxTemplateId);
-      const net = lineNet(line);
-      for (const row of taxesFor(net, rules)) {
-        const existing = taxRows.find((candidate) => candidate.accountHead === row.accountHead);
-        if (existing) {
-          existing.amount = roundMoney(existing.amount + row.amount);
-        } else {
-          taxRows.push(row);
-        }
-      }
+  for (let index = 0; index < lines.length; index += 1) {
+    const templateId = lines[index]?.itemTaxTemplateId;
+    if (!templateId) {
+      continue;
+    }
+    const net = lineNets[index] ?? 0;
+    for (const row of taxesFor(net, rulesByTemplate.get(templateId) ?? [])) {
+      mergeTaxRow(taxRows, row);
     }
   }
 

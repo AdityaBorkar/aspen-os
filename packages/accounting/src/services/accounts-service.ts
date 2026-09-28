@@ -1,10 +1,8 @@
 import { accountingAccount } from "#/db-schemas/chart";
 import type { AccountType } from "#/utils/constants";
+import type { Db } from "#/workflows/db";
 
 import { and, eq } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type Db = PostgresJsDatabase;
 
 export interface ResolveControlAccountInput {
   accountType: AccountType;

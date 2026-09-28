@@ -1,31 +1,19 @@
-import { accountingAccount, accountingGlEntry } from "#/db-schemas/chart";
 import { StatementFiltersSchema } from "#/schemas/reports";
+import {
+  fetchAccountRootTypes,
+  fetchGlEntries,
+  isBalanceSheetBalanced,
+} from "#/services/gl-queries";
 import { parseMoney, roundMoney } from "#/utils/money";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, gte, lte } from "drizzle-orm";
-import type { SQL } from "drizzle-orm";
 
 export const balanceSheet = Workflow.name("accounting.report.balance-sheet")
   .input(StatementFiltersSchema)
   .handler(async (input, ctx) =>
     ctx.step.run("query", async () => {
-      const conditions: SQL[] = [];
-      if (input.fiscalYear) {
-        conditions.push(eq(accountingGlEntry.fiscal_year, input.fiscalYear));
-      }
-      if (input.toDate) {
-        conditions.push(lte(accountingGlEntry.posting_date, input.toDate));
-      }
-      if (input.fromDate) {
-        conditions.push(gte(accountingGlEntry.posting_date, input.fromDate));
-      }
-      const entries = await ctx.db
-        .select()
-        .from(accountingGlEntry)
-        .where(and(...conditions));
-      const accounts = await ctx.db.select().from(accountingAccount);
-      const typeOf = new Map(accounts.map((account) => [account.id, account.root_type]));
+      const entries = await fetchGlEntries(ctx.db, input);
+      const typeOf = await fetchAccountRootTypes(ctx.db);
       let assets = 0;
       let liabilities = 0;
       let equity = 0;
@@ -42,7 +30,7 @@ export const balanceSheet = Workflow.name("accounting.report.balance-sheet")
       }
       return {
         assets,
-        balanced: Math.abs(assets - (liabilities + equity)) < 1,
+        balanced: isBalanceSheetBalanced(assets, liabilities, equity),
         equity,
         liabilities,
       };

@@ -7,9 +7,8 @@ import { gt } from "drizzle-orm";
 
 export const arAging = Workflow.name("accounting.report.ar-aging")
   .input(AgingQuerySchema)
-  .handler(async (input, ctx) =>
+  .handler(async (_input, ctx) =>
     ctx.step.run("query", async () => {
-      void input;
       const rows = await ctx.db
         .select()
         .from(accountingSalesInvoice)

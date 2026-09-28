@@ -42,7 +42,7 @@ export const createJournalTemplate = Workflow.name("accounting.journal-template.
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.JOURNAL,
+        entityType: AUDIT_ENTITY_TYPE.JOURNAL_TEMPLATE,
         newState: { name: row.name },
       });
     });

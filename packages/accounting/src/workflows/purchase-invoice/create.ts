@@ -114,7 +114,7 @@ export const createPurchaseInvoice = Workflow.name("accounting.purchase-invoice.
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: invoice.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_INVOICE,
         newState: { status: invoice.status, supplierId: invoice.supplier_id },
       });
       await ctx.pubsub.publish(PURCHASE_INVOICE_EVENTS.CREATED, { purchaseInvoiceId: invoice.id });

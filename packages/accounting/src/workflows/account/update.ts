@@ -1,4 +1,4 @@
-import { accountingAccount, accountingGlEntry, accountingJournalLine } from "#/db-schemas/chart";
+import { accountingAccount, accountingGlEntry } from "#/db-schemas/chart";
 import { UpdateAccountSchema } from "#/schemas/chart";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchAccountStep } from "#/workflow-steps/fetch-account";
@@ -85,6 +85,5 @@ export const updateAccount = Workflow.name("accounting.account.update")
       });
     });
 
-    void accountingJournalLine;
     return row;
   });

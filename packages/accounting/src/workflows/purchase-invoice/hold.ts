@@ -30,7 +30,7 @@ export const holdPurchaseInvoice = Workflow.name("accounting.purchase-invoice.ho
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_INVOICE,
         newState: { onHold: true },
       });
     });

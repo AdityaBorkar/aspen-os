@@ -1,9 +1,7 @@
 import { accountingPaymentTermTemplate } from "#/db-schemas/tax";
+import type { Db } from "#/workflows/db";
 
 import { eq } from "drizzle-orm";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
-
-type Db = PostgresJsDatabase;
 
 export interface DeriveDueDateInput {
   db: Db;

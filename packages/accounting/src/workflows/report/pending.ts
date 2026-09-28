@@ -9,7 +9,10 @@ export const pendingDeliveryBilling = Workflow.name("accounting.report.pending")
   .input(OverdueQuerySchema)
   .handler(async (_input, ctx) =>
     ctx.step.run("query", async () => {
-      const sales = await ctx.db.select().from(accountingSalesOrder);
+      const [sales, purchases] = await Promise.all([
+        ctx.db.select().from(accountingSalesOrder),
+        ctx.db.select().from(accountingPurchaseOrder),
+      ]);
       const pendingSales = sales
         .filter(
           (order) =>
@@ -20,7 +23,6 @@ export const pendingDeliveryBilling = Workflow.name("accounting.report.pending")
           deliveredPercent: parseMoney(order.delivered_percent),
           orderId: order.id,
         }));
-      const purchases = await ctx.db.select().from(accountingPurchaseOrder);
       const pendingPurchases = purchases
         .filter(
           (order) =>

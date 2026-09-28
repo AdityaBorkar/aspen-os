@@ -7,11 +7,19 @@ export const assetRegister = Workflow.name("accounting.report.asset-register")
   .input(OverdueQuerySchema)
   .handler(async (_input, ctx) =>
     ctx.step.run("query", async () => {
-      const assets = await ctx.db.select().from(accountingAsset);
-      const schedules = await ctx.db.select().from(accountingDepreciationSchedule);
+      const [assets, schedules] = await Promise.all([
+        ctx.db.select().from(accountingAsset),
+        ctx.db.select().from(accountingDepreciationSchedule),
+      ]);
+      const schedulesByAsset = new Map<string, typeof schedules>();
+      for (const schedule of schedules) {
+        const list = schedulesByAsset.get(schedule.asset_id) ?? [];
+        list.push(schedule);
+        schedulesByAsset.set(schedule.asset_id, list);
+      }
       return assets.map((asset) => ({
         asset,
-        schedules: schedules.filter((schedule) => schedule.asset_id === asset.id),
+        schedules: schedulesByAsset.get(asset.id) ?? [],
       }));
     }),
   );

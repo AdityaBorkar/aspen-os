@@ -106,7 +106,7 @@ export const createSalesInvoice = Workflow.name("accounting.sales-invoice.create
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: invoice.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.SALES_INVOICE,
         newState: { customerId: invoice.customer_id, grandTotal },
       });
       await ctx.pubsub.publish(SALES_INVOICE_EVENTS.CREATED, { salesInvoiceId: invoice.id });

@@ -34,7 +34,7 @@ export const resumePurchaseOrder = Workflow.name("accounting.purchase-order.resu
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { status: "to_receive_and_bill" },
       });
       await ctx.pubsub.publish(PURCHASE_ORDER_EVENTS.UPDATED, { purchaseOrderId: id });

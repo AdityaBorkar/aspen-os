@@ -180,6 +180,7 @@ export const AUDIT_ENTITY_TYPE = {
   DELIVERY: "accounting:delivery",
   FISCAL_YEAR: "accounting:fiscal_year",
   JOURNAL: "accounting:journal",
+  JOURNAL_TEMPLATE: "accounting:journal_template",
   MATERIAL_REQUEST: "accounting:material_request",
   PAYMENT: "accounting:payment",
   PAYMENT_TERM_TEMPLATE: "accounting:payment_term_template",
@@ -192,6 +193,7 @@ export const AUDIT_ENTITY_TYPE = {
   SALES_ORDER: "accounting:sales_order",
   SUPPLIER_QUOTATION: "accounting:supplier_quotation",
   TAX_TEMPLATE: "accounting:tax_template",
+  TERMS_TEMPLATE: "accounting:terms_template",
 } as const;
 
 export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTITY_TYPE];

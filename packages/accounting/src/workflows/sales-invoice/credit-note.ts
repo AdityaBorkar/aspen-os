@@ -10,7 +10,6 @@ import { boolean, minLength, nullable, object, optional, pipe, string } from "va
 const InputSchema = object({
   id: string(),
   isRateAdjustment: optional(boolean(), false),
-  items: optional(nullable(string())),
   reason: optional(nullable(pipe(string(), minLength(1)))),
 });
 
@@ -99,7 +98,7 @@ export const createCreditNote = Workflow.name("accounting.sales-invoice.credit-n
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: note.id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.SALES_INVOICE,
         newState: { returnAgainst: id },
       });
       await ctx.pubsub.publish(CREDIT_NOTE_EVENTS.ISSUED, {

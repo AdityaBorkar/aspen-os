@@ -37,7 +37,7 @@ export const holdPurchaseOrder = Workflow.name("accounting.purchase-order.hold")
         action: AUDIT_ACTION.UPDATED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { status: "on_hold" },
       });
     });

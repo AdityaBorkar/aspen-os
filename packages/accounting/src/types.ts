@@ -27,6 +27,8 @@ export type {
   BankMatchedEvent,
   CreditNoteIssuedEvent,
   DebitNoteIssuedEvent,
+  QuotationConvertedEvent,
+  SupplierQuotationConvertedEvent,
 } from "#/pubsub";
 export type { AccountingEventMap } from "#/pubsub";
 export {

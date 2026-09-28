@@ -38,7 +38,7 @@ export const closePurchaseOrder = Workflow.name("accounting.purchase-order.close
         action: AUDIT_ACTION.CLOSED,
         crudAction: "update",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.SALES_ORDER,
+        entityType: AUDIT_ENTITY_TYPE.PURCHASE_ORDER,
         newState: { status: "closed" },
       });
       await ctx.pubsub.publish(PURCHASE_ORDER_EVENTS.CLOSED, { purchaseOrderId: id });
