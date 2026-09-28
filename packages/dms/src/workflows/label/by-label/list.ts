@@ -1,7 +1,7 @@
 import { dmsEntityLabel, dmsFile, dmsFolder } from "#/db-schemas";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { object, optional, string } from "valibot";
 
 const ListByLabelSchema = object({
@@ -37,7 +37,7 @@ export const listEntitiesByLabel = Workflow.name("dms.label.list-by-label")
         ? await ctx.db
             .select()
             .from(dmsFolder)
-            .where(and(eq(dmsFolder.is_trashed, false), sql`${dmsFolder.id} = ANY(${folderIds})`))
+            .where(and(eq(dmsFolder.is_trashed, false), inArray(dmsFolder.id, folderIds)))
         : [];
 
     const files =
@@ -45,7 +45,7 @@ export const listEntitiesByLabel = Workflow.name("dms.label.list-by-label")
         ? await ctx.db
             .select()
             .from(dmsFile)
-            .where(and(sql`${dmsFile.status} != 'trashed'`, sql`${dmsFile.id} = ANY(${fileIds})`))
+            .where(and(ne(dmsFile.status, "trashed"), inArray(dmsFile.id, fileIds)))
         : [];
 
     return { files, folders };

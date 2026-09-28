@@ -102,6 +102,15 @@ export class S3Adapter {
       // oxlint-enable eslint/no-await-in-loop
       return Buffer.concat(chunks);
     }
+    // AWS SDK v3 returns a Node `Readable` outside web runtimes (and custom
+    // Smithy streams in others) — consume anything async-iterable of bytes.
+    if (typeof (body as AsyncIterable<Uint8Array>)[Symbol.asyncIterator] === "function") {
+      const chunks: Uint8Array[] = [];
+      for await (const chunk of body as AsyncIterable<Uint8Array>) {
+        chunks.push(Buffer.from(chunk));
+      }
+      return Buffer.concat(chunks);
+    }
     throw new Error("Failed to read object: unsupported response body type");
   }
 

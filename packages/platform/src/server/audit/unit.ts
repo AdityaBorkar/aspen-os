@@ -58,6 +58,7 @@ export class AuditUnit {
   /** Write an audit entry, optionally within a provided transaction handle. */
   async write(entry: AuditEntry, db?: AuditDatabase): Promise<void> {
     const target = db ?? this.db;
+    const store = context.getStore();
     const resolved = this.resolveContextEntry(entry);
     await target.insert(auditLog).values({
       action: resolved.action,
@@ -71,6 +72,10 @@ export class AuditUnit {
       new_state: resolved.newState ?? null,
       previous_state: resolved.previousState ?? null,
       request_id: resolved.requestId ?? null,
+      // Tag rows with the ambient tenant so tenant-scoped `query()` calls
+      // can see them. Falls back to the column default (`'default'`) outside
+      // `Platform.run()`, matching historical behaviour for such callers.
+      tenant_id: store?.tenantId,
       trace_id: resolved.traceId ?? null,
       workflow_run_id: resolved.workflowRunId ?? null,
     });
