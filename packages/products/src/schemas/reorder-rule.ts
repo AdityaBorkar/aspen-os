@@ -1,5 +1,5 @@
 import { MaterialRequestTypeSchema } from "#/schemas/enums";
-import { IdSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema } from "#/schemas/utils";
 
 import { boolean, nullable, number, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -37,8 +37,7 @@ export type ReorderRuleFilters = InferOutput<typeof ReorderRuleFiltersSchema>;
 
 export const ListReorderRulesSchema = object({
   filters: optional(ReorderRuleFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListReorderRulesInput = InferOutput<typeof ListReorderRulesSchema>;
@@ -58,8 +57,7 @@ export type GetByBarcodeInput = InferOutput<typeof GetByBarcodeSchema>;
 export const ListByGroupSchema = object({
   includeDescendants: optional(boolean(), true),
   itemGroupId: IdSchema,
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListByGroupInput = InferOutput<typeof ListByGroupSchema>;

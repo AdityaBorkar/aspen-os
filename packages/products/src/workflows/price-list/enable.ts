@@ -1,6 +1,7 @@
 import { productsPriceList } from "#/db-schemas";
 import { PRICE_LIST_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, priceListLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPriceListStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -14,7 +15,8 @@ const IdInputSchema = object({ id: IdSchema });
 export const enablePriceList = Workflow.name("products.price-list.enable")
   .input(IdInputSchema)
   .handler(async ({ id }, ctx) => {
-    await ctx.step.run(fetchPriceListStep, { id });
+    const current = await ctx.step.run(fetchPriceListStep, { id });
+    assertTransition("price-list", priceListLifecycleState(current), "enabled");
     const [updated] = await ctx.db
       .update(productsPriceList)
       .set({ is_enabled: true, updated_at: new Date() })
@@ -31,11 +33,8 @@ export const enablePriceList = Workflow.name("products.price-list.enable")
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
       },
-      PRICE_LIST_EVENTS.UPDATED,
-      {
-        changes: { isEnabled: true },
-        priceList: { id: updated.id, name: updated.name },
-      },
+      PRICE_LIST_EVENTS.ENABLED,
+      { priceListId: id },
     );
     return updated;
   });

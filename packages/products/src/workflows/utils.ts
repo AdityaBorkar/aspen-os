@@ -15,3 +15,12 @@ export function checkPage(page: PageInput): void {
     throw new Error("offset must be >= 0.");
   }
 }
+
+/**
+ * Escape LIKE wildcards so user search text matches literally. Interpolate
+ * the result into like/ilike patterns to keep exact-match behavior for
+ * `%`, `_`, and `\` instead of leaking wildcard semantics.
+ */
+export function escapeLike(search: string): string {
+  return search.replace(/[%_\\]/g, (character) => `\\${character}`);
+}

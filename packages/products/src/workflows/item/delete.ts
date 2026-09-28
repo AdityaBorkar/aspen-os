@@ -10,6 +10,7 @@ import {
   productsReorderRule,
   productsTemplateAttribute,
 } from "#/db-schemas";
+import { assertTransition, itemLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemStep } from "#/workflow-steps/fetch";
 import { runAuditStep } from "#/workflows/audit";
@@ -27,6 +28,7 @@ export const deleteItem = Workflow.name("products.item.delete")
     if (current.has_transactions) {
       throw new Error("Cannot delete item with transactions. Disable or archive it instead.");
     }
+    assertTransition("item", itemLifecycleState(current), "deleted");
     const [variantRef] = await ctx.db
       .select({ id: productsItem.id })
       .from(productsItem)

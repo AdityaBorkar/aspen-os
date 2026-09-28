@@ -1,6 +1,2 @@
-import * as dbSchema from "#/db-schemas";
-
-export { Products, type ProductsModuleConfig } from "#/module";
+export { Products } from "#/module";
 export * from "#/types";
-
-export { dbSchema };

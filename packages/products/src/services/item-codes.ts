@@ -2,27 +2,46 @@ import { productsBarcode, productsItem } from "#/db-schemas";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
+import type { PgColumn, PgTable } from "drizzle-orm/pg-core";
 
 type Db = WorkflowContext["db"];
+
+interface UniqueCheck {
+  column: PgColumn;
+  excludeId?: string;
+  label: string;
+  table: PgTable & { id: PgColumn };
+  value: string;
+}
+
+async function assertUnique(db: Db, check: UniqueCheck): Promise<void> {
+  const [existing] = await db
+    .select({ id: check.table.id })
+    .from(check.table)
+    .where(
+      and(
+        eq(check.column, check.value),
+        check.excludeId ? ne(check.table.id, check.excludeId) : undefined,
+      ),
+    )
+    .limit(1);
+  if (existing) {
+    throw new Error(`${check.label} "${check.value}" already exists.`);
+  }
+}
 
 export async function assertItemCodeUnique(
   db: Db,
   itemCode: string,
   excludeId?: string,
 ): Promise<void> {
-  const [existing] = await db
-    .select({ id: productsItem.id })
-    .from(productsItem)
-    .where(
-      and(
-        eq(productsItem.item_code, itemCode),
-        excludeId ? ne(productsItem.id, excludeId) : undefined,
-      ),
-    )
-    .limit(1);
-  if (existing) {
-    throw new Error(`Item code "${itemCode}" already exists.`);
-  }
+  await assertUnique(db, {
+    column: productsItem.item_code,
+    excludeId,
+    label: "Item code",
+    table: productsItem,
+    value: itemCode,
+  });
 }
 
 export async function assertBarcodeUnique(
@@ -30,19 +49,13 @@ export async function assertBarcodeUnique(
   barcode: string,
   excludeId?: string,
 ): Promise<void> {
-  const [existing] = await db
-    .select({ id: productsBarcode.id })
-    .from(productsBarcode)
-    .where(
-      and(
-        eq(productsBarcode.barcode, barcode),
-        excludeId ? ne(productsBarcode.id, excludeId) : undefined,
-      ),
-    )
-    .limit(1);
-  if (existing) {
-    throw new Error(`Barcode "${barcode}" already exists.`);
-  }
+  await assertUnique(db, {
+    column: productsBarcode.barcode,
+    excludeId,
+    label: "Barcode",
+    table: productsBarcode,
+    value: barcode,
+  });
 }
 
 function randomSeriesCode(prefix: string | null): string {

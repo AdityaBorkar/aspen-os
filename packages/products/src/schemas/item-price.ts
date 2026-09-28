@@ -1,12 +1,14 @@
 import { ItemPriceStatusSchema } from "#/schemas/enums";
-import { IdSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema, clearable } from "#/schemas/utils";
+import { ITEM_PRICE_STATUS } from "#/utils/constants";
 
 import {
   array,
+  check,
   date,
   integer,
+  minValue,
   nullable,
-  nullish,
   number,
   object,
   optional,
@@ -26,24 +28,31 @@ export const CreateItemPriceSchema = object({
   packingUnit: optional(nullable(number())),
   priceListId: IdSchema,
   rate: number(),
-  status: optional(picklist(["active", "draft"]), "active"),
+  // Create allows only active|draft by design; cancel/expire go via dedicated workflows.
+  status: optional(
+    picklist([ITEM_PRICE_STATUS.ACTIVE, ITEM_PRICE_STATUS.DRAFT]),
+    ITEM_PRICE_STATUS.ACTIVE,
+  ),
   supplierId: optional(nullable(IdSchema)),
+  // Null/absent falls back to item.default_uom in pricing-validation.ts.
   uom: optional(nullable(string())),
+  // Null/absent defaults to today in pricing-validation.ts.
   validFrom: optional(nullable(date())),
   validUpto: optional(nullable(date())),
 });
 
 export type CreateItemPriceInput = InferOutput<typeof CreateItemPriceSchema>;
 
+// Status is intentionally omitted: cancel/expire go via dedicated workflows.
 export const UpdateItemPriceSchema = object({
-  leadTimeDays: nullish(nullable(pipe(number(), integer()))),
-  minQty: nullish(nullable(number())),
-  note: nullish(nullable(string())),
-  packingUnit: nullish(nullable(number())),
+  leadTimeDays: clearable(pipe(number(), integer())),
+  minQty: clearable(number()),
+  note: clearable(string()),
+  packingUnit: clearable(number()),
   rate: optional(number()),
   uom: optional(string()),
   validFrom: optional(date()),
-  validUpto: nullish(nullable(date())),
+  validUpto: clearable(date()),
 });
 
 export type UpdateItemPriceInput = InferOutput<typeof UpdateItemPriceSchema>;
@@ -62,8 +71,7 @@ export type ItemPriceFilters = InferOutput<typeof ItemPriceFiltersSchema>;
 
 export const ListItemPricesSchema = object({
   filters: optional(ItemPriceFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListItemPricesInput = InferOutput<typeof ListItemPricesSchema>;
@@ -73,7 +81,7 @@ export const RateSideSchema = picklist(["selling", "buying"]);
 export type RateSide = InferOutput<typeof RateSideSchema>;
 
 export const RecordUseSchema = object({
-  rate: number(),
+  rate: pipe(number(), minValue(0)),
   uom: optional(nullable(string())),
 });
 
@@ -85,7 +93,10 @@ export const GetRateSchema = object({
   itemId: IdSchema,
   priceListId: optional(nullable(IdSchema)),
   priceListName: optional(nullable(string())),
-  qty: number(),
+  qty: pipe(
+    number(),
+    check((qty) => qty > 0, "qty must be greater than 0"),
+  ),
   recordUse: optional(RecordUseSchema),
   side: optional(RateSideSchema),
   supplierId: optional(nullable(IdSchema)),
@@ -96,10 +107,9 @@ export const GetRateSchema = object({
 export type GetRateInput = InferOutput<typeof GetRateSchema>;
 
 export const GetRatesForListSchema = object({
-  limit: optional(number()),
-  offset: optional(number()),
   priceListId: IdSchema,
   txnDate: optional(nullable(date())),
+  ...ListPaginationSchema.entries,
 });
 
 export type GetRatesForListInput = InferOutput<typeof GetRatesForListSchema>;
@@ -114,9 +124,8 @@ export type GetActiveForItemInput = InferOutput<typeof GetActiveForItemSchema>;
 
 export const GetExpiringPricesSchema = object({
   asOf: optional(nullable(date())),
-  daysAhead: pipe(number(), integer()),
-  limit: optional(number()),
-  offset: optional(number()),
+  daysAhead: pipe(number(), integer(), minValue(0)),
+  ...ListPaginationSchema.entries,
 });
 
 export type GetExpiringPricesInput = InferOutput<typeof GetExpiringPricesSchema>;

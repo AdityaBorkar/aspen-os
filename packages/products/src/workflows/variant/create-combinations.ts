@@ -3,7 +3,13 @@ import type { ProductsItem } from "#/db-schemas/item";
 import { VARIANT_EVENTS } from "#/pubsub";
 import { CreateVariantCombinationsSchema } from "#/schemas";
 import { assertItemCodeUnique } from "#/services/item-codes";
-import { buildVariantInsert, buildVariantKey, expandCombinations } from "#/services/variant-values";
+import { assertTemplateCreatable } from "#/services/item-invariants";
+import {
+  buildVariantInsert,
+  buildVariantKey,
+  expandCombinations,
+  variantItemCode,
+} from "#/services/variant-values";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemStep } from "#/workflow-steps/fetch";
 import { runAuditStep } from "#/workflows/audit";
@@ -15,12 +21,7 @@ export const createVariantCombinations = Workflow.name("products.variant.create-
   .input(CreateVariantCombinationsSchema)
   .handler(async (input, ctx) => {
     const template = await ctx.step.run(fetchItemStep, { id: input.templateItemId });
-    if (!template.has_variants) {
-      throw new Error("Variants require a template with hasVariants=true.");
-    }
-    if (template.status !== "active" || template.is_disabled) {
-      throw new Error("Cannot create variants from a disabled template.");
-    }
+    assertTemplateCreatable(template);
     const declared = await ctx.db
       .select({ attributeId: productsTemplateAttribute.attribute_id })
       .from(productsTemplateAttribute)
@@ -37,36 +38,37 @@ export const createVariantCombinations = Workflow.name("products.variant.create-
     }
     const planned = combos.map((attributes) => {
       const variantKey = buildVariantKey(attributes);
-      const itemCode = `${template.item_code}-${variantKey.replace(/[^A-Za-z0-9]+/g, "-")}`.slice(
-        0,
-        140,
-      );
-      return { attributes, itemCode, variantKey };
+      return { itemCode: variantItemCode(template.item_code, variantKey), variantKey };
     });
     await Promise.all(planned.map(async (entry) => assertItemCodeUnique(ctx.db, entry.itemCode)));
     // One transaction for the whole batch: a failure inserts nothing instead
     // of leaving half the combinations behind.
     const created: ProductsItem[] = await ctx.db.transaction(async (tx) => {
-      const rows: ProductsItem[] = [];
-      // oxlint-disable eslint/no-await-in-loop
-      for (const entry of planned) {
-        const [variant] = await tx
-          .insert(productsItem)
-          .values(
-            buildVariantInsert(template, {
-              itemCode: entry.itemCode,
-              itemName: `${template.item_name} ${entry.variantKey}`,
-              manufacturerId: input.manufacturerId,
-              variantKey: entry.variantKey,
-            }),
-          )
-          .returning();
-        if (!variant) {
-          throw new Error(`Failed to create variant "${entry.variantKey}".`);
-        }
-        rows.push(variant);
+      const values = planned.map((entry) =>
+        buildVariantInsert(template, {
+          itemCode: entry.itemCode,
+          itemName: `${template.item_name} ${entry.variantKey}`,
+          manufacturerId: input.manufacturerId,
+          variantKey: entry.variantKey,
+        }),
+      );
+      const rows: ProductsItem[] = await tx
+        .insert(productsItem)
+        .values(values)
+        .returning()
+        .catch((error) => {
+          const message = error instanceof Error ? error.message : String(error);
+          if (message.includes("already exists")) {
+            throw error;
+          }
+          const codes = planned.map((entry) => entry.itemCode).join(", ");
+          throw new Error(`Failed to create variants for item codes [${codes}]: ${message}`, {
+            cause: error,
+          });
+        });
+      if (rows.length !== planned.length) {
+        throw new Error("Failed to create all variant combinations.");
       }
-      // oxlint-enable eslint/no-await-in-loop
       return rows;
     });
     await Promise.all(

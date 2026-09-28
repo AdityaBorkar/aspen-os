@@ -33,6 +33,7 @@ export const createPriceList = Workflow.name("products.price-list.create")
     if (parsed.defaultSupplierId && applicability === "selling") {
       throw new Error("defaultSupplierId is only allowed when the list covers buying.");
     }
+    // Postgres unique-violation (`23505`) survives the friendly pre-check race.
     const [row] = await ctx.db
       .insert(productsPriceList)
       .values({
@@ -46,7 +47,13 @@ export const createPriceList = Workflow.name("products.price-list.create")
         price_not_uom_dependent: parsed.priceNotUomDependent ?? false,
         territory: parsed.territory ?? null,
       })
-      .returning();
+      .returning()
+      .catch((error) => {
+        if (error instanceof Error && "code" in error && error.code === "23505") {
+          throw new Error(`Price list "${name}" already exists.`, { cause: error });
+        }
+        throw error;
+      });
     if (!row) {
       throw new Error("Failed to create price list.");
     }

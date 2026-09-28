@@ -1,6 +1,11 @@
 import { productsItem, productsSetting } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { UpdateItemSchema } from "#/schemas";
+import {
+  ITEM_IMMUTABLE_AFTER_TRANSACTIONS,
+  assertImmutableAfterTransactions,
+  assertItemFlags,
+} from "#/services/item-invariants";
 import { stripHtmlToText } from "#/services/item-text";
 import { toDateKey } from "#/services/pricing-dates";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -25,45 +30,23 @@ export const updateItem = Workflow.name("products.item.update")
 
     const { patch } = input;
 
-    if (patch.hasSerialNo !== undefined && patch.hasSerialNo !== current.has_serial_no) {
-      if (current.has_transactions) {
-        throw new Error("Cannot toggle hasSerialNo after the first transaction.");
-      }
-    }
-    if (patch.hasBatchNo !== undefined && patch.hasBatchNo !== current.has_batch_no) {
-      if (current.has_transactions) {
-        throw new Error("Cannot toggle hasBatchNo after the first transaction.");
-      }
-    }
-    if (patch.hasVariants !== undefined && patch.hasVariants !== current.has_variants) {
-      if (current.has_transactions) {
-        throw new Error("Cannot toggle hasVariants after the first transaction.");
-      }
-    }
-    if (patch.valuationMethod !== undefined && patch.valuationMethod !== current.valuation_method) {
-      if (current.has_transactions) {
-        throw new Error("Cannot change valuationMethod after the first transaction.");
-      }
-    }
+    assertImmutableAfterTransactions(current, patch, ITEM_IMMUTABLE_AFTER_TRANSACTIONS);
     // templateItemId and variantKey are absent from UpdateItemSchema by design:
     // template binding and variant identity are immutable after creation.
 
     const nextHasSerial = patch.hasSerialNo ?? current.has_serial_no;
     const nextHasBatch = patch.hasBatchNo ?? current.has_batch_no;
     const nextIsStock = patch.isStockItem ?? current.is_stock_item;
-    if (!nextIsStock && (nextHasSerial || nextHasBatch)) {
-      throw new Error("Service items (isStockItem=false) cannot carry serial/batch flags.");
-    }
-
     const nextWarranty =
       patch.warrantyDays === undefined ? current.warranty_days : patch.warrantyDays;
-    if (nextWarranty !== null && nextWarranty !== undefined && nextWarranty > 0 && !nextHasSerial) {
-      throw new Error("Warranty requires serial tracking (hasSerialNo must be true).");
-    }
     const nextHasExpiry = patch.hasExpiryDate ?? current.has_expiry_date;
-    if (nextHasExpiry && !nextHasBatch) {
-      throw new Error("Expiry date requires batch tracking (hasBatchNo must be true).");
-    }
+    assertItemFlags({
+      hasBatchNo: nextHasBatch,
+      hasExpiryDate: nextHasExpiry,
+      hasSerialNo: nextHasSerial,
+      isStockItem: nextIsStock,
+      warrantyDays: nextWarranty,
+    });
 
     const [settingsRow] = await ctx.db.select().from(productsSetting).limit(1);
     const shouldClean = settingsRow?.clean_description_html ?? true;

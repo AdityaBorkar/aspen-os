@@ -1,5 +1,5 @@
 import { HasPriceReferencesSchema } from "#/schemas";
-import { countRowsForItem } from "#/services/price-fetch-service";
+import { countRowsForItem } from "#/services/pricing-lists";
 
 import { Workflow } from "@aspen-os/platform/server";
 

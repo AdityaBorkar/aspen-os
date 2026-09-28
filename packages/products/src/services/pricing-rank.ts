@@ -1,33 +1,5 @@
 import type { ProductsItemPrice } from "#/db-schemas/item-price";
 
-export interface ItemPriceKey {
-  batchNo: string | null;
-  customerId: string | null;
-  minQty: number | null;
-  supplierId: string | null;
-  uom: string;
-}
-
-export function rowKey(row: ProductsItemPrice): ItemPriceKey {
-  return {
-    batchNo: row.batch_no,
-    customerId: row.customer_id,
-    minQty: row.min_qty,
-    supplierId: row.supplier_id,
-    uom: row.uom,
-  };
-}
-
-export function samePriceKey(first: ItemPriceKey, second: ItemPriceKey): boolean {
-  return (
-    first.uom === second.uom &&
-    first.minQty === second.minQty &&
-    first.customerId === second.customerId &&
-    first.supplierId === second.supplierId &&
-    first.batchNo === second.batchNo
-  );
-}
-
 export function isValidOn(row: ProductsItemPrice, dateKey: string): boolean {
   if (row.valid_from > dateKey) {
     return false;
@@ -38,41 +10,40 @@ export function isValidOn(row: ProductsItemPrice, dateKey: string): boolean {
   return true;
 }
 
-export interface ValidityRange {
-  from: string;
-  upto: string | null;
-}
-
-/** Open-ended ranges sort after every concrete date without a magic end-date string. */
-const OPEN_ENDED_UPTO = "9999-12-31";
-
-export function validityOverlaps(first: ValidityRange, second: ValidityRange): boolean {
-  const firstEnd = first.upto ?? OPEN_ENDED_UPTO;
-  const secondEnd = second.upto ?? OPEN_ENDED_UPTO;
-  return first.from <= secondEnd && second.from <= firstEnd;
-}
-
-export interface OverlapQuery {
+export interface OverlapFilter {
+  batchNo: string | null;
+  customerId: string | null;
   excludeId?: string;
-  key: ItemPriceKey;
-  range: ValidityRange;
+  from: string;
+  minQty: number | null;
+  supplierId: string | null;
+  uom: string;
+  upto: string | null;
 }
 
 export function findOverlappingRow(
   rows: ProductsItemPrice[],
-  query: OverlapQuery,
+  filter: OverlapFilter,
 ): ProductsItemPrice | null {
+  const filterEnd = filter.upto ?? "9999-12-31";
   for (const row of rows) {
     if (row.status !== "active" && row.status !== "draft") {
       continue;
     }
-    if (query.excludeId !== undefined && row.id === query.excludeId) {
+    if (filter.excludeId !== undefined && row.id === filter.excludeId) {
       continue;
     }
-    if (!samePriceKey(rowKey(row), query.key)) {
+    if (
+      row.uom !== filter.uom ||
+      row.min_qty !== filter.minQty ||
+      row.customer_id !== filter.customerId ||
+      row.supplier_id !== filter.supplierId ||
+      row.batch_no !== filter.batchNo
+    ) {
       continue;
     }
-    if (validityOverlaps({ from: row.valid_from, upto: row.valid_upto }, query.range)) {
+    const rowEnd = row.valid_upto ?? "9999-12-31";
+    if (row.valid_from <= filterEnd && filter.from <= rowEnd) {
       return row;
     }
   }
@@ -88,53 +59,44 @@ export interface RankRequest {
   uom: string;
 }
 
-function specificityScore(row: ProductsItemPrice, request: RankRequest): number {
+type RankKey = readonly [number, number, string, number, number, string];
+
+function compareRankKey(first: RankKey, second: RankKey): number {
+  if (first[0] !== second[0]) {
+    return second[0] - first[0];
+  }
+  if (first[1] !== second[1]) {
+    return second[1] - first[1];
+  }
+  if (first[2] !== second[2]) {
+    return first[2] > second[2] ? -1 : 1;
+  }
+  if (first[3] !== second[3]) {
+    return first[3] - second[3];
+  }
+  if (first[4] !== second[4]) {
+    return first[4] < second[4] ? -1 : 1;
+  }
+  if (first[5] !== second[5]) {
+    return first[5] < second[5] ? -1 : 1;
+  }
+  return 0;
+}
+
+function rankKey(row: ProductsItemPrice, request: RankRequest): RankKey {
   const partyMatch =
     (row.customer_id !== null && row.customer_id === request.customerId) ||
     (row.supplier_id !== null && row.supplier_id === request.supplierId);
   const batchMatch = row.batch_no !== null && row.batch_no === request.batchNo;
-  if (partyMatch && batchMatch) {
-    return 4;
-  }
-  if (partyMatch) {
-    return 3;
-  }
-  if (batchMatch) {
-    return 2;
-  }
-  return 1;
-}
-
-interface ScoredCandidate {
-  row: ProductsItemPrice;
-  score: number;
-}
-
-function compareRanked(first: ScoredCandidate, second: ScoredCandidate): number {
-  if (first.score !== second.score) {
-    return second.score - first.score;
-  }
-  const firstMin = first.row.min_qty ?? -1;
-  const secondMin = second.row.min_qty ?? -1;
-  if (firstMin !== secondMin) {
-    return secondMin - firstMin;
-  }
-  if (first.row.valid_from !== second.row.valid_from) {
-    return first.row.valid_from > second.row.valid_from ? -1 : 1;
-  }
-  // Null lead time sorts after every concrete value without a magic-number sentinel.
-  const firstLead = first.row.lead_time_days ?? Number.POSITIVE_INFINITY;
-  const secondLead = second.row.lead_time_days ?? Number.POSITIVE_INFINITY;
-  if (firstLead !== secondLead) {
-    return firstLead - secondLead;
-  }
-  if (first.row.created_at.getTime() !== second.row.created_at.getTime()) {
-    return first.row.created_at < second.row.created_at ? -1 : 1;
-  }
-  if (first.row.id === second.row.id) {
-    return 0;
-  }
-  return first.row.id < second.row.id ? -1 : 1;
+  const specificity = partyMatch && batchMatch ? 4 : partyMatch ? 3 : batchMatch ? 2 : 1;
+  return [
+    specificity,
+    row.min_qty ?? -1,
+    row.valid_from,
+    row.lead_time_days ?? Number.POSITIVE_INFINITY,
+    row.created_at.getTime(),
+    row.id,
+  ];
 }
 
 function isThresholdEligible(row: ProductsItemPrice, request: RankRequest): boolean {
@@ -159,19 +121,10 @@ function isThresholdEligible(row: ProductsItemPrice, request: RankRequest): bool
   return true;
 }
 
-export function rankItemPriceCandidates(
-  rows: ProductsItemPrice[],
-  request: RankRequest,
-): ProductsItemPrice[] {
-  const eligible = rows.filter(
-    (row) => row.uom === request.uom && isThresholdEligible(row, request),
-  );
-  const scored: ScoredCandidate[] = eligible.map((row) => ({
-    row,
-    score: specificityScore(row, request),
-  }));
-  scored.sort((first, second) => compareRanked(first, second));
-  return scored.map((entry) => entry.row);
+function sortByRank(rows: ProductsItemPrice[], request: RankRequest): ProductsItemPrice[] {
+  const keyed = rows.map((row) => ({ key: rankKey(row, request), row }));
+  keyed.sort((first, second) => compareRankKey(first.key, second.key));
+  return keyed.map((entry) => entry.row);
 }
 
 export interface ConvertedCandidate {
@@ -179,16 +132,36 @@ export interface ConvertedCandidate {
   row: ProductsItemPrice;
 }
 
-export function rankConvertibleCandidates(
+export function rankCandidates(
   rows: ProductsItemPrice[],
   request: RankRequest,
-  resolveFactor: (uom: string) => number | null,
-): ConvertedCandidate[] {
-  const txnFactor = resolveFactor(request.uom);
+  options: { convert: (uom: string) => number | null; includeUom: "convertible" },
+): ConvertedCandidate[];
+export function rankCandidates(
+  rows: ProductsItemPrice[],
+  request: RankRequest,
+  options: { includeUom: "same" },
+): ProductsItemPrice[];
+export function rankCandidates(
+  rows: ProductsItemPrice[],
+  request: RankRequest,
+  options: { convert?: (uom: string) => number | null; includeUom: "same" | "convertible" },
+): ProductsItemPrice[] | ConvertedCandidate[] {
+  if (options.includeUom === "same") {
+    return sortByRank(
+      rows.filter((row) => row.uom === request.uom && isThresholdEligible(row, request)),
+      request,
+    );
+  }
+  const { convert } = options;
+  if (convert === undefined) {
+    throw new Error('convert is required when includeUom is "convertible".');
+  }
+  const txnFactor = convert(request.uom);
   if (txnFactor === null) {
     return [];
   }
-  const scored: (ConvertedCandidate & { score: number })[] = [];
+  const scored: (ConvertedCandidate & { key: RankKey })[] = [];
   for (const row of rows) {
     if (row.uom === request.uom) {
       continue;
@@ -196,16 +169,16 @@ export function rankConvertibleCandidates(
     if (!isThresholdEligible(row, request)) {
       continue;
     }
-    const rowFactor = resolveFactor(row.uom);
+    const rowFactor = convert(row.uom);
     if (rowFactor === null || rowFactor === 0) {
       continue;
     }
     scored.push({
       convertedRate: (row.rate * txnFactor) / rowFactor,
+      key: rankKey(row, request),
       row,
-      score: specificityScore(row, request),
     });
   }
-  scored.sort((first, second) => compareRanked(first, second));
+  scored.sort((first, second) => compareRankKey(first.key, second.key));
   return scored.map(({ convertedRate, row }) => ({ convertedRate, row }));
 }

@@ -1,6 +1,6 @@
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema, NameSchema } from "#/schemas/utils";
 
-import { boolean, nullable, number, object, optional, string } from "valibot";
+import { boolean, nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateManufacturerSchema = object({
@@ -31,8 +31,7 @@ export type ManufacturerFilters = InferOutput<typeof ManufacturerFiltersSchema>;
 
 export const ListManufacturersSchema = object({
   filters: optional(ManufacturerFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListManufacturersInput = InferOutput<typeof ListManufacturersSchema>;

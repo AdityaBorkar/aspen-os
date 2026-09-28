@@ -1,6 +1,7 @@
 import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, itemPriceLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemPriceStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -21,6 +22,7 @@ export const expireItemPrice = Workflow.name("products.item-price.expire")
     if (current.status === "cancelled") {
       throw new Error("Cancelled item prices cannot expire. They are already out of circulation.");
     }
+    assertTransition("item-price", itemPriceLifecycleState(current), "expired");
     const [updated] = await ctx.db
       .update(productsItemPrice)
       .set({ status: "expired", updated_at: new Date() })

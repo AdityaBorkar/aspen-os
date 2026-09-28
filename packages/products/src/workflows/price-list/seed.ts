@@ -8,49 +8,62 @@ import {
 } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
+import { inArray } from "drizzle-orm";
 import { object } from "valibot";
+
+const STANDARDS = [
+  { applicability: "selling", name: STANDARD_SELLING_PRICE_LIST },
+  { applicability: "buying", name: STANDARD_BUYING_PRICE_LIST },
+] as const;
 
 export const seedPriceLists = Workflow.name("products.price-list.seed")
   .input(object({}))
-  .handler(async (_input, ctx) =>
-    ctx.step.run("seed", async () => {
-      const standards = [
-        { applicability: "selling", name: STANDARD_SELLING_PRICE_LIST },
-        { applicability: "buying", name: STANDARD_BUYING_PRICE_LIST },
-      ] as const;
-      const result: { created: boolean; id: string; name: string }[] = [];
-      // oxlint-disable eslint/no-await-in-loop
-      for (const standard of standards) {
-        const [existing] = await ctx.db
-          .select()
-          .from(productsPriceList)
-          .where(eq(productsPriceList.name, standard.name))
-          .limit(1);
-        if (existing) {
-          result.push({ created: false, id: existing.id, name: existing.name });
-          continue;
-        }
-        const [created] = await ctx.db
-          .insert(productsPriceList)
-          .values({ applicability: standard.applicability, is_enabled: true, name: standard.name })
-          .returning();
-        if (!created) {
-          throw new Error(`Failed to seed price list "${standard.name}".`);
-        }
-        await ctx.audit.write({
-          action: AUDIT_ACTION.CREATED,
-          crudAction: "create",
-          entityId: created.id,
-          entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
-          newState: { applicability: created.applicability, name: created.name },
-        });
-        await ctx.pubsub.publish(PRICE_LIST_EVENTS.CREATED, {
-          priceList: { id: created.id, name: created.name },
-        });
-        result.push({ created: true, id: created.id, name: created.name });
-      }
-      // oxlint-enable eslint/no-await-in-loop
-      return result;
-    }),
-  );
+  .handler(async (_input, ctx) => {
+    // One transaction for both standards: concurrent seeders collapse on the
+    // name conflict instead of inserting duplicates, and a failure seeds nothing.
+    const created = await ctx.db.transaction(async (tx) =>
+      tx
+        .insert(productsPriceList)
+        .values(
+          STANDARDS.map((standard) => ({
+            applicability: standard.applicability,
+            is_enabled: true,
+            name: standard.name,
+          })),
+        )
+        .onConflictDoNothing({ target: productsPriceList.name })
+        .returning({
+          applicability: productsPriceList.applicability,
+          id: productsPriceList.id,
+          name: productsPriceList.name,
+        }),
+    );
+    // Publish after commit: notifications only fire for rows that durably exist.
+    // oxlint-disable eslint/no-await-in-loop
+    for (const row of created) {
+      await ctx.audit.write({
+        action: AUDIT_ACTION.CREATED,
+        crudAction: "create",
+        entityId: row.id,
+        entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
+        newState: { applicability: row.applicability, name: row.name },
+      });
+      await ctx.pubsub.publish(PRICE_LIST_EVENTS.CREATED, {
+        priceList: { id: row.id, name: row.name },
+      });
+    }
+    // oxlint-enable eslint/no-await-in-loop
+    return ctx.step.run("report", async () => {
+      const rows = await ctx.db
+        .select({ id: productsPriceList.id, name: productsPriceList.name })
+        .from(productsPriceList)
+        .where(
+          inArray(productsPriceList.name, [
+            STANDARD_SELLING_PRICE_LIST,
+            STANDARD_BUYING_PRICE_LIST,
+          ]),
+        );
+      const createdIds = new Set(created.map((row) => row.id));
+      return rows.map((row) => ({ created: createdIds.has(row.id), id: row.id, name: row.name }));
+    });
+  });

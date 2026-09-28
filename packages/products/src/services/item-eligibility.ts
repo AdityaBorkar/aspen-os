@@ -7,9 +7,11 @@ import type { WorkflowContext } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 
 type Db = WorkflowContext["db"];
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+type DbOrTx = Db | Tx;
 
 export async function fetchEligibleItem(
-  db: Db,
+  db: DbOrTx,
   itemId: string,
   side: RateSide | null,
 ): Promise<ProductsItem> {
@@ -35,23 +37,47 @@ export async function fetchEligibleItem(
   return item;
 }
 
-export async function fetchItemUoms(db: Db, itemId: string): Promise<ProductsItemUom[]> {
+export async function fetchItemUoms(db: DbOrTx, itemId: string): Promise<ProductsItemUom[]> {
   return db.select().from(productsItemUom).where(eq(productsItemUom.item_id, itemId));
 }
 
-export function isKnownUom(item: ProductsItem, itemUoms: ProductsItemUom[], uom: string): boolean {
-  if (uom === item.default_uom) {
-    return true;
-  }
-  if (uom === item.default_purchase_uom || uom === item.default_sales_uom) {
-    return true;
-  }
-  for (const row of itemUoms) {
-    if (row.uom === uom) {
-      return true;
+export interface ResolvedUom {
+  /** Factor is null for a known UOM with no conversion row (default_purchase/sales fallback). */
+  factor: number | null;
+  row: ProductsItemUom | null;
+}
+
+/**
+ * Single-pass UOM resolver. Preserves the exact legacy semantics:
+ * default_uom → factor 1, item-UOM rows → their factor,
+ * default_purchase/sales UOMs without a row → known but null factor.
+ */
+export function resolveUom(
+  item: ProductsItem,
+  itemUoms: ProductsItemUom[],
+  uom: string,
+): ResolvedUom | null {
+  let row: ProductsItemUom | null = null;
+  for (const candidate of itemUoms) {
+    if (candidate.uom === uom) {
+      row = candidate;
+      break;
     }
   }
-  return false;
+  if (uom === item.default_uom) {
+    return { factor: 1, row };
+  }
+  if (row !== null) {
+    return { factor: row.conversion_factor, row };
+  }
+  if (uom === item.default_purchase_uom || uom === item.default_sales_uom) {
+    return { factor: null, row: null };
+  }
+  return null;
+}
+
+export function isKnownUom(item: ProductsItem, itemUoms: ProductsItemUom[], uom: string): boolean {
+  return resolveUom(item, itemUoms, uom) !== null;
 }
 
 export function resolveUomFactor(
@@ -59,15 +85,7 @@ export function resolveUomFactor(
   itemUoms: ProductsItemUom[],
   uom: string,
 ): number | null {
-  if (uom === item.default_uom) {
-    return 1;
-  }
-  for (const row of itemUoms) {
-    if (row.uom === uom) {
-      return row.conversion_factor;
-    }
-  }
-  return null;
+  return resolveUom(item, itemUoms, uom)?.factor ?? null;
 }
 
 export function findUomRow(itemUoms: ProductsItemUom[], uom: string): ProductsItemUom | null {

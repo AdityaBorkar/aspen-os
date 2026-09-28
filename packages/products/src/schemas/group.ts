@@ -1,4 +1,4 @@
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema, NameSchema } from "#/schemas/utils";
 
 import { boolean, integer, nullable, number, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -55,8 +55,7 @@ export type GroupFilters = InferOutput<typeof GroupFiltersSchema>;
 
 export const ListGroupsSchema = object({
   filters: optional(GroupFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListGroupsInput = InferOutput<typeof ListGroupsSchema>;

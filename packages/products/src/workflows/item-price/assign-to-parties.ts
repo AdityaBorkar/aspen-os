@@ -51,16 +51,10 @@ export const assignItemPriceToParties = Workflow.name("products.item-price.assig
       drafts.map(async (draft) => validateItemPriceValues(ctx.db, draft)),
     );
     const created = await ctx.db.transaction(async (tx) => {
-      const rows = [];
-      // oxlint-disable eslint/no-await-in-loop
-      for (const values of validated) {
-        const [row] = await tx.insert(productsItemPrice).values(values).returning();
-        if (!row) {
-          throw new Error("Failed to assign item price.");
-        }
-        rows.push(row);
+      const rows = await tx.insert(productsItemPrice).values(validated).returning();
+      if (rows.length !== validated.length) {
+        throw new Error("Failed to assign item price.");
       }
-      // oxlint-enable eslint/no-await-in-loop
       return rows;
     });
     // One durable step for the whole batch: per-row step names would collide on replay.

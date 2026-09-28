@@ -1,6 +1,7 @@
 import { productsItemGroup } from "#/db-schemas";
 import { ITEM_GROUP_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, groupLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchGroupStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -14,7 +15,8 @@ const IdInputSchema = object({ id: IdSchema });
 export const disableGroup = Workflow.name("products.group.disable")
   .input(IdInputSchema)
   .handler(async ({ id }, ctx) => {
-    await ctx.step.run(fetchGroupStep, { id });
+    const current = await ctx.step.run(fetchGroupStep, { id });
+    assertTransition("group", groupLifecycleState(current), "disabled");
     const [updated] = await ctx.db
       .update(productsItemGroup)
       .set({ is_disabled: true, updated_at: new Date() })

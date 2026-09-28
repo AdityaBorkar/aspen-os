@@ -1,6 +1,7 @@
 import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, itemPriceLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemPriceStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -24,6 +25,7 @@ export const cancelItemPrice = Workflow.name("products.item-price.cancel")
     if (current.fetch_count > 0) {
       throw new Error("Cannot cancel an item price after its first fetch-use. Expire it instead.");
     }
+    assertTransition("item-price", itemPriceLifecycleState(current), "cancelled");
     const [updated] = await ctx.db
       .update(productsItemPrice)
       .set({ status: "cancelled", updated_at: new Date() })
@@ -40,11 +42,8 @@ export const cancelItemPrice = Workflow.name("products.item-price.cancel")
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
       },
-      ITEM_PRICE_EVENTS.UPDATED,
-      {
-        changes: { status: "cancelled" },
-        itemPrice: { id: updated.id, itemId: updated.item_id, priceListId: updated.price_list_id },
-      },
+      ITEM_PRICE_EVENTS.CANCELLED,
+      { itemPriceId: id },
     );
     return updated;
   });

@@ -1,6 +1,6 @@
 import { productsItemGroup } from "#/db-schemas";
 import { ListGroupsSchema } from "#/schemas";
-import { checkPage } from "#/workflows/utils";
+import { checkPage, escapeLike } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ilike, isNull } from "drizzle-orm";
@@ -10,6 +10,7 @@ export const listGroups = Workflow.name("products.group.list")
   .input(ListGroupsSchema)
   .handler(async (input, ctx) =>
     ctx.step.run("query", async () => {
+      checkPage(input);
       const conditions: SQL[] = [];
       if (input.filters?.isDisabled !== undefined) {
         conditions.push(eq(productsItemGroup.is_disabled, input.filters.isDisabled));
@@ -25,10 +26,9 @@ export const listGroups = Workflow.name("products.group.list")
         }
       }
       if (input.filters?.search) {
-        conditions.push(ilike(productsItemGroup.name, `%${input.filters.search}%`));
+        conditions.push(ilike(productsItemGroup.name, `%${escapeLike(input.filters.search)}%`));
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      checkPage(input);
       let query = ctx.db
         .select()
         .from(productsItemGroup)

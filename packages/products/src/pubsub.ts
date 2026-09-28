@@ -4,12 +4,14 @@ export const ITEM_EVENTS = {
   ARCHIVED: "products.item_archived",
   CREATED: "products.item_created",
   DISABLED: "products.item_disabled",
+  ENABLED: "products.item_enabled",
   UPDATED: "products.item_updated",
 } as const;
 
 export const ITEM_GROUP_EVENTS = {
   CREATED: "products.item_group_created",
   DISABLED: "products.item_group_disabled",
+  ENABLED: "products.item_group_enabled",
   UPDATED: "products.item_group_updated",
 } as const;
 
@@ -28,6 +30,7 @@ export const VARIANT_EVENTS = {
 export const REORDER_RULE_EVENTS = {
   CREATED: "products.reorder_rule_created",
   DISABLED: "products.reorder_rule_disabled",
+  ENABLED: "products.reorder_rule_enabled",
   UPDATED: "products.reorder_rule_updated",
 } as const;
 
@@ -39,10 +42,12 @@ export const BARCODE_EVENTS = {
 export const PRICE_LIST_EVENTS = {
   CREATED: "products.price_list_created",
   DISABLED: "products.price_list_disabled",
+  ENABLED: "products.price_list_enabled",
   UPDATED: "products.price_list_updated",
 } as const;
 
 export const ITEM_PRICE_EVENTS = {
+  CANCELLED: "products.item_price_cancelled",
   CREATED: "products.item_price_created",
   EXPIRED: "products.item_price_expired",
   UPDATED: "products.item_price_updated",
@@ -72,6 +77,10 @@ export interface ItemDisabledEvent {
   itemId: string;
 }
 
+export interface ItemEnabledEvent {
+  itemId: string;
+}
+
 export interface ItemArchivedEvent {
   itemId: string;
 }
@@ -80,6 +89,7 @@ export interface ItemEventMap {
   [ITEM_EVENTS.ARCHIVED]: ItemArchivedEvent;
   [ITEM_EVENTS.CREATED]: ItemCreatedEvent;
   [ITEM_EVENTS.DISABLED]: ItemDisabledEvent;
+  [ITEM_EVENTS.ENABLED]: ItemEnabledEvent;
   [ITEM_EVENTS.UPDATED]: ItemUpdatedEvent;
 }
 
@@ -96,9 +106,14 @@ export interface ItemGroupDisabledEvent {
   itemGroupId: string;
 }
 
+export interface ItemGroupEnabledEvent {
+  itemGroupId: string;
+}
+
 export interface ItemGroupEventMap {
   [ITEM_GROUP_EVENTS.CREATED]: ItemGroupCreatedEvent;
   [ITEM_GROUP_EVENTS.DISABLED]: ItemGroupDisabledEvent;
+  [ITEM_GROUP_EVENTS.ENABLED]: ItemGroupEnabledEvent;
   [ITEM_GROUP_EVENTS.UPDATED]: ItemGroupUpdatedEvent;
 }
 
@@ -154,9 +169,14 @@ export interface ReorderRuleDisabledEvent {
   reorderRuleId: string;
 }
 
+export interface ReorderRuleEnabledEvent {
+  reorderRuleId: string;
+}
+
 export interface ReorderRuleEventMap {
   [REORDER_RULE_EVENTS.CREATED]: ReorderRuleCreatedEvent;
   [REORDER_RULE_EVENTS.DISABLED]: ReorderRuleDisabledEvent;
+  [REORDER_RULE_EVENTS.ENABLED]: ReorderRuleEnabledEvent;
   [REORDER_RULE_EVENTS.UPDATED]: ReorderRuleUpdatedEvent;
 }
 
@@ -187,9 +207,14 @@ export interface PriceListDisabledEvent {
   priceListId: string;
 }
 
+export interface PriceListEnabledEvent {
+  priceListId: string;
+}
+
 export interface PriceListEventMap {
   [PRICE_LIST_EVENTS.CREATED]: PriceListCreatedEvent;
   [PRICE_LIST_EVENTS.DISABLED]: PriceListDisabledEvent;
+  [PRICE_LIST_EVENTS.ENABLED]: PriceListEnabledEvent;
   [PRICE_LIST_EVENTS.UPDATED]: PriceListUpdatedEvent;
 }
 
@@ -206,7 +231,12 @@ export interface ItemPriceExpiredEvent {
   itemPriceId: string;
 }
 
+export interface ItemPriceCancelledEvent {
+  itemPriceId: string;
+}
+
 export interface ItemPriceEventMap {
+  [ITEM_PRICE_EVENTS.CANCELLED]: ItemPriceCancelledEvent;
   [ITEM_PRICE_EVENTS.CREATED]: ItemPriceCreatedEvent;
   [ITEM_PRICE_EVENTS.EXPIRED]: ItemPriceExpiredEvent;
   [ITEM_PRICE_EVENTS.UPDATED]: ItemPriceUpdatedEvent;

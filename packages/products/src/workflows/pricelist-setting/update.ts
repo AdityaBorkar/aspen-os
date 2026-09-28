@@ -1,6 +1,6 @@
 import { productsPricelistSetting } from "#/db-schemas";
 import { UpdatePricelistSettingsSchema } from "#/schemas";
-import { getPricelistSettings } from "#/services/price-fetch-service";
+import { getOrCreateSingleton } from "#/services/singleton";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { fetchPriceListStep } from "#/workflow-steps/fetch";
@@ -15,7 +15,9 @@ const UpdateInputSchema = object({ patch: UpdatePricelistSettingsSchema });
 export const updatePricelistSettings = Workflow.name("products.pricelist-setting.update")
   .input(UpdateInputSchema)
   .handler(async ({ patch }, ctx) => {
-    const existing = await ctx.step.run("load", async () => getPricelistSettings(ctx.db));
+    const existing = await ctx.step.run("load", async () =>
+      getOrCreateSingleton(ctx.db, productsPricelistSetting, "pricelist settings"),
+    );
     if (patch.defaultSellingListId !== undefined && patch.defaultSellingListId !== null) {
       await ctx.step.run(fetchPriceListStep, { id: patch.defaultSellingListId });
     }

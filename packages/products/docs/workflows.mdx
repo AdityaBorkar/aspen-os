@@ -22,3 +22,5 @@ icon: IconWorkflow
 - `itemPrices`: create, get, list, update, expire, cancel, delete (draft + unused only), assignToParties, hasReferences (item-delete coordination guard)
 - `priceFetch`: getRate (deterministic specificity → validity → min-qty → lead-time fetch with UOM conversion and auto-insert), getRatesForList, getActiveForItem, getExpiring
 - `pricelistSettings`: get, update
+
+State transitions (enable/disable/archive/cancel/expire/delete) are guarded by `services/lifecycle.ts`: same-state and terminal-state requests fail loudly instead of emitting duplicate events. Enable verbs publish `products.{item,item_group,price_list,reorder_rule,variant}_enabled`; `item-price.cancel` publishes `products.item_price_cancelled`.

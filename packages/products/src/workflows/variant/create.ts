@@ -7,7 +7,8 @@ import {
 import { VARIANT_EVENTS } from "#/pubsub";
 import { CreateVariantSchema } from "#/schemas";
 import { assertItemCodeUnique } from "#/services/item-codes";
-import { buildVariantInsert, buildVariantKey } from "#/services/variant-values";
+import { assertManufacturerVariant, assertTemplateCreatable } from "#/services/item-invariants";
+import { buildVariantInsert, buildVariantKey, variantItemCode } from "#/services/variant-values";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -20,12 +21,7 @@ export const createVariant = Workflow.name("products.variant.create")
   .input(CreateVariantSchema)
   .handler(async (input, ctx) => {
     const template = await ctx.step.run(fetchItemStep, { id: input.templateItemId });
-    if (!template.has_variants) {
-      throw new Error("Variants require a template with hasVariants=true.");
-    }
-    if (template.status !== "active" || template.is_disabled) {
-      throw new Error("Cannot create variants from a disabled template.");
-    }
+    assertTemplateCreatable(template);
 
     const declared = await ctx.db
       .select({
@@ -52,14 +48,16 @@ export const createVariant = Workflow.name("products.variant.create")
         }
       }
       await assertAttributeValuesAllowed(ctx.db, input.attributes);
-    } else if (!input.manufacturerId && !input.manufacturerPartNo) {
-      throw new Error("Manufacturer-based variants require manufacturerId or manufacturerPartNo.");
+    } else {
+      assertManufacturerVariant({
+        manufacturerId: input.manufacturerId,
+        manufacturerPartNo: input.manufacturerPartNo,
+        variantBasedOn: basedOn,
+      });
     }
 
     const variantKey = buildVariantKey(input.attributes);
-    const baseCode =
-      input.itemName?.trim() ||
-      `${template.item_code}-${variantKey.replace(/[^A-Za-z0-9]+/g, "-")}`;
+    const baseCode = input.itemName?.trim() || variantItemCode(template.item_code, variantKey);
     const itemCode = baseCode.slice(0, 140);
     await assertItemCodeUnique(ctx.db, itemCode);
 

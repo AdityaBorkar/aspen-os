@@ -1,6 +1,7 @@
 import { productsItem } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, itemLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -18,6 +19,7 @@ export const disableItem = Workflow.name("products.item.disable")
     if (current.status === "archived") {
       throw new Error("Archived items cannot be disabled. They are already out of circulation.");
     }
+    assertTransition("item", itemLifecycleState(current), "disabled");
     const [updated] = await ctx.db
       .update(productsItem)
       .set({ is_disabled: true, status: "disabled", updated_at: new Date() })

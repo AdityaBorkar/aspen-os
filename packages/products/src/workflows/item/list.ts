@@ -1,6 +1,6 @@
 import { productsItem } from "#/db-schemas";
 import { ListItemsSchema } from "#/schemas";
-import { checkPage } from "#/workflows/utils";
+import { checkPage, escapeLike } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ilike, or } from "drizzle-orm";
@@ -10,6 +10,7 @@ export const listItems = Workflow.name("products.item.list")
   .input(ListItemsSchema)
   .handler(async (input, ctx) =>
     ctx.step.run("query", async () => {
+      checkPage(input);
       const conditions: SQL[] = [];
       const { filters } = input;
       if (filters?.brandId !== undefined) {
@@ -43,7 +44,7 @@ export const listItems = Workflow.name("products.item.list")
         conditions.push(eq(productsItem.status, filters.status));
       }
       if (filters?.search) {
-        const term = `%${filters.search}%`;
+        const term = `%${escapeLike(filters.search)}%`;
         // SAFETY: or() with three defined ilike() branches always yields SQL; no undefined input by construction.
         conditions.push(
           or(
@@ -54,7 +55,6 @@ export const listItems = Workflow.name("products.item.list")
         );
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      checkPage(input);
       let query = ctx.db
         .select()
         .from(productsItem)

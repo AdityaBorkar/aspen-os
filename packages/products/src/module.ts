@@ -5,22 +5,13 @@ import * as wf from "#/workflows";
 
 import type { Module, ModuleInfra } from "@aspen-os/platform/server";
 
-export interface ProductsModuleConfig {
-  namingSeriesPrefix?: string;
-}
-
 export class Products implements Module {
-  static create(config?: ProductsModuleConfig): Products {
-    return new Products(config ?? {});
+  static create(): Products {
+    return new Products();
   }
 
   readonly $name = "products";
-  readonly $dependencies: readonly string[] = ["masters"];
-  readonly $config: ProductsModuleConfig;
-
-  constructor(config: ProductsModuleConfig) {
-    this.$config = config;
-  }
+  readonly $dependencies: readonly string[] = [];
 
   $prepareInfra(): ModuleInfra {
     return {

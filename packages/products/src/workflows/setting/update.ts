@@ -1,5 +1,6 @@
 import { productsSetting } from "#/db-schemas";
 import { UpdateSettingsSchema } from "#/schemas";
+import { getOrCreateSingleton } from "#/services/singleton";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { runAuditStep } from "#/workflows/audit";
@@ -13,7 +14,7 @@ const UpdateInputSchema = object({ patch: UpdateSettingsSchema });
 export const updateSettings = Workflow.name("products.settings.update")
   .input(UpdateInputSchema)
   .handler(async ({ patch }, ctx) => {
-    const [existing] = await ctx.db.select().from(productsSetting).limit(1);
+    const existing = await getOrCreateSingleton(ctx.db, productsSetting, "products settings");
     const updates = stripUndefined({
       allow_negative_stock: patch.allowNegativeStock,
       auto_insert_price_if_missing: patch.autoInsertPriceIfMissing,
@@ -30,24 +31,6 @@ export const updateSettings = Workflow.name("products.settings.update")
       serial_batch_enabled: patch.serialBatchEnabled,
       show_barcode_field: patch.showBarcodeField,
     });
-
-    if (!existing) {
-      const [created] = await ctx.db
-        .insert(productsSetting)
-        .values({ ...updates })
-        .returning();
-      if (!created) {
-        throw new Error("Failed to initialize products settings.");
-      }
-      await runAuditStep(ctx, {
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: created.id,
-        entityType: AUDIT_ENTITY_TYPE.SETTING,
-        newState: { id: created.id },
-      });
-      return created;
-    }
 
     if (Object.keys(updates).length === 0) {
       return existing;

@@ -90,11 +90,18 @@ export const updatePriceList = Workflow.name("products.price-list.update")
     if (Object.keys(updates).length === 0) {
       return current;
     }
+    // Postgres unique-violation (`23505`) survives the friendly pre-check race.
     const [updated] = await ctx.db
       .update(productsPriceList)
       .set({ ...updates, updated_at: new Date() })
       .where(eq(productsPriceList.id, input.id))
-      .returning();
+      .returning()
+      .catch((error) => {
+        if (error instanceof Error && "code" in error && error.code === "23505") {
+          throw new Error(`Price list name "${nextName}" already exists.`, { cause: error });
+        }
+        throw error;
+      });
     if (!updated) {
       throw new Error(`Price list with id "${input.id}" not found.`);
     }

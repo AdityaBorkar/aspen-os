@@ -2,6 +2,7 @@ import { productsItem, productsItemGroup, productsSetting } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { CreateItemSchema } from "#/schemas";
 import { assertItemCodeUnique, generateUniqueItemCode } from "#/services/item-codes";
+import { assertItemFlags, assertManufacturerVariant } from "#/services/item-invariants";
 import { stripHtmlToText } from "#/services/item-text";
 import { toDateKey } from "#/services/pricing-dates";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
@@ -18,20 +19,13 @@ export const createItem = Workflow.name("products.item.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateItemSchema, input);
 
-    if (
-      parsed.warrantyDays !== undefined &&
-      parsed.warrantyDays !== null &&
-      parsed.warrantyDays > 0 &&
-      !parsed.hasSerialNo
-    ) {
-      throw new Error("Warranty requires serial tracking (hasSerialNo must be true).");
-    }
-    if (parsed.hasExpiryDate && !parsed.hasBatchNo) {
-      throw new Error("Expiry date requires batch tracking (hasBatchNo must be true).");
-    }
-    if (!parsed.isStockItem && (parsed.hasSerialNo || parsed.hasBatchNo)) {
-      throw new Error("Service items (isStockItem=false) cannot carry serial/batch flags.");
-    }
+    assertItemFlags({
+      hasBatchNo: parsed.hasBatchNo,
+      hasExpiryDate: parsed.hasExpiryDate,
+      hasSerialNo: parsed.hasSerialNo,
+      isStockItem: parsed.isStockItem,
+      warrantyDays: parsed.warrantyDays,
+    });
     if (
       parsed.hasVariants &&
       parsed.templateItemId !== undefined &&
@@ -39,46 +33,55 @@ export const createItem = Workflow.name("products.item.create")
     ) {
       throw new Error("A template item cannot itself reference another template.");
     }
-    if (parsed.templateItemId !== undefined && parsed.templateItemId !== null) {
-      const [template] = await ctx.db
-        .select({ hasVariants: productsItem.has_variants, id: productsItem.id })
-        .from(productsItem)
-        .where(eq(productsItem.id, parsed.templateItemId))
-        .limit(1);
-      if (!template) {
-        throw new Error(`Template item with id "${parsed.templateItemId}" not found.`);
-      }
-      if (!template.hasVariants) {
-        throw new Error("Variant must reference a template with hasVariants=true.");
-      }
-    }
-    if (parsed.variantBasedOn === "manufacturer") {
-      if (
-        (parsed.manufacturerId === undefined || parsed.manufacturerId === null) &&
-        (parsed.templateItemId === undefined || parsed.templateItemId === null)
-      ) {
-        throw new Error("Manufacturer-based variants require manufacturerId.");
-      }
-    }
 
-    const [settingsRow] = await ctx.db.select().from(productsSetting).limit(1);
-    const namingBy = settingsRow?.item_naming_by ?? "item_code";
-
-    let itemCode = parsed.itemCode?.trim();
-    if (!itemCode) {
-      if (namingBy === "naming_series") {
-        let prefix: string | null = null;
-        if (parsed.itemGroupId) {
-          const [group] = await ctx.db
+    const [templateRow, settingsRow, groupRow] = await Promise.all([
+      parsed.templateItemId === undefined || parsed.templateItemId === null
+        ? Promise.resolve(null)
+        : ctx.db
+            .select({ hasVariants: productsItem.has_variants, id: productsItem.id })
+            .from(productsItem)
+            .where(eq(productsItem.id, parsed.templateItemId))
+            .limit(1)
+            .then((rows) => rows[0] ?? null),
+      ctx.db
+        .select()
+        .from(productsSetting)
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+      parsed.itemGroupId === undefined || parsed.itemGroupId === null
+        ? Promise.resolve(null)
+        : ctx.db
             .select({
               namingPrefix: productsItemGroup.naming_prefix,
               namingSeries: productsItemGroup.naming_series,
             })
             .from(productsItemGroup)
             .where(eq(productsItemGroup.id, parsed.itemGroupId))
-            .limit(1);
-          prefix = group?.namingPrefix ?? group?.namingSeries ?? null;
-        }
+            .limit(1)
+            .then((rows) => rows[0] ?? null),
+    ]);
+
+    if (parsed.templateItemId !== undefined && parsed.templateItemId !== null) {
+      if (!templateRow) {
+        throw new Error(`Template item with id "${parsed.templateItemId}" not found.`);
+      }
+      if (!templateRow.hasVariants) {
+        throw new Error("Variant must reference a template with hasVariants=true.");
+      }
+    }
+    assertManufacturerVariant({
+      manufacturerId: parsed.manufacturerId,
+      manufacturerPartNo: parsed.manufacturerPartNo,
+      templateItemId: parsed.templateItemId,
+      variantBasedOn: parsed.variantBasedOn,
+    });
+
+    const namingBy = settingsRow?.item_naming_by ?? "item_code";
+
+    let itemCode = parsed.itemCode?.trim();
+    if (!itemCode) {
+      if (namingBy === "naming_series") {
+        const prefix = groupRow?.namingPrefix ?? groupRow?.namingSeries ?? null;
         itemCode = await generateUniqueItemCode(ctx.db, prefix);
       } else {
         throw new Error("itemCode is required when item_naming_by is item_code.");

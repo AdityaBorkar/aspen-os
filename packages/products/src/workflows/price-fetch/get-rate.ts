@@ -1,25 +1,14 @@
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { GetRateSchema } from "#/schemas";
-import {
-  fetchEligibleItem,
-  fetchItemUoms,
-  findUomRow,
-  isKnownUom,
-  resolveUomFactor,
-} from "#/services/item-eligibility";
+import { fetchEligibleItem, fetchItemUoms, resolveUom } from "#/services/item-eligibility";
 import { toDateKey, todayKey } from "#/services/pricing-dates";
-import {
-  loadActiveRowsForItemList,
-  resolveFetchSide,
-  resolvePriceList,
-} from "#/services/pricing-lists";
+import { loadActiveRows, resolveFetchSide, resolvePriceList } from "#/services/pricing-lists";
 import {
   insertItemPriceRow,
   markItemTransacted,
   touchFetchedRow,
-  updateLastPurchaseRate,
 } from "#/services/pricing-mutations";
-import { rankConvertibleCandidates, rankItemPriceCandidates } from "#/services/pricing-rank";
+import { rankCandidates } from "#/services/pricing-rank";
 import { getProductsSettings } from "#/services/pricing-settings";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -38,11 +27,11 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
     const dateKey =
       input.txnDate === null || input.txnDate === undefined ? todayKey() : toDateKey(input.txnDate);
 
-    const item = await ctx.step.run("load-item", async () =>
-      fetchEligibleItem(ctx.db, input.itemId, null),
-    );
-    const itemUoms = await ctx.step.run("load-item-uoms", async () =>
-      fetchItemUoms(ctx.db, input.itemId),
+    const [item, itemUoms] = await ctx.step.run("load-item", async () =>
+      Promise.all([
+        fetchEligibleItem(ctx.db, input.itemId, null),
+        fetchItemUoms(ctx.db, input.itemId),
+      ]),
     );
 
     const list = await ctx.step.run("resolve-list", async () =>
@@ -66,16 +55,20 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
     }
 
     const requestUom = input.uom ?? item.default_uom;
-    if (!isKnownUom(item, itemUoms, requestUom)) {
+    const resolvedUom = resolveUom(item, itemUoms, requestUom);
+    if (resolvedUom === null) {
       return null;
     }
-    const uomRow = findUomRow(itemUoms, requestUom);
-    if (uomRow !== null && uomRow.must_be_whole_number && !Number.isInteger(input.qty)) {
+    if (
+      resolvedUom.row !== null &&
+      resolvedUom.row.must_be_whole_number &&
+      !Number.isInteger(input.qty)
+    ) {
       return null;
     }
 
     const rows = await ctx.step.run("load-candidates", async () =>
-      loadActiveRowsForItemList(ctx.db, list.id, input.itemId),
+      loadActiveRows(ctx.db, { itemId: input.itemId, priceListId: list.id }),
     );
     const request = {
       batchNo: input.batchNo ?? null,
@@ -85,7 +78,7 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
       supplierId: input.supplierId ?? null,
       uom: requestUom,
     };
-    const [winner] = rankItemPriceCandidates(rows, request);
+    const [winner] = rankCandidates(rows, request, { includeUom: "same" });
     if (winner !== undefined) {
       const touched = await touchFetchedRow(ctx.db, winner.id);
       return {
@@ -98,9 +91,10 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
     }
 
     if (list.price_not_uom_dependent) {
-      const [convertible] = rankConvertibleCandidates(rows, request, (uom) =>
-        resolveUomFactor(item, itemUoms, uom),
-      );
+      const [convertible] = rankCandidates(rows, request, {
+        convert: (uom) => resolveUom(item, itemUoms, uom)?.factor ?? null,
+        includeUom: "convertible",
+      });
       if (convertible !== undefined) {
         const touched = await touchFetchedRow(ctx.db, convertible.row.id);
         return {
@@ -117,33 +111,42 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
       (input.customerId ?? null) === null &&
       (input.supplierId ?? null) === null &&
       (input.batchNo ?? null) === null;
-    if (input.recordUse !== undefined && genericScope) {
+    const { recordUse } = input;
+    if (recordUse !== undefined && genericScope) {
       const productsSettings = await getProductsSettings(ctx.db);
       if (productsSettings.auto_insert_price_if_missing) {
         const autoSide = side ?? (list.applicability === "both" ? null : list.applicability);
         if (autoSide === null) {
           throw new Error("side is required to auto-insert into a both-applicability list.");
         }
-        const created = await insertItemPriceRow(ctx.db, {
-          batchNo: null,
-          customerId: null,
-          itemId: input.itemId,
-          leadTimeDays: null,
-          minQty: null,
-          note: null,
-          packingUnit: null,
-          priceListId: list.id,
-          rate: input.recordUse.rate,
-          status: "active",
-          supplierId: null,
-          uom: input.recordUse.uom ?? requestUom,
-          validFrom: input.txnDate ?? null,
-          validUpto: null,
+        // Validate-before-write stays: insertItemPriceRow validates, then the
+        // insert + transacted bookkeeping commit atomically. Audit/notify stays
+        // outside the transaction — publishing events must never run inside a
+        // DB transaction that can still roll back.
+        const created = await ctx.db.transaction(async (tx) => {
+          const row = await insertItemPriceRow(tx, {
+            batchNo: null,
+            customerId: null,
+            itemId: input.itemId,
+            leadTimeDays: null,
+            minQty: null,
+            note: null,
+            packingUnit: null,
+            priceListId: list.id,
+            rate: recordUse.rate,
+            status: "active",
+            supplierId: null,
+            uom: recordUse.uom ?? requestUom,
+            validFrom: input.txnDate ?? null,
+            validUpto: null,
+          });
+          await markItemTransacted(
+            tx,
+            input.itemId,
+            autoSide === "buying" ? { lastPurchaseRate: recordUse.rate } : undefined,
+          );
+          return row;
         });
-        await markItemTransacted(ctx.db, input.itemId);
-        if (autoSide === "buying") {
-          await updateLastPurchaseRate(ctx.db, input.itemId, input.recordUse.rate);
-        }
         await runAuditNotifyStep(
           ctx,
           {

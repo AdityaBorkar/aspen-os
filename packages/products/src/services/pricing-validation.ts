@@ -1,20 +1,19 @@
 import { productsItemPrice, productsPriceList } from "#/db-schemas";
-import type { NewProductsItemPrice } from "#/db-schemas/item-price";
-import {
-  fetchEligibleItem,
-  fetchItemUoms,
-  isKnownUom,
-  resolveUomFactor,
-} from "#/services/item-eligibility";
+import type { NewProductsItemPrice, ProductsItemPrice } from "#/db-schemas/item-price";
+import type { ProductsPriceList } from "#/db-schemas/price-list";
+import type { RateSide } from "#/schemas/item-price";
+import { fetchEligibleItem, fetchItemUoms, resolveUom } from "#/services/item-eligibility";
 import { toDateKey, todayKey } from "#/services/pricing-dates";
 import { findOverlappingRow } from "#/services/pricing-rank";
-import type { ItemPriceKey } from "#/services/pricing-rank";
+import type { OverlapFilter } from "#/services/pricing-rank";
 import { getPricelistSettings } from "#/services/pricing-settings";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 
 type Db = WorkflowContext["db"];
+type Tx = Parameters<Parameters<Db["transaction"]>[0]>[0];
+type DbOrTx = Db | Tx;
 
 export interface ItemPriceDraft {
   batchNo: string | null;
@@ -44,8 +43,66 @@ export function normalizePackingUnit(packingUnit: number | null | undefined): nu
   return packingUnit;
 }
 
+/**
+ * Single effective side for capability checks: party-specific rows take their
+ * party's side, generic rows take a single-sided list's side (both stays null).
+ * A generic row on a both-applicability list additionally requires both
+ * capabilities (see below), preserving the legacy matrix exactly.
+ */
+function resolveEffectiveSide(
+  draft: ItemPriceDraft,
+  applicability: ProductsPriceList["applicability"],
+): RateSide | null {
+  if (draft.customerId !== null) {
+    return "selling";
+  }
+  if (draft.supplierId !== null) {
+    return "buying";
+  }
+  return applicability === "both" ? null : applicability;
+}
+
+export interface ResolvedPriceValues {
+  conversionFactor: number | null;
+  uom: string;
+  validFrom: string;
+  validUpto: string | null;
+}
+
+/** Pure row builder: no I/O, no throws except packing-unit normalization. */
+export function toNewItemPriceRow(
+  draft: ItemPriceDraft,
+  resolved: ResolvedPriceValues,
+): NewProductsItemPrice {
+  return {
+    batch_no: draft.batchNo,
+    conversion_factor: resolved.conversionFactor,
+    customer_id: draft.customerId,
+    item_id: draft.itemId,
+    lead_time_days: draft.leadTimeDays,
+    min_qty: draft.minQty,
+    note: draft.note,
+    packing_unit: normalizePackingUnit(draft.packingUnit),
+    price_list_id: draft.priceListId,
+    rate: draft.rate,
+    status: draft.status,
+    supplier_id: draft.supplierId,
+    uom: resolved.uom,
+    valid_from: resolved.validFrom,
+    valid_upto: resolved.validUpto,
+  };
+}
+
+/** Throwing overlap guard over already-loaded sibling rows. */
+export function assertNoOverlap(rows: ProductsItemPrice[], filter: OverlapFilter): void {
+  const overlap = findOverlappingRow(rows, filter);
+  if (overlap) {
+    throw new Error(`Overlapping validity with item price "${overlap.id}" for the same price key.`);
+  }
+}
+
 export async function validateItemPriceValues(
-  db: Db,
+  db: DbOrTx,
   draft: ItemPriceDraft,
   excludeId?: string,
 ): Promise<NewProductsItemPrice> {
@@ -56,11 +113,10 @@ export async function validateItemPriceValues(
     throw new Error("customerId and supplierId must never both be set.");
   }
 
-  const [list] = await db
-    .select()
-    .from(productsPriceList)
-    .where(eq(productsPriceList.id, draft.priceListId))
-    .limit(1);
+  const [[list], settings] = await Promise.all([
+    db.select().from(productsPriceList).where(eq(productsPriceList.id, draft.priceListId)).limit(1),
+    getPricelistSettings(db),
+  ]);
   if (!list) {
     throw new Error(`Price list with id "${draft.priceListId}" not found.`);
   }
@@ -77,7 +133,6 @@ export async function validateItemPriceValues(
     throw new Error("supplierId is only allowed when the list covers buying.");
   }
 
-  const settings = await getPricelistSettings(db);
   if (!settings.allow_party_specific && (draft.customerId !== null || draft.supplierId !== null)) {
     throw new Error("Party-specific prices are disabled by pricelist settings.");
   }
@@ -85,15 +140,29 @@ export async function validateItemPriceValues(
     throw new Error("Batch-specific prices are disabled by pricelist settings.");
   }
 
-  const item = await fetchEligibleItem(db, draft.itemId, null);
-  // A customer row is selling-side, a supplier row is buying-side, and a
-  // generic row takes the side of its list (both sides for a both-list).
-  const needsSalesCapability = draft.customerId !== null || draft.supplierId === null;
-  const needsPurchaseCapability = draft.supplierId !== null || draft.customerId === null;
-  if (coversSelling && needsSalesCapability && !item.is_sales_item) {
-    throw new Error(`Item "${item.item_code}" is not a sales item.`);
-  }
-  if (coversBuying && needsPurchaseCapability && !item.is_purchase_item) {
+  const side = resolveEffectiveSide(draft, list.applicability);
+  const [item, itemUoms, siblings] = await Promise.all([
+    fetchEligibleItem(db, draft.itemId, side),
+    fetchItemUoms(db, draft.itemId),
+    db
+      .select()
+      .from(productsItemPrice)
+      .where(
+        and(
+          eq(productsItemPrice.price_list_id, draft.priceListId),
+          eq(productsItemPrice.item_id, draft.itemId),
+        ),
+      ),
+  ]);
+  if (
+    draft.customerId === null &&
+    draft.supplierId === null &&
+    list.applicability === "both" &&
+    (!item.is_sales_item || !item.is_purchase_item)
+  ) {
+    if (!item.is_sales_item) {
+      throw new Error(`Item "${item.item_code}" is not a sales item.`);
+    }
     throw new Error(`Item "${item.item_code}" is not a purchase item.`);
   }
   if (draft.batchNo !== null && !item.has_batch_no) {
@@ -101,11 +170,10 @@ export async function validateItemPriceValues(
   }
 
   const uom = draft.uom ?? item.default_uom;
-  const itemUoms = await fetchItemUoms(db, draft.itemId);
-  if (!isKnownUom(item, itemUoms, uom)) {
+  const resolvedUom = resolveUom(item, itemUoms, uom);
+  if (resolvedUom === null) {
     throw new Error(`UOM "${uom}" is not defined for item "${item.item_code}".`);
   }
-  const conversionFactor = resolveUomFactor(item, itemUoms, uom);
 
   const validFrom = draft.validFrom === null ? todayKey() : toDateKey(draft.validFrom);
   const validUpto = draft.validUpto === null ? null : toDateKey(draft.validUpto);
@@ -116,46 +184,21 @@ export async function validateItemPriceValues(
     throw new Error("validUpto must be on or after validFrom.");
   }
 
-  const key: ItemPriceKey = {
+  assertNoOverlap(siblings, {
     batchNo: draft.batchNo,
     customerId: draft.customerId,
+    excludeId,
+    from: validFrom,
     minQty: draft.minQty,
     supplierId: draft.supplierId,
     uom,
-  };
-  const siblings = await db
-    .select()
-    .from(productsItemPrice)
-    .where(
-      and(
-        eq(productsItemPrice.price_list_id, draft.priceListId),
-        eq(productsItemPrice.item_id, draft.itemId),
-      ),
-    );
-  const overlap = findOverlappingRow(siblings, {
-    excludeId,
-    key,
-    range: { from: validFrom, upto: validUpto },
+    upto: validUpto,
   });
-  if (overlap) {
-    throw new Error(`Overlapping validity with item price "${overlap.id}" for the same price key.`);
-  }
 
-  return {
-    batch_no: draft.batchNo,
-    conversion_factor: conversionFactor,
-    customer_id: draft.customerId,
-    item_id: draft.itemId,
-    lead_time_days: draft.leadTimeDays,
-    min_qty: draft.minQty,
-    note: draft.note,
-    packing_unit: normalizePackingUnit(draft.packingUnit),
-    price_list_id: draft.priceListId,
-    rate: draft.rate,
-    status: draft.status,
-    supplier_id: draft.supplierId,
+  return toNewItemPriceRow(draft, {
+    conversionFactor: resolvedUom.factor,
     uom,
-    valid_from: validFrom,
-    valid_upto: validUpto,
-  };
+    validFrom,
+    validUpto,
+  });
 }

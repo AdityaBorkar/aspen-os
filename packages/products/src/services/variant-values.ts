@@ -5,6 +5,14 @@ export function buildVariantKey(attributes: Record<string, string>): string {
   return keys.map((key) => `${key}=${attributes[key] ?? ""}`).join("|");
 }
 
+/**
+ * Single source of truth for generated variant item codes: template code
+ * plus the sanitized variant key, truncated to the 140-char code budget.
+ */
+export function variantItemCode(templateCode: string, variantKey: string): string {
+  return `${templateCode}-${variantKey.replace(/[^A-Za-z0-9]+/g, "-")}`.slice(0, 140);
+}
+
 export function expandCombinations(
   valuesByAttribute: Record<string, string[]>,
 ): Record<string, string>[] {
@@ -37,6 +45,11 @@ export interface VariantInsertOptions {
  * Single source of truth for the fields a variant inherits from its template.
  * Used by both single-variant creation and batch combination creation so the
  * two paths cannot drift apart.
+ *
+ * This is the create-time inherit set. Post-hoc sync uses the narrower
+ * VARIANT_SYNC_ALLOWLIST subset (see services/item-fields.ts) — the
+ * divergence is intentional: creation copies identity-adjacent defaults once,
+ * while sync only refreshes fields that stay safe to overwrite later.
  */
 export function buildVariantInsert(
   template: ProductsItem,
@@ -62,7 +75,7 @@ export function buildVariantInsert(
     item_group_id: template.item_group_id,
     item_name: options.itemName,
     manufacturer_id: options.manufacturerId ?? template.manufacturer_id,
-    manufacturer_part_no: options.manufacturerPartNo ?? null,
+    manufacturer_part_no: options.manufacturerPartNo ?? template.manufacturer_part_no,
     template_item_id: template.id,
     variant_based_on: template.variant_based_on,
     variant_key: options.variantKey,

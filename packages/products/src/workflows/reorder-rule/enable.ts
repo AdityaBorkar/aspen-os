@@ -1,6 +1,7 @@
 import { productsReorderRule } from "#/db-schemas";
 import { REORDER_RULE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, reorderRuleLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchReorderRuleStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -14,7 +15,8 @@ const IdInputSchema = object({ id: IdSchema });
 export const enableReorderRule = Workflow.name("products.reorder-rule.enable")
   .input(IdInputSchema)
   .handler(async ({ id }, ctx) => {
-    await ctx.step.run(fetchReorderRuleStep, { id });
+    const current = await ctx.step.run(fetchReorderRuleStep, { id });
+    assertTransition("reorder-rule", reorderRuleLifecycleState(current), "enabled");
     const [updated] = await ctx.db
       .update(productsReorderRule)
       .set({ is_disabled: false, updated_at: new Date() })
@@ -31,11 +33,8 @@ export const enableReorderRule = Workflow.name("products.reorder-rule.enable")
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.REORDER_RULE,
       },
-      REORDER_RULE_EVENTS.UPDATED,
-      {
-        changes: { isDisabled: false },
-        reorderRule: { id: updated.id, itemId: updated.item_id },
-      },
+      REORDER_RULE_EVENTS.ENABLED,
+      { reorderRuleId: id },
     );
     return updated;
   });

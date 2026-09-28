@@ -1,6 +1,7 @@
 import { productsItem } from "#/db-schemas";
 import { VARIANT_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
+import { assertTransition, variantLifecycleState } from "#/services/lifecycle";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchItemStep } from "#/workflow-steps/fetch";
 import { runAuditNotifyStep } from "#/workflows/audit";
@@ -18,6 +19,7 @@ export const enableVariant = Workflow.name("products.variant.enable")
     if (!current.template_item_id) {
       throw new Error(`Item with id "${id}" is not a variant.`);
     }
+    assertTransition("variant", variantLifecycleState(current), "active");
     const [updated] = await ctx.db
       .update(productsItem)
       .set({ is_disabled: false, status: "active", updated_at: new Date() })

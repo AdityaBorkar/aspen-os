@@ -1,4 +1,4 @@
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema, NameSchema } from "#/schemas/utils";
 
 import { boolean, nullable, number, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
@@ -30,8 +30,7 @@ export type AttributeFilters = InferOutput<typeof AttributeFiltersSchema>;
 
 export const ListAttributesSchema = object({
   filters: optional(AttributeFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListAttributesInput = InferOutput<typeof ListAttributesSchema>;

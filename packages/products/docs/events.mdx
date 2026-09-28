@@ -6,6 +6,6 @@ icon: IconEvent
 
 # Events
 
-Produced: `products.item_created|_updated|_disabled|_archived`, `products.item_group_created|_updated|_disabled`, `products.brand_created|_updated`, `products.variant_created|_template_updated`, `products.reorder_rule_created|_updated|_disabled`, `products.barcode_added|_removed`, `products.price_list_created|_updated|_disabled`, `products.item_price_created|_updated|_expired`.
+Produced: `products.item_created|_updated|_disabled|_enabled|_archived`, `products.item_group_created|_updated|_disabled|_enabled`, `products.brand_created|_updated`, `products.variant_created|_template_updated|_enabled|_disabled`, `products.reorder_rule_created|_updated|_disabled|_enabled`, `products.barcode_added|_removed`, `products.price_list_created|_updated|_disabled|_enabled`, `products.item_price_created|_updated|_expired|_cancelled`.
 
-Consumed (introspection-only): `masters.unit_of_measure_created|_updated|_retired`, `masters.contact_created|_updated`, `inventory.stock_changed`.
+Consumed: none at runtime (no `$consumes`, no subscriptions). Introspection-only domain awareness: `masters.unit_of_measure_created|_updated|_retired`, `masters.contact_created|_updated`, `inventory.stock_changed`.

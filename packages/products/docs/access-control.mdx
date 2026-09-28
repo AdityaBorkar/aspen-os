@@ -6,4 +6,6 @@ icon: IconLock
 
 # Access Control
 
-Resources: `item`, `group`, `brand`, `manufacturer`, `attribute`, `variant`, `barcode`, `reorder_rule`, `setting`, `price_list`, `item_price`, `price_fetch` (read-only), `pricelist_setting`.
+Resources: `item` (archive, create, delete, disable, enable, read, transact, update), `group` (create, delete, disable, enable, read, update), `brand`, `manufacturer`, `attribute`, `variant` (create, delete, disable, enable, read, sync, update), `barcode`, `reorder_rule` (create, delete, disable, enable, read, update), `setting` (read, update), `price_list` (create, delete, disable, enable, read, update), `item_price` (cancel, create, delete, expire, read, update), `price_fetch` (read-only), `pricelist_setting` (read, update).
+
+`items.markTransacted` is audit-only (no event) and requires the `transact` action on `item`.

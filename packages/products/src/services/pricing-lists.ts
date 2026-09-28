@@ -3,11 +3,12 @@ import type { ProductsItem } from "#/db-schemas/item";
 import type { ProductsItemPrice } from "#/db-schemas/item-price";
 import type { ProductsPriceList } from "#/db-schemas/price-list";
 import type { RateSide } from "#/schemas/item-price";
-import { walkGroupAncestors } from "#/services/group-hierarchy";
+import { nearestAncestorValue, walkGroupAncestors } from "#/services/group-hierarchy";
 import { getPricelistSettings } from "#/services/pricing-settings";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
 import { and, count, eq, inArray } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 type Db = WorkflowContext["db"];
 
@@ -20,16 +21,12 @@ export async function resolvePriceListLabel(
   db: Db,
   item: ProductsItem,
 ): Promise<ResolvedPriceListLabel | null> {
-  if (item.default_price_list !== null && item.default_price_list !== undefined) {
+  if (item.default_price_list != null) {
     return { label: item.default_price_list, source: "item" };
   }
   const chain = await walkGroupAncestors(db, item.item_group_id);
-  for (const group of chain) {
-    if (group.default_price_list !== null && group.default_price_list !== undefined) {
-      return { label: group.default_price_list, source: "group" };
-    }
-  }
-  return null;
+  const label = nearestAncestorValue(chain, (group) => group.default_price_list);
+  return label == null ? null : { label, source: "group" };
 }
 
 export async function findPriceListByName(db: Db, name: string): Promise<ProductsPriceList | null> {
@@ -41,11 +38,15 @@ export async function findPriceListByName(db: Db, name: string): Promise<Product
   return row ?? null;
 }
 
+function onlyIfEnabled(list: ProductsPriceList | null | undefined): ProductsPriceList | null {
+  return list != null && list.is_enabled ? list : null;
+}
+
 export function resolveFetchSide(
   inputSide: RateSide | null | undefined,
   applicability: ProductsPriceList["applicability"],
 ): RateSide | null {
-  if (inputSide !== null && inputSide !== undefined) {
+  if (inputSide != null) {
     if (applicability === "both" || inputSide === applicability) {
       return inputSide;
     }
@@ -74,7 +75,7 @@ export async function resolvePriceList(
   db: Db,
   request: PriceListRequest,
 ): Promise<ProductsPriceList | null> {
-  if (request.priceListId !== null && request.priceListId !== undefined) {
+  if (request.priceListId != null) {
     const [byId] = await db
       .select()
       .from(productsPriceList)
@@ -83,16 +84,14 @@ export async function resolvePriceList(
     if (!byId) {
       throw new Error(`Price list with id "${request.priceListId}" not found.`);
     }
-    return byId.is_enabled ? byId : null;
+    return onlyIfEnabled(byId);
   }
-  if (request.priceListName !== null && request.priceListName !== undefined) {
-    const named = await findPriceListByName(db, request.priceListName);
-    return named !== null && named.is_enabled ? named : null;
+  if (request.priceListName != null) {
+    return onlyIfEnabled(await findPriceListByName(db, request.priceListName));
   }
   const label = await resolvePriceListLabel(db, request.item);
   if (label !== null) {
-    const labeled = await findPriceListByName(db, label.label);
-    return labeled !== null && labeled.is_enabled ? labeled : null;
+    return onlyIfEnabled(await findPriceListByName(db, label.label));
   }
   const settings = await getPricelistSettings(db);
   const fallbackIds =
@@ -108,48 +107,56 @@ export async function resolvePriceList(
   const rows = await db.select().from(productsPriceList).where(inArray(productsPriceList.id, ids));
   const byId = new Map(rows.map((row) => [row.id, row]));
   for (const id of ids) {
-    const fallback = byId.get(id);
-    if (fallback !== undefined && fallback.is_enabled) {
+    const fallback = onlyIfEnabled(byId.get(id));
+    if (fallback !== null) {
       return fallback;
     }
   }
   return null;
 }
 
+export interface ActiveRowsFilter {
+  itemId?: string;
+  priceListId?: string;
+}
+
+export async function loadActiveRows(
+  db: Db,
+  filter: ActiveRowsFilter,
+): Promise<ProductsItemPrice[]> {
+  const conditions: SQL[] = [eq(productsItemPrice.status, "active")];
+  if (filter.priceListId !== undefined) {
+    conditions.push(eq(productsItemPrice.price_list_id, filter.priceListId));
+  }
+  if (filter.itemId !== undefined) {
+    conditions.push(eq(productsItemPrice.item_id, filter.itemId));
+  }
+  return db
+    .select()
+    .from(productsItemPrice)
+    .where(and(...conditions));
+}
+
+/** @deprecated Use loadActiveRows(db, { priceListId, itemId }) instead. */
 export async function loadActiveRowsForItemList(
   db: Db,
   priceListId: string,
   itemId: string,
 ): Promise<ProductsItemPrice[]> {
-  return db
-    .select()
-    .from(productsItemPrice)
-    .where(
-      and(
-        eq(productsItemPrice.price_list_id, priceListId),
-        eq(productsItemPrice.item_id, itemId),
-        eq(productsItemPrice.status, "active"),
-      ),
-    );
+  return loadActiveRows(db, { itemId, priceListId });
 }
 
+/** @deprecated Use loadActiveRows(db, { priceListId }) instead. */
 export async function loadActiveRowsForList(
   db: Db,
   priceListId: string,
 ): Promise<ProductsItemPrice[]> {
-  return db
-    .select()
-    .from(productsItemPrice)
-    .where(
-      and(eq(productsItemPrice.price_list_id, priceListId), eq(productsItemPrice.status, "active")),
-    );
+  return loadActiveRows(db, { priceListId });
 }
 
+/** @deprecated Use loadActiveRows(db, { itemId }) instead. */
 export async function loadActiveRowsForItem(db: Db, itemId: string): Promise<ProductsItemPrice[]> {
-  return db
-    .select()
-    .from(productsItemPrice)
-    .where(and(eq(productsItemPrice.item_id, itemId), eq(productsItemPrice.status, "active")));
+  return loadActiveRows(db, { itemId });
 }
 
 export async function countRowsForItem(db: Db, itemId: string): Promise<number> {

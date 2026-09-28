@@ -1,7 +1,7 @@
 import { PriceListApplicabilitySchema } from "#/schemas/enums";
-import { IdSchema, NameSchema } from "#/schemas/utils";
+import { IdSchema, ListPaginationSchema, NameSchema, clearable } from "#/schemas/utils";
 
-import { boolean, nullable, nullish, number, object, optional, string } from "valibot";
+import { boolean, nullable, object, optional, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreatePriceListSchema = object({
@@ -20,14 +20,14 @@ export type CreatePriceListInput = InferOutput<typeof CreatePriceListSchema>;
 
 export const UpdatePriceListSchema = object({
   applicability: optional(PriceListApplicabilitySchema),
-  country: nullish(nullable(string())),
-  currency: nullish(nullable(string())),
-  defaultCustomerId: nullish(nullable(IdSchema)),
-  defaultSupplierId: nullish(nullable(IdSchema)),
+  country: clearable(string()),
+  currency: clearable(string()),
+  defaultCustomerId: clearable(IdSchema),
+  defaultSupplierId: clearable(IdSchema),
   isEnabled: optional(boolean()),
   name: optional(NameSchema),
   priceNotUomDependent: optional(boolean()),
-  territory: nullish(nullable(string())),
+  territory: clearable(string()),
 });
 
 export type UpdatePriceListInput = InferOutput<typeof UpdatePriceListSchema>;
@@ -42,8 +42,7 @@ export type PriceListFilters = InferOutput<typeof PriceListFiltersSchema>;
 
 export const ListPriceListsSchema = object({
   filters: optional(PriceListFiltersSchema),
-  limit: optional(number()),
-  offset: optional(number()),
+  ...ListPaginationSchema.entries,
 });
 
 export type ListPriceListsInput = InferOutput<typeof ListPriceListsSchema>;
