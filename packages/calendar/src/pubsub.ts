@@ -1,12 +1,6 @@
-import type { AttendeeStatus, CalendarAccess } from "#/utils/constants";
+import type { AttendeeStatus, CalendarAudienceType } from "#/utils/constants";
 
 import type { JsonValue } from "@aspen-os/platform/server";
-
-export const CALENDAR_EVENTS = {
-  CREATED: "calendar.calendar_created",
-  DELETED: "calendar.calendar_deleted",
-  UPDATED: "calendar.calendar_updated",
-} as const;
 
 export const EVENT_EVENTS = {
   CANCELLED: "calendar.event_cancelled",
@@ -30,25 +24,14 @@ export const REMINDER_EVENTS = {
 
 export const events = {
   ATTENDEE_EVENTS,
-  CALENDAR_EVENTS,
   EVENT_EVENTS,
   REMINDER_EVENTS,
 };
 
-export interface CalendarCreatedEvent {
-  calendar: { access: CalendarAccess; id: string; name: string; ownerId: string };
-}
-
-export interface CalendarUpdatedEvent {
-  calendar: { access: CalendarAccess; id: string; name: string; ownerId: string };
-}
-
-export interface CalendarDeletedEvent {
-  calendarId: string;
-}
-
 export interface CalendarEventPayload {
-  calendarId: string;
+  [key: string]: JsonValue;
+  audienceId: string | null;
+  audienceType: CalendarAudienceType;
   endsAt: string | null;
   id: string;
   startsAt: string;
@@ -56,30 +39,27 @@ export interface CalendarEventPayload {
 }
 
 export interface EventCreatedEvent {
-  calendarId: string;
   event: CalendarEventPayload;
   sourceEntityId?: string | null;
   sourceType?: string | null;
 }
 
 export interface EventUpdatedEvent {
-  calendarId: string;
   event: CalendarEventPayload;
   sourceEntityId?: string | null;
   sourceType?: string | null;
 }
 
 export interface EventCancelledEvent {
-  calendarId: string;
   event: CalendarEventPayload;
 }
 
 export interface EventDeletedEvent {
-  calendarId: string;
   eventId: string;
 }
 
 export interface AttendeePayload {
+  [key: string]: JsonValue;
   email: string;
   id: string;
   name: string | null;
@@ -88,23 +68,23 @@ export interface AttendeePayload {
 
 export interface AttendeeInvitedEvent {
   attendee: AttendeePayload;
-  calendarId: string;
   eventId: string;
 }
 
 export interface AttendeeUpdatedEvent {
   attendee: AttendeePayload;
-  calendarId: string;
   eventId: string;
 }
 
 export interface AttendeeRemovedEvent {
   attendeeId: string;
-  calendarId: string;
   eventId: string;
 }
 
 export interface ReminderPayload {
+  [key: string]: JsonValue;
+  audienceId: string | null;
+  audienceType: CalendarAudienceType;
   channel: string;
   id: string;
   isRecurring: boolean;
@@ -112,7 +92,12 @@ export interface ReminderPayload {
   targetId: string;
   targetType: string;
   type: string;
-  userId: string;
+  /**
+   * Concrete recipient, populated on the per-recipient `reminder_due`
+   * fan-out, and `null` on create/update events (a reminder row carries an
+   * audience, not a single owner).
+   */
+  userId: string | null;
 }
 
 export interface ReminderCreatedEvent {
@@ -131,12 +116,6 @@ export interface ReminderDeletedEvent {
 export interface ReminderDueEvent {
   remindAt: string;
   reminder: ReminderPayload;
-}
-
-export interface CalendarEventMap {
-  [CALENDAR_EVENTS.CREATED]: CalendarCreatedEvent;
-  [CALENDAR_EVENTS.DELETED]: CalendarDeletedEvent;
-  [CALENDAR_EVENTS.UPDATED]: CalendarUpdatedEvent;
 }
 
 export interface EventEventMap {
@@ -159,7 +138,4 @@ export interface ReminderEventMap {
   [REMINDER_EVENTS.UPDATED]: ReminderUpdatedEvent;
 }
 
-export type CalendarModuleEventMap = AttendeeEventMap &
-  CalendarEventMap &
-  EventEventMap &
-  ReminderEventMap;
+export type CalendarModuleEventMap = EventEventMap & AttendeeEventMap & ReminderEventMap;

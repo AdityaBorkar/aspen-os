@@ -1,4 +1,4 @@
-import { calendarEventStatusEnum } from "#/db-schemas/enums";
+import { calendarAudienceTypeEnum, calendarEventStatusEnum } from "#/db-schemas/enums";
 import type { RecurrenceFrequency, Weekday } from "#/utils/constants";
 
 import { uuidv7 } from "@aspen-os/platform/server";
@@ -16,7 +16,9 @@ export const calendarEvent = pgTable(
   "calendar_event",
   {
     all_day: boolean().notNull().default(false),
-    calendar_id: text().notNull(),
+    // Organization-wide by default; `audience_id` holds a group id or user id.
+    audience_id: text(),
+    audience_type: calendarAudienceTypeEnum().notNull().default("organization"),
     color: text(),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     created_by: text().notNull(),
@@ -37,7 +39,7 @@ export const calendarEvent = pgTable(
       .$onUpdate(() => new Date()),
   },
   (table) => [
-    index("idx_calendar_event_calendar").on(table.calendar_id),
+    index("idx_calendar_event_audience").on(table.audience_type, table.audience_id),
     index("idx_calendar_event_source").on(table.source_type, table.source_entity_id),
     index("idx_calendar_event_starts").on(table.starts_at),
     index("idx_calendar_event_status").on(table.status),

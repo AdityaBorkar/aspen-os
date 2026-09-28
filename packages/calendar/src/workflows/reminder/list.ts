@@ -1,11 +1,10 @@
 import { calendarReminder } from "#/db-schemas";
 import { ReminderFiltersSchema } from "#/types";
-import { REMINDER_TARGET } from "#/utils/constants";
-import { accessibleEventIds } from "#/workflow-steps/access-scope";
+import { actorGroupIds, visibleReminderCondition } from "#/workflow-steps/access-scope";
 import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, inArray, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { object, optional, parse } from "valibot";
 
 const ListInputSchema = object({ filters: optional(ReminderFiltersSchema) });
@@ -15,16 +14,9 @@ export const listReminders = Workflow.name("calendar.reminder.list")
   .handler(async ({ filters }, ctx) => {
     const actorId = resolveActorId(ctx.actorId);
     const parsed = parse(ReminderFiltersSchema, filters ?? {});
+    const groupIds = await actorGroupIds(ctx.db, actorId);
 
-    const conditions = [
-      or(
-        eq(calendarReminder.user_id, actorId),
-        and(
-          eq(calendarReminder.target_type, REMINDER_TARGET.EVENT),
-          inArray(calendarReminder.target_id, accessibleEventIds(ctx.db, actorId)),
-        ),
-      ),
-    ];
+    const conditions = [visibleReminderCondition(actorId, groupIds)];
 
     if (parsed.targetType) {
       conditions.push(eq(calendarReminder.target_type, parsed.targetType));
@@ -35,8 +27,11 @@ export const listReminders = Workflow.name("calendar.reminder.list")
     if (parsed.type) {
       conditions.push(eq(calendarReminder.type, parsed.type));
     }
-    if (parsed.userId) {
-      conditions.push(eq(calendarReminder.user_id, parsed.userId));
+    if (parsed.audienceType) {
+      conditions.push(eq(calendarReminder.audience_type, parsed.audienceType));
+    }
+    if (parsed.audienceId) {
+      conditions.push(eq(calendarReminder.audience_id, parsed.audienceId));
     }
     if (parsed.isSent !== undefined) {
       conditions.push(eq(calendarReminder.is_sent, parsed.isSent));

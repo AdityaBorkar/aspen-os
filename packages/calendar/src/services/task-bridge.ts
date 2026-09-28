@@ -1,5 +1,10 @@
 import { calendarReminder } from "#/db-schemas";
-import { REMINDER_CHANNEL, REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
+import {
+  CALENDAR_AUDIENCE,
+  REMINDER_CHANNEL,
+  REMINDER_TARGET,
+  REMINDER_TYPE,
+} from "#/utils/constants";
 
 import type { InferSchemaOutput, PubSubUnit, StandardSchema } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -69,13 +74,14 @@ async function handleDueDateChanged(
 
   const rows = userIds.flatMap((userId) =>
     DUE_DATE_OFFSETS_MS.map((offset) => ({
+      audience_id: userId,
+      audience_type: CALENDAR_AUDIENCE.USER,
       channel: REMINDER_CHANNEL.PUBSUB,
       created_by: "task-bridge",
       remind_at: new Date(dueDate.getTime() - offset),
       target_id: event.taskId,
       target_type: REMINDER_TARGET.TASK,
       type: REMINDER_TYPE.DUE_DATE,
-      user_id: userId,
     })),
   );
 

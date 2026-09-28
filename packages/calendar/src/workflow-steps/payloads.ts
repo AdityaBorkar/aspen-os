@@ -1,46 +1,34 @@
-import type { calendar, calendarAttendee, calendarEvent, calendarReminder } from "#/db-schemas";
-import type {
-  AttendeePayload,
-  CalendarCreatedEvent,
-  CalendarEventPayload,
-  ReminderPayload,
-} from "#/pubsub";
+import type { calendarAttendee, calendarEvent, calendarReminder } from "#/db-schemas";
+import type { AttendeePayload, CalendarEventPayload, ReminderPayload } from "#/pubsub";
 
-type CalendarRow = typeof calendar.$inferSelect;
 type EventRow = typeof calendarEvent.$inferSelect;
 type AttendeeRow = typeof calendarAttendee.$inferSelect;
 type ReminderRow = typeof calendarReminder.$inferSelect;
 
-export function toCalendarPayload(row: CalendarRow) {
+export function toEventPayload(row: EventRow): CalendarEventPayload {
   return {
-    access: row.access,
-    id: row.id,
-    name: row.name,
-    ownerId: row.owner_id,
-  } satisfies CalendarCreatedEvent["calendar"];
-}
-
-export function toEventPayload(row: EventRow) {
-  return {
-    calendarId: row.calendar_id,
+    audienceId: row.audience_id,
+    audienceType: row.audience_type,
     endsAt: row.ends_at?.toISOString() ?? null,
     id: row.id,
     startsAt: row.starts_at.toISOString(),
     title: row.title,
-  } satisfies CalendarEventPayload;
+  };
 }
 
-export function toAttendeePayload(row: AttendeeRow) {
+export function toAttendeePayload(row: AttendeeRow): AttendeePayload {
   return {
     email: row.email,
     id: row.id,
     name: row.name,
     status: row.status,
-  } satisfies AttendeePayload;
+  };
 }
 
-export function toReminderPayload(row: ReminderRow) {
+export function toReminderPayload(row: ReminderRow, recipientUserId?: string): ReminderPayload {
   return {
+    audienceId: row.audience_id,
+    audienceType: row.audience_type,
     channel: row.channel,
     id: row.id,
     isRecurring: row.is_recurring,
@@ -48,6 +36,6 @@ export function toReminderPayload(row: ReminderRow) {
     targetId: row.target_id,
     targetType: row.target_type,
     type: row.type,
-    userId: row.user_id,
-  } satisfies ReminderPayload;
+    userId: recipientUserId ?? null,
+  };
 }

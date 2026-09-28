@@ -1,9 +1,15 @@
-export const CALENDAR_ACCESS = {
-  GLOBAL: "global",
-  PERSONAL: "personal",
+/**
+ * Who a calendar item (event or reminder) is for. The organization keeps a
+ * single shared calendar; scope is expressed per item instead of by owning
+ * separate calendars.
+ */
+export const CALENDAR_AUDIENCE = {
+  GROUP: "group",
+  ORGANIZATION: "organization",
+  USER: "user",
 } as const;
 
-export type CalendarAccess = (typeof CALENDAR_ACCESS)[keyof typeof CALENDAR_ACCESS];
+export type CalendarAudienceType = (typeof CALENDAR_AUDIENCE)[keyof typeof CALENDAR_AUDIENCE];
 
 export const EVENT_STATUS = {
   CANCELLED: "cancelled",
@@ -85,8 +91,6 @@ export const WEEKDAY = {
 
 export type Weekday = (typeof WEEKDAY)[keyof typeof WEEKDAY];
 
-export const DEFAULT_CALENDAR_TIMEZONE = "UTC";
-
 export const SCHEDULED_JOBS = {
   REMINDER_SCAN: "calendar.reminder-scan",
 } as const;
@@ -95,7 +99,6 @@ export type ScheduledJob = (typeof SCHEDULED_JOBS)[keyof typeof SCHEDULED_JOBS];
 
 export const AUDIT_ENTITY_TYPE = {
   ATTENDEE: "calendar:attendee",
-  CALENDAR: "calendar:calendar",
   EVENT: "calendar:event",
   REMINDER: "calendar:reminder",
 } as const;
@@ -109,7 +112,6 @@ export const AUDIT_ACTION = {
   INVITED: "invited",
   PROCESSED: "processed",
   REMOVED: "removed",
-  SET_DEFAULT: "set_default",
   UPDATED: "updated",
 } as const;
 

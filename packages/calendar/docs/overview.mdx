@@ -4,7 +4,7 @@ description: Architecture, access model, and module structure of the Calendar mo
 icon: IconInfoCircle
 ---
 
-The Calendar module owns the three time-domain surfaces — calendars, events with recurrence and attendees, and the platform's single polymorphic reminder surface (`calendar_reminder`) for `event`, `task`, `compliance_document`, and other targets.
+The Calendar module owns two time-domain surfaces for a single organization-wide calendar — events with recurrence and attendees, and the platform's single polymorphic reminder surface (`calendar_reminder`) for `event`, `task`, `compliance_document`, and other targets. Scoping is per item via an **audience**, not per calendar.
 
 ## Module
 
@@ -56,6 +56,8 @@ No module dependencies (`$dependencies: []`). Runtime wiring via units:
 | `pubsub` | Reminder dispatcher cron + task and compliance bridges     |
 | `audit`  | Audit writes via `getContext().audit` in `$prepareRuntime` |
 
+Group-audience resolution reads hr-core-owned tables (`employee_group_member`, `hr_user`) by raw SQL, so the module still runs without hr-core (group audiences simply resolve to nobody).
+
 ## Architecture
 
 ```mermaid
@@ -67,7 +69,6 @@ flowchart TB
   end
 
   subgraph TenantDB[tenant database — calendarTables]
-    C[calendar_calendar]
     E[calendar_event]
     A[calendar_attendee]
     R[calendar_reminder<br/>polymorphic target_type]
@@ -75,18 +76,18 @@ flowchart TB
 
   TB & CB -->|materialize rows| R
   RD -->|scan isSent=false & remindAt <= now| R
-  R -->|calendar.reminder_due| comms[comms event bridge]
-  C --> E --> A
-  C --> E --> R
+  RD -->|resolve audience → per-recipient| DUE[calendar.reminder_due] --> comms[comms event bridge]
+  E --> A
+  E --> R
 ```
 
 `$initialize({ db, pubsub })` stores refs; `$prepareRuntime()` registers the reminder-dispatcher and both bridges; `$cleanup()` unregisters all three.
 
 ## Key concepts
 
-### Access inheritance
+### Audience scoping
 
-Calendars carry `access` (`personal` default or `global`) plus `ownerId`. Events, attendees, and reminders inherit their calendar's access via `access-service.ts`; reminders are additionally recipient-scoped via `userId`. `assertCanAccess` is `global OR ownerId === actorId`; `assertCanMutate` is `ownerId === actorId OR tenant admin`; reminders allow `userId === actorId` or a readable event calendar.
+Every event and reminder has `audience_type` (`organization` default / `group` / `user`) and `audience_id` (a group id or user id; `null` for organization). Visibility is computed per query from the actor's employee groups; mutation is creator-or-tenant-admin. There is no calendar access column.
 
 ### Recurrence on read
 
@@ -94,17 +95,17 @@ Calendars carry `access` (`personal` default or `global`) plus `ownerId`. Events
 
 ### Single reminder surface
 
-`calendar_reminder` is polymorphic (`target_type` / `target_id` → any module entity). Task due-date reminders (`target_type = task`) are three rows per recipient (`due − 1d`, `due − 1h`, `due`) created by the task bridge. Compliance document reminders (`target_type = compliance_document`) are `expiryPolicyDays` rows per recipient created by the compliance bridge (expiry/due dates). No direct cross-module table reads.
+`calendar_reminder` is polymorphic (`target_type` / `target_id` → any module entity). Task due-date reminders (`target_type = task`) are three rows per recipient (`due − 1d`, `due − 1h`, `due`) created by the task bridge, each scoped `audience_type = user`. Compliance document reminders (`target_type = compliance_document`) are `expiryPolicyDays` rows per recipient created by the compliance bridge. At dispatch the reminder's audience is resolved to concrete user ids and one `calendar.reminder_due` is published per recipient. No direct cross-module table reads.
 
 ## Relationships
 
 ```mermaid
 flowchart LR
-  user[(better-auth user)] -. owner_id .-> C[calendar_calendar]
-  C -->|calendar_id| E[calendar_event]
-  E -->|event_id| A[calendar_attendee]
+  E[calendar_event] -->|event_id| A[calendar_attendee]
   E -->|target_type=event| R[calendar_reminder]
   R -. target_type/task<br/>compliance_document/custom .-> EXTERNAL[any module entity]
+  R -. audience .-> GROUP[employee group]
+  E -. audience .-> GROUP
 ```
 
 All FKs are soft/logical. `reminder.target_id` is free-form except `custom` allows empty.

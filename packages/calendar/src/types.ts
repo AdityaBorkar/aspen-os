@@ -1,4 +1,3 @@
-export type { Calendar, NewCalendar } from "#/db-schemas/calendar";
 export type { CalendarAttendee, NewCalendarAttendee } from "#/db-schemas/attendee";
 export type { CalendarEvent, NewCalendarEvent, EventRecurrenceRow } from "#/db-schemas/event";
 export type { CalendarReminder, NewCalendarReminder } from "#/db-schemas/reminder";
@@ -8,12 +7,8 @@ export type {
   AttendeePayload,
   AttendeeRemovedEvent,
   AttendeeUpdatedEvent,
-  CalendarCreatedEvent,
-  CalendarDeletedEvent,
-  CalendarEventMap,
   CalendarEventPayload,
   CalendarModuleEventMap,
-  CalendarUpdatedEvent,
   EventCancelledEvent,
   EventCreatedEvent,
   EventDeletedEvent,
@@ -26,12 +21,10 @@ export type {
   ReminderPayload,
   ReminderUpdatedEvent,
 } from "#/pubsub";
-export { ATTENDEE_EVENTS, CALENDAR_EVENTS, EVENT_EVENTS, REMINDER_EVENTS, events } from "#/pubsub";
+export { ATTENDEE_EVENTS, EVENT_EVENTS, REMINDER_EVENTS, events } from "#/pubsub";
 export type {
   AttendeeFilters,
-  CalendarFilters,
   CreateAttendeeInput,
-  CreateCalendarInput,
   CreateEventInput,
   CreateReminderInput,
   EventFilters,
@@ -39,7 +32,6 @@ export type {
   OccurrencesQuery,
   ReminderFilters,
   UpdateAttendeeInput,
-  UpdateCalendarInput,
   UpdateEventInput,
   UpdateReminderInput,
 } from "#/schemas";
@@ -47,10 +39,8 @@ export {
   AttendeeFiltersSchema,
   AttendeeStatusSchema,
   AttendeeTypeSchema,
-  CalendarAccessSchema,
-  CalendarFiltersSchema,
+  CalendarAudienceTypeSchema,
   CreateAttendeeSchema,
-  CreateCalendarSchema,
   CreateEventSchema,
   CreateReminderSchema,
   EmailSchema,
@@ -71,7 +61,6 @@ export {
   TARGETS_REQUIRING_ID,
   TimezoneSchema,
   UpdateAttendeeSchema,
-  UpdateCalendarSchema,
   UpdateEventSchema,
   UpdateReminderSchema,
   WeekdaySchema,
@@ -82,7 +71,7 @@ export type {
   AuditAction,
   AttendeeStatus,
   AttendeeType,
-  CalendarAccess,
+  CalendarAudienceType,
   EventStatus,
   RecurrenceFrequency,
   ReminderChannel,
@@ -97,8 +86,7 @@ export {
   ATTENDEE_TYPE,
   AUDIT_ACTION,
   AUDIT_ENTITY_TYPE,
-  CALENDAR_ACCESS,
-  DEFAULT_CALENDAR_TIMEZONE,
+  CALENDAR_AUDIENCE,
   EVENT_STATUS,
   RECURRENCE_FREQUENCY,
   REMINDER_CHANNEL,

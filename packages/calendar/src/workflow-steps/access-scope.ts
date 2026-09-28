@@ -1,27 +1,108 @@
-import { calendar, calendarEvent } from "#/db-schemas";
-import { CALENDAR_ACCESS } from "#/utils/constants";
+import { calendarEvent, calendarReminder } from "#/db-schemas";
+import { CALENDAR_AUDIENCE } from "#/utils/constants";
+import type { CalendarAudienceType } from "#/utils/constants";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
-import { eq, inArray, or } from "drizzle-orm";
+import { and, eq, inArray, or, sql } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
+import type { PgColumn } from "drizzle-orm/pg-core";
 
 type CalendarDb = WorkflowContext["db"];
 
-/** Calendars visible to `actorId`: global calendars plus owned ones. */
-export function visibleCalendarCondition(actorId: string) {
-  return or(eq(calendar.access, CALENDAR_ACCESS.GLOBAL), eq(calendar.owner_id, actorId));
+/**
+ * Group ids the actor's linked employee belongs to. Employee groups live in
+ * `@aspen-os/hr-core`, whose drizzle tables cannot be imported here (its
+ * declarations reference a package-local `#/*` alias) — query them directly
+ * so the dependency stays one-directional. Best-effort: when hr-core is not
+ * installed the tables are absent and the actor simply has no groups.
+ */
+export async function actorGroupIds(db: CalendarDb, actorId: string): Promise<string[]> {
+  try {
+    const rows = await db.execute<{ groupId: string }>(
+      sql`SELECT gm.group_id AS "groupId"
+          FROM employee_group_member gm
+          JOIN hr_user hu ON hu.employee_id = gm.employee_id
+          WHERE hu.user_id = ${actorId}`,
+    );
+    return [...new Set(rows.map((row) => row.groupId))];
+  } catch {
+    return [];
+  }
 }
 
-/** Ids of calendars visible to `actorId`. */
-export function accessibleCalendarIds(db: CalendarDb, actorId: string) {
-  return db.select({ id: calendar.id }).from(calendar).where(visibleCalendarCondition(actorId));
+/** Visibility rule shared by events and reminders, given the actor's groups. */
+function audienceMatch(params: {
+  actorId: string;
+  audienceId: PgColumn;
+  audienceType: PgColumn;
+  groupIds: string[];
+}): SQL {
+  const { actorId, audienceId, audienceType, groupIds } = params;
+  const clauses: (SQL | undefined)[] = [
+    eq(audienceType, CALENDAR_AUDIENCE.ORGANIZATION),
+    and(eq(audienceType, CALENDAR_AUDIENCE.USER), eq(audienceId, actorId)),
+  ];
+  if (groupIds.length > 0) {
+    clauses.push(and(eq(audienceType, CALENDAR_AUDIENCE.GROUP), inArray(audienceId, groupIds)));
+  }
+  return or(...clauses) ?? sql`false`;
 }
 
-/** Ids of events in calendars visible to `actorId`. */
-export function accessibleEventIds(db: CalendarDb, actorId: string) {
-  return db
-    .select({ id: calendarEvent.id })
-    .from(calendarEvent)
-    .where(inArray(calendarEvent.calendar_id, accessibleCalendarIds(db, actorId)));
+/** Events visible to `actorId`: org-wide, their group, or addressed to them. */
+export function visibleEventCondition(actorId: string, groupIds: string[]): SQL {
+  return audienceMatch({
+    actorId,
+    audienceId: calendarEvent.audience_id,
+    audienceType: calendarEvent.audience_type,
+    groupIds,
+  });
+}
+
+/** Reminders visible to `actorId`: org-wide, their group, or addressed to them. */
+export function visibleReminderCondition(actorId: string, groupIds: string[]): SQL {
+  return audienceMatch({
+    actorId,
+    audienceId: calendarReminder.audience_id,
+    audienceType: calendarReminder.audience_type,
+    groupIds,
+  });
+}
+
+/**
+ * Concrete user ids an audience resolves to at dispatch time. Goes through
+ * hr-core-owned tables by raw SQL (see {@link actorGroupIds}).
+ */
+export async function audienceRecipientUserIds(
+  db: CalendarDb,
+  audienceType: CalendarAudienceType,
+  audienceId: string | null,
+): Promise<string[]> {
+  try {
+    if (audienceType === CALENDAR_AUDIENCE.ORGANIZATION) {
+      const rows = await db.execute<{ userId: string }>(
+        sql`SELECT user_id AS "userId" FROM hr_user WHERE is_active = true`,
+      );
+      return [...new Set(rows.map((row) => row.userId))];
+    }
+    if (audienceType === CALENDAR_AUDIENCE.GROUP) {
+      if (!audienceId) {
+        return [];
+      }
+      const rows = await db.execute<{ userId: string }>(
+        sql`SELECT hu.user_id AS "userId"
+            FROM employee_group_member gm
+            JOIN hr_user hu ON hu.employee_id = gm.employee_id
+            WHERE gm.group_id = ${audienceId} AND hu.is_active = true`,
+      );
+      return [...new Set(rows.map((row) => row.userId))];
+    }
+    if (audienceType === CALENDAR_AUDIENCE.USER && audienceId) {
+      return [audienceId];
+    }
+  } catch {
+    return [];
+  }
+  return [];
 }
 
 /**

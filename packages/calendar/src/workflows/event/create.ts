@@ -1,10 +1,8 @@
 import { calendarEvent } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
 import { CreateEventSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { assertCanMutate } from "#/workflow-steps/access-service";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, CALENDAR_AUDIENCE } from "#/utils/constants";
 import { validateEventWindow, validateSourceLink } from "#/workflow-steps/event-service";
-import { fetchCalendarStep } from "#/workflow-steps/fetch";
 import { toEventPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -17,8 +15,12 @@ export const createEvent = Workflow.name("calendar.event.create")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateEventSchema, input);
 
-    const cal = await ctx.step.run(fetchCalendarStep, { id: parsed.calendarId });
-    await assertCanMutate(cal, ctx.actorId, ctx.db);
+    if (
+      parsed.audienceType !== CALENDAR_AUDIENCE.ORGANIZATION &&
+      (parsed.audienceId === undefined || parsed.audienceId === null || parsed.audienceId === "")
+    ) {
+      throw new Error("audienceId is required for group or user audiences");
+    }
 
     validateEventWindow(parsed);
     validateSourceLink(parsed.sourceType, parsed.sourceEntityId);
@@ -27,7 +29,8 @@ export const createEvent = Workflow.name("calendar.event.create")
       .insert(calendarEvent)
       .values({
         all_day: parsed.allDay ?? false,
-        calendar_id: parsed.calendarId,
+        audience_id: parsed.audienceType === "organization" ? null : (parsed.audienceId ?? null),
+        audience_type: parsed.audienceType,
         color: parsed.color ?? null,
         created_by: ctx.actorId ?? "system",
         description: parsed.description ?? null,
@@ -54,14 +57,13 @@ export const createEvent = Workflow.name("calendar.event.create")
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.EVENT,
         newState: {
-          calendarId: created.calendar_id,
+          audienceType: created.audience_type,
           startsAt: created.starts_at,
           title: created.title,
         },
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.CREATED, {
-        calendarId: created.calendar_id,
         event: toEventPayload(created),
         sourceEntityId: created.source_entity_id,
         sourceType: created.source_type,

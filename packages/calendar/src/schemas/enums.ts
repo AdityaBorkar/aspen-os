@@ -1,7 +1,7 @@
 import {
   ATTENDEE_STATUS,
   ATTENDEE_TYPE,
-  CALENDAR_ACCESS,
+  CALENDAR_AUDIENCE,
   EVENT_STATUS,
   RECURRENCE_FREQUENCY,
   REMINDER_CHANNEL,
@@ -13,7 +13,7 @@ import {
 
 import { picklist } from "valibot";
 
-export const CalendarAccessSchema = picklist(Object.values(CALENDAR_ACCESS));
+export const CalendarAudienceTypeSchema = picklist(Object.values(CALENDAR_AUDIENCE));
 
 export const EventStatusSchema = picklist(Object.values(EVENT_STATUS));
 

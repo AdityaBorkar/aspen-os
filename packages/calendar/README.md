@@ -1,6 +1,8 @@
 # `@aspen-os/calendar`
 
-Domain module for Aspen OS framework owning three time-domain surfaces: **calendars** (named, colored collections w/ `personal`/`global` access), **events** (time-boxed entries w/ structured recurrence, attendees, timezone, polymorphic source link), **reminders** (platform single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` `event`/`task`/`note`/`file`/`custom`).
+Domain module for Aspen OS framework owning two time-domain surfaces for a **single organization-wide calendar**: **events** (time-boxed entries w/ structured recurrence, attendees, timezone, polymorphic source link) and **reminders** (platform single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` `event`/`task`/`note`/`file`/`custom`).
+
+Every event and reminder carries an **audience**: `organization`, `group` (an hr-core employee group), or `user`. There is no per-user calendar CRUD — the organization shares one calendar and scoping is expressed on each item.
 
 > Task reminders live here as `targetType = task` rows. Module's **task bridge** subscribes `task.due_date_changed` / `task.deleted` / `task.status_changed` (published by `@aspen-os/tasks`), materializes/cancels task due-date reminders — event-driven, no cross-module calls.
 
@@ -15,13 +17,13 @@ const calendar = Calendar.create({
 ```
 
 - `$name = "calendar"`, `$dependencies = []` — stateful (`$initialize({ db, pubsub })`; `$prepareRuntime()` registers `calendar.reminder-scan` cron + task bridge; `$cleanup()` unregisters)
-- 4 workflow groups: `calendars`, `events`, `attendees`, `reminders`
-- 4 tenant tables (`calendar_` prefix) + 7 pgEnums; 14 domain events; 4 ACL resources
+- 3 workflow groups: `events`, `attendees`, `reminders`
+- 3 tenant tables (`calendar_` prefix) + 7 pgEnums; 11 domain events; 3 ACL resources
+- Audience resolution reads hr-core-owned tables (`employee_group_member`, `hr_user`) by raw SQL, best-effort — the module still runs without hr-core.
 
 ## Surface
 
 ```
-p.calendar.calendars  { create, delete, get, list, setDefault, update }
 p.calendar.events     { cancel, create, delete, get, getOccurrences, list,
                         listOccurrences, update }
 p.calendar.attendees  { add, get, list, remove, update }
@@ -30,7 +32,7 @@ p.calendar.reminders  { create, delete, get, getPending, list, processPending, u
 
 ## Reminders
 
-- `processPending` publishes `calendar.reminder_due` (full payload), marks `isSent`/`sentAt`, schedules next occurrence for recurring reminders. Module registers own cron — no host cron needed.
+- `processPending` resolves each reminder's audience to concrete user ids at dispatch time, publishes one `calendar.reminder_due` per recipient (full payload with `userId`), marks `isSent`/`sentAt`, and schedules the next occurrence for recurring reminders. Module registers own cron — no host cron needed.
 - Hosts must `subscribe()` to `calendar.reminder_due` (pg-boss silently drops unsubscribed topics; health check flags them).
 
 ## Documentation

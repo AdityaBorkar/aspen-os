@@ -3,8 +3,8 @@ import { ATTENDEE_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateAttendeeSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchAttendeeStep, fetchEventCalendarStep } from "#/workflow-steps/fetch";
+import { assertCanMutateEvent } from "#/workflow-steps/access-service";
+import { fetchAttendeeStep, fetchEventStep } from "#/workflow-steps/fetch";
 import { toAttendeePayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -19,9 +19,9 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
     const parsed = parse(UpdateAttendeeSchema, input);
 
     const existing = await ctx.step.run(fetchAttendeeStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: existing.event_id });
+    const event = await ctx.step.run(fetchEventStep, { id: existing.event_id });
 
-    await assertCanMutate(cal, ctx.actorId, ctx.db);
+    await assertCanMutateEvent(event, ctx.actorId, ctx.db);
 
     const updates = stripUndefined({
       attendeeId: parsed.attendeeId,
@@ -55,7 +55,6 @@ export const updateAttendee = Workflow.name("calendar.attendee.update")
 
       await ctx.pubsub.publish(ATTENDEE_EVENTS.UPDATED, {
         attendee: toAttendeePayload(updated),
-        calendarId: cal.id,
         eventId: updated.event_id,
       });
     });

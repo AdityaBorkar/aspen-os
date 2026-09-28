@@ -1,10 +1,10 @@
 import {
+  CalendarAudienceTypeSchema,
   ReminderChannelSchema,
   ReminderIntervalSchema,
   ReminderTargetSchema,
   ReminderTypeSchema,
 } from "#/schemas/enums";
-import { IdSchema } from "#/schemas/utils";
 import { REMINDER_TARGET } from "#/utils/constants";
 import type { ReminderTarget } from "#/utils/constants";
 
@@ -32,13 +32,14 @@ export const TARGETS_REQUIRING_ID: ReadonlySet<ReminderTarget> = new Set([
 ]);
 
 const ReminderBaseSchema = object({
+  audienceId: optional(nullable(string())),
+  audienceType: optional(CalendarAudienceTypeSchema, "organization"),
   channel: optional(ReminderChannelSchema, "pubsub"),
   interval: optional(nullable(ReminderIntervalSchema)),
   isRecurring: optional(boolean(), false),
   message: optional(nullable(string())),
   targetId: optional(nullable(string())),
   targetType: ReminderTargetSchema,
-  userId: IdSchema,
 });
 
 const OffsetReminderSchema = object({
@@ -72,6 +73,8 @@ export const CreateReminderSchema = variant("type", [
 export type CreateReminderInput = InferOutput<typeof CreateReminderSchema>;
 
 export const UpdateReminderSchema = object({
+  audienceId: optional(nullable(string())),
+  audienceType: optional(CalendarAudienceTypeSchema),
   channel: optional(ReminderChannelSchema),
   interval: optional(nullable(ReminderIntervalSchema)),
   isRecurring: optional(boolean()),
@@ -83,13 +86,14 @@ export const UpdateReminderSchema = object({
 export type UpdateReminderInput = InferOutput<typeof UpdateReminderSchema>;
 
 export const ReminderFiltersSchema = object({
+  audienceId: optional(string()),
+  audienceType: optional(CalendarAudienceTypeSchema),
   isSent: optional(boolean()),
   limit: optional(pipe(number(), integer())),
   offset: optional(pipe(number(), integer())),
   targetId: optional(string()),
   targetType: optional(ReminderTargetSchema),
   type: optional(ReminderTypeSchema),
-  userId: optional(string()),
 });
 
 export type ReminderFilters = InferOutput<typeof ReminderFiltersSchema>;

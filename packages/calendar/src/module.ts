@@ -138,7 +138,6 @@ export class Calendar implements Module {
   }
 
   readonly attendees = wf.attendees;
-  readonly calendars = wf.calendars;
   readonly events = wf.events;
   readonly reminders = wf.reminders;
 }

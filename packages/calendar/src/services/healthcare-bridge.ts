@@ -1,5 +1,6 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { EVENT_EVENTS, REMINDER_EVENTS } from "#/pubsub";
+import { CALENDAR_AUDIENCE } from "#/utils/constants";
 import { toEventPayload, toReminderPayload } from "#/workflow-steps/payloads";
 
 import type { InferSchemaOutput, LogUnit, PubSubUnit } from "@aspen-os/platform/server";
@@ -51,10 +52,6 @@ const HealthcareEntityEventSchema = object({
 
 type HealthcareEntityEvent = InferSchemaOutput<typeof HealthcareEntityEventSchema>;
 
-function healthcareCalendarId(branchId: string): string {
-  return `healthcare-${branchId}`;
-}
-
 async function handleAppointmentCreated(
   event: HealthcareEntityEvent,
   deps: HealthcareBridgeDeps,
@@ -88,7 +85,7 @@ async function handleAppointmentCreated(
   const [created] = await deps.db
     .insert(calendarEvent)
     .values({
-      calendar_id: healthcareCalendarId(event.branchId),
+      audience_type: CALENDAR_AUDIENCE.ORGANIZATION,
       created_by: "healthcare-bridge",
       description: `Patient ${patientId}`,
       source_entity_id: appointmentId,
@@ -103,7 +100,6 @@ async function handleAppointmentCreated(
   }
 
   await deps.pubsub.publish(EVENT_EVENTS.CREATED, {
-    calendarId: created.calendar_id,
     event: toEventPayload(created),
     sourceEntityId: created.source_entity_id,
     sourceType: created.source_type,
@@ -140,6 +136,8 @@ async function handleRecallIntent(
   const [created] = await deps.db
     .insert(calendarReminder)
     .values({
+      audience_id: patientId,
+      audience_type: CALENDAR_AUDIENCE.USER,
       channel: "pubsub",
       created_by: "healthcare-bridge",
       message: data?.reason ?? `Recall ${recallId}`,
@@ -147,7 +145,6 @@ async function handleRecallIntent(
       target_id: recallId,
       target_type: "custom",
       type: "custom",
-      user_id: patientId,
     })
     .returning();
   if (!created) {

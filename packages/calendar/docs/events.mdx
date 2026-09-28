@@ -8,38 +8,32 @@ The Calendar module publishes domain events as plain string topics via `PubSub`.
 
 ## Event Map
 
-### Calendars
-
-| Event                       | Payload                                       | Trigger          |
-| --------------------------- | --------------------------------------------- | ---------------- |
-| `calendar.calendar_created` | `{ calendar: { id, name, access, ownerId } }` | Calendar created |
-| `calendar.calendar_updated` | `{ calendar: { id, name, access, ownerId } }` | Calendar updated |
-| `calendar.calendar_deleted` | `{ calendarId }`                              | Calendar deleted |
-
 ### Events
 
-| Event                      | Payload                                                                                            | Trigger         |
-| -------------------------- | -------------------------------------------------------------------------------------------------- | --------------- |
-| `calendar.event_created`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event created   |
-| `calendar.event_updated`   | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }` | Event updated   |
-| `calendar.event_cancelled` | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                               | Event cancelled |
-| `calendar.event_deleted`   | `{ calendarId, eventId }`                                                                          | Event deleted   |
+| Event                      | Payload                                                                                              | Trigger         |
+| -------------------------- | ---------------------------------------------------------------------------------------------------- | --------------- |
+| `calendar.event_created`   | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId }, sourceType?, sourceEntityId? }` | Event created   |
+| `calendar.event_updated`   | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId }, sourceType?, sourceEntityId? }` | Event updated   |
+| `calendar.event_cancelled` | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId } }`                               | Event cancelled |
+| `calendar.event_deleted`   | `{ eventId }`                                                                                        | Event deleted   |
 
-`startsAt`/`endsAt` are ISO strings. `sourceType`/`sourceEntityId` are `null` for standalone events.
+`startsAt`/`endsAt` are ISO strings. `audienceId` is `null` for organization-wide items.
 
 ### Attendees
 
-| Event                       | Payload                                                          | Trigger          |
-| --------------------------- | ---------------------------------------------------------------- | ---------------- |
-| `calendar.attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee added   |
-| `calendar.attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }` | Attendee updated |
-| `calendar.attendee_removed` | `{ calendarId, eventId, attendeeId }`                            | Attendee removed |
+| Event                       | Payload                                              | Trigger          |
+| --------------------------- | ---------------------------------------------------- | ---------------- |
+| `calendar.attendee_invited` | `{ eventId, attendee: { id, email, name, status } }` | Attendee added   |
+| `calendar.attendee_updated` | `{ eventId, attendee: { id, email, name, status } }` | Attendee updated |
+| `calendar.attendee_removed` | `{ eventId, attendeeId }`                            | Attendee removed |
 
 ### Reminders
 
-| Event                       | Payload                                                                                             | Trigger                      |
-| --------------------------- | --------------------------------------------------------------------------------------------------- | ---------------------------- |
-| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created             |
-| `calendar.reminder_updated` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring }, changes }`  | Reminder updated             |
-| `calendar.reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted             |
-| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Reminder dispatcher fired it |
+| Event                       | Payload                                                                                                                       | Trigger                      |
+| --------------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------- |
+| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, audienceType, audienceId, isRecurring } }`                   | Reminder created             |
+| `calendar.reminder_updated` | `{ reminder: { …same, userId }, changes }`                                                                                    | Reminder updated             |
+| `calendar.reminder_deleted` | `{ reminderId }`                                                                                                              | Reminder deleted             |
+| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, audienceType, audienceId, isRecurring, userId } }` | Reminder dispatcher fired it |
+
+On `calendar.reminder_due` the dispatcher publishes one event **per resolved recipient**, with `reminder.userId` set to that recipient — the audience is resolved at dispatch time from the reminder row.

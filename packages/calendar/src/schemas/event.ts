@@ -1,4 +1,9 @@
-import { EventStatusSchema, RecurrenceFrequencySchema, WeekdaySchema } from "#/schemas/enums";
+import {
+  CalendarAudienceTypeSchema,
+  EventStatusSchema,
+  RecurrenceFrequencySchema,
+  WeekdaySchema,
+} from "#/schemas/enums";
 import { IdSchema, ScopeTypeSchema } from "#/schemas/utils";
 
 import {
@@ -42,7 +47,8 @@ export type EventRecurrence = InferOutput<typeof EventRecurrenceSchema>;
 
 export const CreateEventSchema = object({
   allDay: optional(boolean(), false),
-  calendarId: IdSchema,
+  audienceId: optional(nullable(string())),
+  audienceType: optional(CalendarAudienceTypeSchema, "organization"),
   color: optional(nullable(string())),
   description: optional(nullable(string())),
   endsAt: optional(nullable(date())),
@@ -60,7 +66,8 @@ export type CreateEventInput = InferOutput<typeof CreateEventSchema>;
 
 export const UpdateEventSchema = object({
   allDay: optional(boolean()),
-  calendarId: optional(IdSchema),
+  audienceId: optional(nullable(string())),
+  audienceType: optional(CalendarAudienceTypeSchema),
   color: optional(nullable(string())),
   description: optional(nullable(string())),
   endsAt: optional(nullable(date())),
@@ -77,7 +84,8 @@ export const UpdateEventSchema = object({
 export type UpdateEventInput = InferOutput<typeof UpdateEventSchema>;
 
 export const EventFiltersSchema = object({
-  calendarId: optional(string()),
+  audienceId: optional(string()),
+  audienceType: optional(CalendarAudienceTypeSchema),
   from: optional(date()),
   limit: optional(pipe(number(), integer())),
   offset: optional(pipe(number(), integer())),

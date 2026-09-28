@@ -3,12 +3,6 @@ import { getAttendee } from "#/workflows/attendee/get";
 import { listAttendees } from "#/workflows/attendee/list";
 import { removeAttendee } from "#/workflows/attendee/remove";
 import { updateAttendee } from "#/workflows/attendee/update";
-import { createCalendar } from "#/workflows/calendar/create";
-import { deleteCalendar } from "#/workflows/calendar/delete";
-import { getCalendar } from "#/workflows/calendar/get";
-import { listCalendars } from "#/workflows/calendar/list";
-import { setDefaultCalendar } from "#/workflows/calendar/set-default";
-import { updateCalendar } from "#/workflows/calendar/update";
 import { cancelEvent } from "#/workflows/event/cancel";
 import { createEvent } from "#/workflows/event/create";
 import { deleteEvent } from "#/workflows/event/delete";
@@ -31,15 +25,6 @@ export const attendees = {
   list: listAttendees,
   remove: removeAttendee,
   update: updateAttendee,
-} as const;
-
-export const calendars = {
-  create: createCalendar,
-  delete: deleteCalendar,
-  get: getCalendar,
-  list: listCalendars,
-  setDefault: setDefaultCalendar,
-  update: updateCalendar,
 } as const;
 
 export const events = {

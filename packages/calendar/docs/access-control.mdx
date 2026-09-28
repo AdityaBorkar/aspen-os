@@ -12,31 +12,31 @@ The Calendar module declares its ACL via `defineAcl()`, which the platform merge
 import { defineAcl } from "@aspen-os/platform/server";
 
 export const acl = defineAcl({
-  calendar: ["create", "read", "update", "delete", "set_default"],
   event: ["cancel", "create", "read", "update", "delete"],
   attendee: ["create", "read", "update", "delete"],
   reminder: ["create", "process", "read", "update", "delete"],
 });
 ```
 
-| Resource   | Operations                                          |
-| ---------- | --------------------------------------------------- |
-| `calendar` | `create`, `read`, `update`, `delete`, `set_default` |
-| `event`    | `cancel`, `create`, `read`, `update`, `delete`      |
-| `attendee` | `create`, `read`, `update`, `delete`                |
-| `reminder` | `create`, `process`, `read`, `update`, `delete`     |
+| Resource   | Operations                                      |
+| ---------- | ----------------------------------------------- |
+| `event`    | `cancel`, `create`, `read`, `update`, `delete`  |
+| `attendee` | `create`, `read`, `update`, `delete`            |
+| `reminder` | `create`, `process`, `read`, `update`, `delete` |
 
 ## Row-Level Enforcement
 
-The ACL declares operations; runtime visibility is enforced in the workflows via `workflow-steps/access-service.ts`:
+The ACL declares operations; runtime visibility is enforced in the workflows via `workflow-steps/access-service.ts` and `workflow-steps/access-scope.ts`:
 
-| Function                  | Rule                                                                | Applied in                     |
-| ------------------------- | ------------------------------------------------------------------- | ------------------------------ |
-| `assertCanAccess`         | `access = 'global'` OR `ownerId === actorId`                        | calendar/event/attendee reads  |
-| `assertCanMutate`         | `ownerId === actorId` OR tenant admin                               | calendar/event/attendee writes |
-| `assertCanAccessReminder` | `userId === actorId` OR (target is an event in a readable calendar) | reminder get/update/delete     |
+| Function                   | Rule                                                                      | Applied in                 |
+| -------------------------- | ------------------------------------------------------------------------- | -------------------------- |
+| `visibleEventCondition`    | `audienceType = organization` OR their group id OR `audienceId = actorId` | event/attendee lists       |
+| `visibleReminderCondition` | `audienceType = organization` OR their group id OR `audienceId = actorId` | reminder list              |
+| `assertCanAccessEvent`     | creator OR audience match OR tenant admin                                 | event/attendee reads       |
+| `assertCanMutateEvent`     | creator OR tenant admin                                                   | event/attendee writes      |
+| `assertCanAccessReminder`  | creator OR audience match OR tenant admin OR readable target event        | reminder get/update/delete |
 
-Events, attendees, and reminders **inherit their calendar's access** — they carry no own access column. The task bridge creates reminders for task recipients directly (recipient-scoped via `userId`).
+The actor's employee groups are resolved from hr-core-owned `employee_group_member`/`hr_user` by raw SQL (no cross-package schema import). There is no per-calendar access column — audience replaces it.
 
 <Callout type="info">
   The ACL is the *declaration* of operations. Role definitions and permission enforcement are

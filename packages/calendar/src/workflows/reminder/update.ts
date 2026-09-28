@@ -1,7 +1,7 @@
 import { calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
 import { IdSchema, UpdateReminderSchema } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, CALENDAR_AUDIENCE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
 import { assertCanAccessReminder } from "#/workflow-steps/access-service";
 import { fetchReminderStep } from "#/workflow-steps/fetch";
@@ -22,14 +22,28 @@ export const updateReminder = Workflow.name("calendar.reminder.update")
 
     await assertCanAccessReminder(existing, ctx.actorId, ctx.db);
 
-    const updates = stripUndefined({
-      channel: parsed.channel,
-      interval: parsed.interval,
-      isRecurring: parsed.isRecurring,
-      message: parsed.message,
-      offsetMinutes: parsed.offsetMinutes,
-      remindAt: parsed.remindAt,
-    });
+    const nextAudienceType = parsed.audienceType ?? existing.audience_type;
+    const nextAudienceId =
+      parsed.audienceId !== undefined ? parsed.audienceId : existing.audience_id;
+    if (
+      nextAudienceType !== CALENDAR_AUDIENCE.ORGANIZATION &&
+      (nextAudienceId === null || nextAudienceId === "")
+    ) {
+      throw new Error("audienceId is required for group or user audiences");
+    }
+
+    const updates = {
+      ...stripUndefined({
+        channel: parsed.channel,
+        interval: parsed.interval,
+        isRecurring: parsed.isRecurring,
+        message: parsed.message,
+        offsetMinutes: parsed.offsetMinutes,
+        remindAt: parsed.remindAt,
+      }),
+      audience_id: nextAudienceType === CALENDAR_AUDIENCE.ORGANIZATION ? null : nextAudienceId,
+      audience_type: nextAudienceType,
+    };
 
     const [updated] = await ctx.db
       .update(calendarReminder)

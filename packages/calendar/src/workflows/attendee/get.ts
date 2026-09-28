@@ -1,6 +1,6 @@
 import { WithIdSchema } from "#/types";
-import { assertCanAccess } from "#/workflow-steps/access-service";
-import { fetchAttendeeStep, fetchEventCalendarStep } from "#/workflow-steps/fetch";
+import { assertCanAccessEvent } from "#/workflow-steps/access-service";
+import { fetchAttendeeStep, fetchEventStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 
@@ -8,9 +8,9 @@ export const getAttendee = Workflow.name("calendar.attendee.get")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
     const attendee = await ctx.step.run(fetchAttendeeStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: attendee.event_id });
+    const event = await ctx.step.run(fetchEventStep, { id: attendee.event_id });
 
-    assertCanAccess(cal, ctx.actorId);
+    await assertCanAccessEvent(event, ctx.actorId, ctx.db);
 
     return attendee;
   });

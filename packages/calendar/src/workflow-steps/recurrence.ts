@@ -1,6 +1,7 @@
 import type { EventRecurrenceRow } from "#/db-schemas/event";
 import type { OccurrencesQuery } from "#/schemas";
 import type {
+  CalendarAudienceType,
   EventStatus,
   RecurrenceFrequency,
   ReminderInterval,
@@ -8,7 +9,8 @@ import type {
 } from "#/utils/constants";
 
 export interface Occurrence {
-  calendarId: string;
+  audienceId: string | null;
+  audienceType: CalendarAudienceType;
   endsAt: Date | null;
   eventId: string;
   /**
@@ -23,7 +25,8 @@ export interface Occurrence {
 }
 
 export interface OccurrenceSource {
-  calendar_id: string;
+  audience_id: string | null;
+  audience_type: CalendarAudienceType;
   ends_at: Date | null;
   id: string;
   location: string | null;
@@ -81,7 +84,8 @@ function toOccurrence(event: OccurrenceSource, startsAt: Date): Occurrence {
   const duration = event.ends_at ? event.ends_at.getTime() - event.starts_at.getTime() : null;
 
   return {
-    calendarId: event.calendar_id,
+    audienceId: event.audience_id,
+    audienceType: event.audience_type,
     endsAt: duration !== null ? new Date(startsAt.getTime() + duration) : null,
     eventId: event.id,
     id: event.id,

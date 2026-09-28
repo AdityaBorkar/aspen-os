@@ -1,45 +1,83 @@
-import { calendar, calendarEvent } from "#/db-schemas";
-import { CALENDAR_ACCESS, REMINDER_TARGET } from "#/utils/constants";
-import type { CalendarAccess } from "#/utils/constants";
+import { calendarEvent } from "#/db-schemas";
+import { CALENDAR_AUDIENCE, REMINDER_TARGET } from "#/utils/constants";
+import type { CalendarAudienceType } from "#/utils/constants";
+import { actorGroupIds } from "#/workflow-steps/access-scope";
 
+import type { WorkflowContext } from "@aspen-os/platform/server";
 import { eq, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
-export interface AccessScopedRow {
-  access: CalendarAccess;
-  owner_id: string;
-}
+type CalendarDb = WorkflowContext["db"];
 
 const ADMIN_ROLE = "admin";
 
-export function assertCanAccess(row: AccessScopedRow, actorId: string | undefined): void {
-  if (!actorId) {
-    throw new Error("Authentication required");
-  }
-  if (row.access !== CALENDAR_ACCESS.GLOBAL && row.owner_id !== actorId) {
-    throw new Error("You do not have access to this calendar");
-  }
+export interface AudienceScopedRow {
+  audience_id: string | null;
+  audience_type: CalendarAudienceType;
 }
 
-/**
- * Owner-or-admin mutation gate. `db` is an explicit parameter so the admin
- * lookup stays testable — no hidden `getContext()` dependency.
- */
-export async function assertCanMutate(
-  row: AccessScopedRow,
+export interface EventAccessRow extends AudienceScopedRow {
+  created_by: string;
+}
+
+export interface ReminderAccessRow extends AudienceScopedRow {
+  created_by: string;
+  target_id: string;
+  target_type: string;
+}
+
+async function matchesAudience(
+  row: AudienceScopedRow,
+  actorId: string,
+  db: CalendarDb,
+): Promise<boolean> {
+  if (row.audience_type === CALENDAR_AUDIENCE.ORGANIZATION) {
+    return true;
+  }
+  if (row.audience_type === CALENDAR_AUDIENCE.USER) {
+    return row.audience_id === actorId;
+  }
+  if (row.audience_type === CALENDAR_AUDIENCE.GROUP && row.audience_id) {
+    const groups = await actorGroupIds(db, actorId);
+    return groups.includes(row.audience_id);
+  }
+  return false;
+}
+
+/** An event is readable by its creator, its audience, or a tenant admin. */
+export async function assertCanAccessEvent(
+  event: EventAccessRow,
   actorId: string | undefined,
-  db: PostgresJsDatabase,
+  db: CalendarDb,
 ): Promise<void> {
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (row.owner_id === actorId) {
+  if (event.created_by === actorId || (await matchesAudience(event, actorId, db))) {
     return;
   }
   if (await isTenantAdmin(db, actorId)) {
     return;
   }
-  throw new Error("Only the owner or a tenant admin can modify this calendar");
+  throw new Error("You do not have access to this event");
+}
+
+/** Only the event creator or a tenant admin may modify it. */
+export async function assertCanMutateEvent(
+  event: EventAccessRow,
+  actorId: string | undefined,
+  db: CalendarDb,
+): Promise<void> {
+  if (!actorId) {
+    throw new Error("Authentication required");
+  }
+  if (event.created_by === actorId) {
+    return;
+  }
+  if (await isTenantAdmin(db, actorId)) {
+    return;
+  }
+  throw new Error("Only the creator or a tenant admin can modify this event");
 }
 
 export function resolveActorId(actorId: string | undefined, explicit?: string): string {
@@ -63,39 +101,35 @@ export async function isTenantAdmin(db: PostgresJsDatabase, actorId: string): Pr
   }
 }
 
-export interface ReminderAccessRow {
-  target_id: string;
-  target_type: string;
-  user_id: string;
-}
-
+/** A reminder is readable by its creator/audience or the audience of its event. */
 export async function assertCanAccessReminder(
   reminder: ReminderAccessRow,
   actorId: string | undefined,
-  db: PostgresJsDatabase,
+  db: CalendarDb,
 ): Promise<void> {
   if (!actorId) {
     throw new Error("Authentication required");
   }
-  if (reminder.user_id === actorId) {
+  if (
+    reminder.created_by === actorId ||
+    (await matchesAudience(reminder, actorId, db)) ||
+    (await isTenantAdmin(db, actorId))
+  ) {
     return;
   }
   if (reminder.target_type === REMINDER_TARGET.EVENT) {
     const [event] = await db
-      .select({ calendarId: calendarEvent.calendar_id })
+      .select({
+        audience_id: calendarEvent.audience_id,
+        audience_type: calendarEvent.audience_type,
+        created_by: calendarEvent.created_by,
+      })
       .from(calendarEvent)
       .where(eq(calendarEvent.id, reminder.target_id))
       .limit(1);
     if (event) {
-      const [cal] = await db
-        .select()
-        .from(calendar)
-        .where(eq(calendar.id, event.calendarId))
-        .limit(1);
-      if (cal) {
-        assertCanAccess(cal, actorId);
-        return;
-      }
+      await assertCanAccessEvent(event, actorId, db);
+      return;
     }
   }
   throw new Error("You do not have access to this reminder");

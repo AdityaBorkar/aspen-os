@@ -1,10 +1,14 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import type { EventFilters } from "#/schemas";
 import { REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
-import { accessibleCalendarIds, escapeLikePattern } from "#/workflow-steps/access-scope";
+import {
+  actorGroupIds,
+  escapeLikePattern,
+  visibleEventCondition,
+} from "#/workflow-steps/access-scope";
 
 import type { WorkflowContext } from "@aspen-os/platform/server";
-import { and, asc, eq, gte, ilike, inArray, isNotNull, lte, sql } from "drizzle-orm";
+import { and, asc, eq, gte, ilike, isNotNull, lte, sql } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
 type CalendarDb = WorkflowContext["db"];
@@ -41,10 +45,14 @@ export async function queryEvents(
   actorId: string,
   filters: EventFilters,
 ): Promise<(typeof calendarEvent.$inferSelect)[]> {
-  const conditions = [inArray(calendarEvent.calendar_id, accessibleCalendarIds(db, actorId))];
+  const groupIds = await actorGroupIds(db, actorId);
+  const conditions = [visibleEventCondition(actorId, groupIds)];
 
-  if (filters.calendarId) {
-    conditions.push(eq(calendarEvent.calendar_id, filters.calendarId));
+  if (filters.audienceType) {
+    conditions.push(eq(calendarEvent.audience_type, filters.audienceType));
+  }
+  if (filters.audienceId) {
+    conditions.push(eq(calendarEvent.audience_id, filters.audienceId));
   }
   if (filters.from) {
     conditions.push(gte(calendarEvent.starts_at, filters.from));

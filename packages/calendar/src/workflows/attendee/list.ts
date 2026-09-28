@@ -1,6 +1,6 @@
-import { calendarAttendee } from "#/db-schemas";
+import { calendarAttendee, calendarEvent } from "#/db-schemas";
 import { AttendeeFiltersSchema } from "#/types";
-import { accessibleEventIds } from "#/workflow-steps/access-scope";
+import { actorGroupIds, visibleEventCondition } from "#/workflow-steps/access-scope";
 import { resolveActorId } from "#/workflow-steps/access-service";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -14,8 +14,14 @@ export const listAttendees = Workflow.name("calendar.attendee.list")
   .handler(async ({ filters }, ctx) => {
     const actorId = resolveActorId(ctx.actorId);
     const parsed = parse(AttendeeFiltersSchema, filters ?? {});
+    const groupIds = await actorGroupIds(ctx.db, actorId);
 
-    const conditions = [inArray(calendarAttendee.event_id, accessibleEventIds(ctx.db, actorId))];
+    const visibleEvents = ctx.db
+      .select({ id: calendarEvent.id })
+      .from(calendarEvent)
+      .where(visibleEventCondition(actorId, groupIds));
+
+    const conditions = [inArray(calendarAttendee.event_id, visibleEvents)];
 
     if (parsed.eventId) {
       conditions.push(eq(calendarAttendee.event_id, parsed.eventId));

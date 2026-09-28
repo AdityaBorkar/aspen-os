@@ -1,4 +1,5 @@
 import {
+  calendarAudienceTypeEnum,
   calendarReminderChannelEnum,
   calendarReminderTargetEnum,
   calendarReminderTypeEnum,
@@ -11,6 +12,9 @@ import { boolean, index, integer, pgTable, text, timestamp } from "drizzle-orm/p
 export const calendarReminder = pgTable(
   "calendar_reminder",
   {
+    // Organization-wide by default; `audience_id` holds a group id or user id.
+    audience_id: text(),
+    audience_type: calendarAudienceTypeEnum().notNull().default("organization"),
     channel: calendarReminderChannelEnum().notNull().default("pubsub"),
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
     created_by: text().notNull(),
@@ -29,13 +33,12 @@ export const calendarReminder = pgTable(
       .notNull()
       .defaultNow()
       .$onUpdate(() => new Date()),
-    user_id: text().notNull(),
   },
   (table) => [
     index("idx_calendar_reminder_at").on(table.remind_at),
+    index("idx_calendar_reminder_audience").on(table.audience_type, table.audience_id),
     index("idx_calendar_reminder_sent").on(table.is_sent),
     index("idx_calendar_reminder_target").on(table.target_type, table.target_id),
-    index("idx_calendar_reminder_user").on(table.user_id),
   ],
 );
 

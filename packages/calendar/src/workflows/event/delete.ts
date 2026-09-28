@@ -2,8 +2,8 @@ import { calendarAttendee, calendarEvent, calendarReminder } from "#/db-schemas"
 import { EVENT_EVENTS } from "#/pubsub";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, REMINDER_TARGET } from "#/utils/constants";
-import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchEventCalendarStep, fetchEventStep } from "#/workflow-steps/fetch";
+import { assertCanMutateEvent } from "#/workflow-steps/access-service";
+import { fetchEventStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -12,9 +12,8 @@ export const deleteEvent = Workflow.name("calendar.event.delete")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
     const event = await ctx.step.run(fetchEventStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: event.id });
 
-    await assertCanMutate(cal, ctx.actorId, ctx.db);
+    await assertCanMutateEvent(event, ctx.actorId, ctx.db);
 
     await ctx.db.transaction(async (tx) => {
       await tx
@@ -39,7 +38,6 @@ export const deleteEvent = Workflow.name("calendar.event.delete")
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.DELETED, {
-        calendarId: event.calendar_id,
         eventId: event.id,
       });
     });

@@ -1,6 +1,7 @@
 import { calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
 import { ReminderIntervalSchema } from "#/types";
+import { audienceRecipientUserIds } from "#/workflow-steps/access-scope";
 import { toReminderPayload } from "#/workflow-steps/payloads";
 import { computeNextOccurrence } from "#/workflow-steps/recurrence";
 
@@ -38,11 +39,24 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
           return false;
         }
 
+        // Resolve the audience to concrete recipients at dispatch time. One
+        // `reminder_due` event per recipient keeps the comms delivery path
+        // per-user.
+        const recipients = await audienceRecipientUserIds(
+          ctx.db,
+          claimed.audience_type,
+          claimed.audience_id,
+        );
+
         try {
-          await ctx.pubsub.publish(REMINDER_EVENTS.DUE, {
-            remindAt: claimed.remind_at?.toISOString() ?? now.toISOString(),
-            reminder: toReminderPayload(claimed),
-          });
+          await Promise.all(
+            recipients.map((userId) =>
+              ctx.pubsub.publish(REMINDER_EVENTS.DUE, {
+                remindAt: claimed.remind_at?.toISOString() ?? now.toISOString(),
+                reminder: toReminderPayload(claimed, userId),
+              }),
+            ),
+          );
         } catch (error) {
           await ctx.db
             .update(calendarReminder)
@@ -57,6 +71,8 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
           const interval = safeParse(ReminderIntervalSchema, claimed.interval);
           if (interval.success) {
             await ctx.db.insert(calendarReminder).values({
+              audience_id: claimed.audience_id,
+              audience_type: claimed.audience_type,
               channel: claimed.channel,
               created_by: claimed.created_by,
               interval: interval.output,
@@ -67,7 +83,6 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
               target_id: claimed.target_id,
               target_type: claimed.target_type,
               type: claimed.type,
-              user_id: claimed.user_id,
             });
           }
         }

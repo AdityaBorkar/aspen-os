@@ -1,7 +1,7 @@
 import {
   ATTENDEE_STATUS,
   ATTENDEE_TYPE,
-  CALENDAR_ACCESS,
+  CALENDAR_AUDIENCE,
   EVENT_STATUS,
   REMINDER_CHANNEL,
   REMINDER_TARGET,
@@ -10,9 +10,10 @@ import {
 
 import { pgEnum } from "drizzle-orm/pg-core";
 
-export const calendarAccessEnum = pgEnum("calendar_access", [
-  CALENDAR_ACCESS.PERSONAL,
-  CALENDAR_ACCESS.GLOBAL,
+export const calendarAudienceTypeEnum = pgEnum("calendar_audience_type", [
+  CALENDAR_AUDIENCE.ORGANIZATION,
+  CALENDAR_AUDIENCE.GROUP,
+  CALENDAR_AUDIENCE.USER,
 ]);
 
 export const calendarEventStatusEnum = pgEnum("calendar_event_status", [

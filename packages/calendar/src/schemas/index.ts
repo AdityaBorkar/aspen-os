@@ -4,12 +4,6 @@ export {
   CreateAttendeeSchema,
   UpdateAttendeeSchema,
 } from "#/schemas/attendee";
-export type { CalendarFilters, CreateCalendarInput, UpdateCalendarInput } from "#/schemas/calendar";
-export {
-  CalendarFiltersSchema,
-  CreateCalendarSchema,
-  UpdateCalendarSchema,
-} from "#/schemas/calendar";
 export type {
   CreateEventInput,
   EventFilters,
@@ -34,7 +28,7 @@ export {
 export type {
   AttendeeStatus,
   AttendeeType,
-  CalendarAccess,
+  CalendarAudienceType,
   EventStatus,
   RecurrenceFrequency,
   ReminderChannel,
@@ -46,7 +40,7 @@ export type {
 export {
   ATTENDEE_STATUS,
   ATTENDEE_TYPE,
-  CALENDAR_ACCESS,
+  CALENDAR_AUDIENCE,
   EVENT_STATUS,
   RECURRENCE_FREQUENCY,
   REMINDER_CHANNEL,
@@ -58,7 +52,7 @@ export {
 export {
   AttendeeStatusSchema,
   AttendeeTypeSchema,
-  CalendarAccessSchema,
+  CalendarAudienceTypeSchema,
   EventStatusSchema,
   RecurrenceFrequencySchema,
   ReminderChannelSchema,

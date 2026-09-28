@@ -1,50 +1,29 @@
 ---
 title: Workflows
-description: API reference for the calendar, event, attendee, and reminder workflows.
+description: API reference for the event, attendee, and reminder workflows.
 icon: IconListCheck
 ---
 
-Workflow groups via `p.calendar`: `calendars`, `events`, `attendees`, `reminders`.
+Workflow groups via `p.calendar`: `events`, `attendees`, `reminders`.
 
-Scoped reminders require `targetType` + `targetId` (empty for `custom`); create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete`/`cancel` take `{ id }`. Every mutation writes an audit entry and publishes a `calendar.*` event.
+Every event and reminder carries an **audience**: `{ audienceType: "organization" }` (no id) or `{ audienceType: "group" | "user", audienceId }`. Scoped reminders require `targetType` + `targetId` (empty for `custom`); create takes Valibot `{ input }`, update takes `{ id, input }`, `get`/`delete`/`cancel` take `{ id }`. Every mutation writes an audit entry and publishes a `calendar.*` event.
 
 ## Features
-
-### Calendars
-
-Access: `p.calendar.calendars`
-
-Named collections; the first calendar a user creates auto-defaults, and `setDefault` clears the owner's other defaults.
-
-```ts
-await p.calendar.calendars.create({
-  input: { name: "Personal", access: "personal", timezone: "Asia/Kolkata", color: "#3B82F6" },
-});
-await p.calendar.calendars.setDefault({ id });
-await p.calendar.calendars.get({ id });
-await p.calendar.calendars.update({
-  id,
-  input: { name: "Work", access: "global", isDefault: true },
-});
-await p.calendar.calendars.delete({ id });
-await p.calendar.calendars.list({
-  filters: { access: "global", isDefault: false, search: "Personal", limit: 50, offset: 0 },
-});
-```
 
 ### Events
 
 Access: `p.calendar.events`
 
-Time-boxed entries with recurrence, attendees, timezone, and a polymorphic source link.
+Time-boxed entries with recurrence, attendees, a timezone, and a polymorphic source link.
 
 ```ts
 await p.calendar.events.create({
   input: {
-    calendarId,
     title: "Sync",
     startsAt: new Date("2026-09-01T10:00:00Z"),
     endsAt: new Date("2026-09-01T11:00:00Z"),
+    audienceType: "group",
+    audienceId: groupId,
     location: "HQ",
     recurrence: { frequency: "weekly", interval: 1, byDay: ["MO", "WE"] },
     sourceType: "tasks:task",
@@ -53,7 +32,10 @@ await p.calendar.events.create({
 });
 await p.calendar.events.get({ id });
 await p.calendar.events.cancel({ id });
-await p.calendar.events.update({ id, input: { startsAt: new Date("2026-09-01T11:00:00Z") } });
+await p.calendar.events.update({
+  id,
+  input: { startsAt: new Date("2026-09-01T11:00:00Z"), audienceType: "organization" },
+});
 await p.calendar.events.delete({ id });
 
 const occurrences = await p.calendar.events.getOccurrences({
@@ -61,15 +43,16 @@ const occurrences = await p.calendar.events.getOccurrences({
   query: { from: new Date("2026-09-01"), to: new Date("2026-10-01"), limit: 100 },
 });
 const all = await p.calendar.events.listOccurrences({
-  filters: { calendarId },
+  filters: { audienceType: "group", audienceId: groupId },
   query: { from, to },
 });
 await p.calendar.events.list({
   filters: {
-    calendarId,
     from,
     to,
     status: "confirmed",
+    audienceType: "user",
+    audienceId: userId,
     sourceType: "tasks:task",
     search: "Sync",
     limit: 50,
@@ -78,7 +61,7 @@ await p.calendar.events.list({
 });
 ```
 
-`create`/`update` enforce `startsAt < endsAt` unless `allDay`; `update` re-anchors `type = offset` reminders (`remindAt = startsAt − offsetMinutes`).
+`create`/`update` enforce `startsAt < endsAt` unless `allDay`, and require `audienceId` for `group`/`user` audiences; `update` re-anchors `type = offset` reminders (`remindAt = startsAt − offsetMinutes`).
 
 ### Attendees
 
@@ -104,20 +87,33 @@ await p.calendar.attendees.list({
 });
 ```
 
-Status follows `invited → accepted/declined/tentative`; attendees inherit the event's calendar access.
+Status follows `invited → accepted/declined/tentative`.
 
 ### Reminders
 
 Access: `p.calendar.reminders`
 
-Polymorphic reminders; dispatcher runs on the `calendar.reminder-scan` cron (`* * * * *`).
+Polymorphic reminders; the dispatcher runs on the `calendar.reminder-scan` cron (`* * * * *`).
 
 ```ts
 await p.calendar.reminders.create({
-  input: { targetType: "event", targetId: eventId, type: "offset", offsetMinutes: 30, userId },
+  input: {
+    targetType: "event",
+    targetId: eventId,
+    type: "offset",
+    offsetMinutes: 30,
+    audienceType: "organization",
+  },
 });
 await p.calendar.reminders.create({
-  input: { targetType: "task", targetId: taskId, type: "due_date", remindAt: dueDate, userId },
+  input: {
+    targetType: "task",
+    targetId: taskId,
+    type: "due_date",
+    remindAt: dueDate,
+    audienceType: "group",
+    audienceId: groupId,
+  },
 });
 await p.calendar.reminders.get({ id });
 await p.calendar.reminders.update({ id, input: { remindAt, message: "…" } });
@@ -127,7 +123,8 @@ await p.calendar.reminders.list({
     targetType: "task",
     targetId: taskId,
     type: "due_date",
-    userId,
+    audienceType: "user",
+    audienceId: userId,
     isSent: false,
     limit: 50,
     offset: 0,
@@ -144,12 +141,12 @@ await p.calendar.reminders.processPending({});
 | `due_date` | `remindAt` required (task bridge and compliance bridge create these)                                                                       |
 | `overdue`  | `remindAt` required (hosts check state on delivery)                                                                                        |
 
-`getPending` returns `isSent = false AND remindAt <= now`. `processPending` claims a bounded batch (100, oldest first) with a conditional `isSent` flip, publishes `calendar.reminder_due`, and reschedules `isRecurring` reminders with a known interval.
+`getPending` returns `isSent = false AND remindAt <= now`. `processPending` claims a bounded batch (100, oldest first) with a conditional `isSent` flip, resolves each reminder's audience to recipient user ids, publishes one `calendar.reminder_due` per recipient, and reschedules `isRecurring` reminders with a known interval.
 
 ```mermaid
 flowchart LR
   create --> pending
-  pending -->|remindAt <= now| processPending -->|publish| reminder_due --> comms
+  pending -->|remindAt <= now| processPending -->|publish per recipient| reminder_due --> comms
   processPending -->|isRecurring| next[rescheduled]
 ```
 

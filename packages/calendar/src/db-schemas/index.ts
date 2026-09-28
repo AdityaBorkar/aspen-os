@@ -1,9 +1,8 @@
 import { calendarAttendee } from "#/db-schemas/attendee";
-import { calendar } from "#/db-schemas/calendar";
 import {
-  calendarAccessEnum,
   calendarAttendeeStatusEnum,
   calendarAttendeeTypeEnum,
+  calendarAudienceTypeEnum,
   calendarEventStatusEnum,
   calendarReminderChannelEnum,
   calendarReminderTargetEnum,
@@ -13,21 +12,19 @@ import { calendarEvent } from "#/db-schemas/event";
 import { calendarReminder } from "#/db-schemas/reminder";
 
 export {
-  calendarAccessEnum,
   calendarAttendeeStatusEnum,
   calendarAttendeeTypeEnum,
+  calendarAudienceTypeEnum,
   calendarEventStatusEnum,
   calendarReminderChannelEnum,
   calendarReminderTargetEnum,
   calendarReminderTypeEnum,
 } from "#/db-schemas/enums";
-export { calendar } from "#/db-schemas/calendar";
 export { calendarAttendee } from "#/db-schemas/attendee";
 export { calendarEvent } from "#/db-schemas/event";
 export { calendarReminder } from "#/db-schemas/reminder";
 
 export const calendarTables = {
-  calendar,
   calendarAttendee,
   calendarEvent,
   calendarReminder,
@@ -40,9 +37,9 @@ export const control_plane_schemas = {} as const;
 // (same amendment as comms/announcement).
 export const tenant_schemas = {
   ...calendarTables,
-  calendarAccessEnum,
   calendarAttendeeStatusEnum,
   calendarAttendeeTypeEnum,
+  calendarAudienceTypeEnum,
   calendarEventStatusEnum,
   calendarReminderChannelEnum,
   calendarReminderTargetEnum,

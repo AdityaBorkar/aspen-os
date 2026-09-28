@@ -2,8 +2,8 @@ import { calendarEvent } from "#/db-schemas";
 import { EVENT_EVENTS } from "#/pubsub";
 import { WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, EVENT_STATUS } from "#/utils/constants";
-import { assertCanMutate } from "#/workflow-steps/access-service";
-import { fetchEventCalendarStep, fetchEventStep } from "#/workflow-steps/fetch";
+import { assertCanMutateEvent } from "#/workflow-steps/access-service";
+import { fetchEventStep } from "#/workflow-steps/fetch";
 import { toEventPayload } from "#/workflow-steps/payloads";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -13,9 +13,8 @@ export const cancelEvent = Workflow.name("calendar.event.cancel")
   .input(WithIdSchema)
   .handler(async ({ id }, ctx) => {
     const event = await ctx.step.run(fetchEventStep, { id });
-    const cal = await ctx.step.run(fetchEventCalendarStep, { eventId: event.id });
 
-    await assertCanMutate(cal, ctx.actorId, ctx.db);
+    await assertCanMutateEvent(event, ctx.actorId, ctx.db);
 
     if (event.status === EVENT_STATUS.CANCELLED) {
       throw new Error("Event is already cancelled.");
@@ -42,7 +41,6 @@ export const cancelEvent = Workflow.name("calendar.event.cancel")
       });
 
       await ctx.pubsub.publish(EVENT_EVENTS.CANCELLED, {
-        calendarId: updated.calendar_id,
         event: toEventPayload(updated),
       });
     });

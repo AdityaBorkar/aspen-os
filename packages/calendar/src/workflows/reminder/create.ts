@@ -1,7 +1,13 @@
 import { calendarEvent, calendarReminder } from "#/db-schemas";
 import { REMINDER_EVENTS } from "#/pubsub";
 import { CreateReminderSchema, TARGETS_REQUIRING_ID } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, REMINDER_TARGET, REMINDER_TYPE } from "#/utils/constants";
+import {
+  AUDIT_ACTION,
+  AUDIT_ENTITY_TYPE,
+  CALENDAR_AUDIENCE,
+  REMINDER_TARGET,
+  REMINDER_TYPE,
+} from "#/utils/constants";
 import { resolveActorId } from "#/workflow-steps/access-service";
 import { toReminderPayload } from "#/workflow-steps/payloads";
 
@@ -19,6 +25,9 @@ export const createReminder = Workflow.name("calendar.reminder.create")
 
     if (TARGETS_REQUIRING_ID.has(parsed.targetType) && !parsed.targetId) {
       throw new Error(`targetId is required for targetType "${parsed.targetType}"`);
+    }
+    if (parsed.audienceType !== CALENDAR_AUDIENCE.ORGANIZATION && !parsed.audienceId) {
+      throw new Error("audienceId is required for group or user audiences");
     }
 
     let remindAt: Date | null | undefined = parsed.remindAt;
@@ -50,6 +59,11 @@ export const createReminder = Workflow.name("calendar.reminder.create")
     const [created] = await ctx.db
       .insert(calendarReminder)
       .values({
+        audience_id:
+          parsed.audienceType === CALENDAR_AUDIENCE.ORGANIZATION
+            ? null
+            : (parsed.audienceId ?? null),
+        audience_type: parsed.audienceType,
         channel: parsed.channel,
         created_by: actorId,
         interval: parsed.interval ?? null,
@@ -60,7 +74,6 @@ export const createReminder = Workflow.name("calendar.reminder.create")
         target_id: parsed.targetId ?? "",
         target_type: parsed.targetType,
         type: parsed.type,
-        user_id: parsed.userId,
       })
       .returning();
 
@@ -75,6 +88,7 @@ export const createReminder = Workflow.name("calendar.reminder.create")
         entityId: created.id,
         entityType: AUDIT_ENTITY_TYPE.REMINDER,
         newState: {
+          audienceType: created.audience_type,
           remind_at: created.remind_at,
           target_id: created.target_id,
           type: created.type,

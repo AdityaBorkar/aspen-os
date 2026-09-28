@@ -10,7 +10,7 @@ The Calendar module declares tenant tables with the `calendar_` prefix. Every ta
 
 | Enum                        | Values                                                           |
 | --------------------------- | ---------------------------------------------------------------- |
-| `calendar_access`           | `personal`, `global`                                             |
+| `calendar_audience_type`    | `organization`, `group`, `user`                                  |
 | `calendar_event_status`     | `confirmed`, `tentative`, `cancelled`                            |
 | `calendar_reminder_target`  | `event`, `task`, `note`, `file`, `custom`, `compliance_document` |
 | `calendar_reminder_type`    | `offset`, `custom`, `due_date`, `overdue`                        |
@@ -28,50 +28,31 @@ Validated in Valibot but stored as `jsonb`/free text (no pgEnum):
 
 ## Tables
 
-### `calendar_calendar`
-
-A named, colored collection of events. `access` defaults to `personal`; the first calendar a user creates auto-defaults (`is_default`), and `setDefault` clears the owner's other defaults.
-
-| Column                      | Type              | Description                               |
-| --------------------------- | ----------------- | ----------------------------------------- |
-| `id`                        | text (PK)         | Auto UUIDv7                               |
-| `name`                      | text              | Calendar name                             |
-| `description`               | text              | Optional description                      |
-| `color`                     | text              | Hex color hint                            |
-| `access`                    | `calendar_access` | `personal` / `global`, default `personal` |
-| `owner_id`                  | text              | Soft FK → better-auth `user`              |
-| `created_by`                | text              | Creating actor                            |
-| `updated_by`                | text              | Last mutating actor                       |
-| `is_default`                | boolean           | Per `owner_id`, default `false`           |
-| `timezone`                  | text              | IANA tz, default `UTC`                    |
-| `created_at` / `updated_at` | timestamptz       | Record timestamps                         |
-
-Indexes: `idx_calendar_owner(owner_id)`, `idx_calendar_access(access)`.
-
 ### `calendar_event`
 
-A time-boxed entry on a calendar. Access inherited from the parent calendar. Recurrence is jsonb; occurrences are computed on read.
+A time-boxed entry scoped to an audience. Recurrence is jsonb; occurrences are computed on read.
 
-| Column                      | Type                    | Description                                                                |
-| --------------------------- | ----------------------- | -------------------------------------------------------------------------- |
-| `id`                        | text (PK)               | Auto UUIDv7                                                                |
-| `calendar_id`               | text                    | Soft FK → `calendar_calendar.id`; access inherited                         |
-| `title`                     | text                    | Event title                                                                |
-| `description`               | text                    | Optional description                                                       |
-| `location`                  | text                    | Optional location                                                          |
-| `starts_at`                 | timestamptz             | Event start                                                                |
-| `ends_at`                   | timestamptz             | Required unless `all_day`                                                  |
-| `all_day`                   | boolean                 | Default `false`; stores 00:00 in calendar tz, `ends_at` exclusive next-day |
-| `status`                    | `calendar_event_status` | `confirmed` (default) / `tentative` / `cancelled`                          |
-| `recurrence`                | jsonb                   | `{ frequency, interval, count?, until?, byDay? }`                          |
-| `timezone`                  | text                    | IANA; falls back to calendar tz                                            |
-| `color`                     | text                    | Overrides calendar color                                                   |
-| `source_type`               | text                    | `<module>:<entity>` registry value (e.g. `tasks:task`)                     |
-| `source_entity_id`          | text                    | Owning row's UUIDv7 id                                                     |
-| `created_by`                | text                    | Creating actor                                                             |
-| `created_at` / `updated_at` | timestamptz             | Record timestamps                                                          |
+| Column                      | Type                     | Description                                                                 |
+| --------------------------- | ------------------------ | --------------------------------------------------------------------------- |
+| `id`                        | text (PK)                | Auto UUIDv7                                                                 |
+| `audience_type`             | `calendar_audience_type` | `organization` (default) / `group` / `user`                                 |
+| `audience_id`               | text                     | Group id or user id; `null` for organization                                |
+| `title`                     | text                     | Event title                                                                 |
+| `description`               | text                     | Optional description                                                        |
+| `location`                  | text                     | Optional location                                                           |
+| `starts_at`                 | timestamptz              | Event start                                                                 |
+| `ends_at`                   | timestamptz              | Required unless `all_day`                                                   |
+| `all_day`                   | boolean                  | Default `false`; stores 00:00 in the event tz, `ends_at` exclusive next-day |
+| `status`                    | `calendar_event_status`  | `confirmed` (default) / `tentative` / `cancelled`                           |
+| `recurrence`                | jsonb                    | `{ frequency, interval, count?, until?, byDay? }`                           |
+| `timezone`                  | text                     | IANA timezone                                                               |
+| `color`                     | text                     | Optional color hint                                                         |
+| `source_type`               | text                     | `<module>:<entity>` registry value (e.g. `tasks:task`)                      |
+| `source_entity_id`          | text                     | Owning row's UUIDv7 id                                                      |
+| `created_by`                | text                     | Creating actor                                                              |
+| `created_at` / `updated_at` | timestamptz              | Record timestamps                                                           |
 
-Indexes: `idx_calendar_event_calendar(calendar_id)`, `idx_calendar_event_starts(starts_at)`, `idx_calendar_event_source(source_type, source_entity_id)`, `idx_calendar_event_status(status)`.
+Indexes: `idx_calendar_event_audience(audience_type, audience_id)`, `idx_calendar_event_starts(starts_at)`, `idx_calendar_event_source(source_type, source_entity_id)`, `idx_calendar_event_status(status)`.
 
 ### `calendar_attendee`
 
@@ -98,13 +79,14 @@ The platform's single polymorphic reminder surface.
 | Column                      | Type                        | Description                                                           |
 | --------------------------- | --------------------------- | --------------------------------------------------------------------- |
 | `id`                        | text (PK)                   | Auto UUIDv7                                                           |
+| `audience_type`             | `calendar_audience_type`    | `organization` (default) / `group` / `user`                           |
+| `audience_id`               | text                        | Group id or user id; `null` for organization                          |
 | `target_type`               | `calendar_reminder_target`  | `event` / `task` / `note` / `file` / `custom` / `compliance_document` |
 | `target_id`                 | text                        | Soft ref; free-form or empty for `custom`                             |
 | `type`                      | `calendar_reminder_type`    | `offset` / `custom` / `due_date` / `overdue`                          |
 | `channel`                   | `calendar_reminder_channel` | `pubsub` (the only real channel in v1)                                |
 | `remind_at`                 | timestamptz                 | Absolute; `null` until an offset anchor resolves                      |
 | `offset_minutes`            | integer                     | For `type = offset`; anchor = target's start/due                      |
-| `user_id`                   | text                        | Recipient (soft FK → user); access scoping                            |
 | `message`                   | text                        | Optional reminder message                                             |
 | `is_recurring`              | boolean                     | Default `false`                                                       |
 | `interval`                  | text                        | `daily` / `weekly` / `monthly` / `every_2_hours`                      |
@@ -113,17 +95,17 @@ The platform's single polymorphic reminder surface.
 | `created_by`                | text                        | Creating actor (`task-bridge` / `compliance-bridge` for bridge rows)  |
 | `created_at` / `updated_at` | timestamptz                 | Record timestamps                                                     |
 
-Indexes: `idx_calendar_reminder_target(target_type, target_id)`, `idx_calendar_reminder_user(user_id)`, `idx_calendar_reminder_sent(is_sent)`, `idx_calendar_reminder_at(remind_at)`.
+Indexes: `idx_calendar_reminder_target(target_type, target_id)`, `idx_calendar_reminder_audience(audience_type, audience_id)`, `idx_calendar_reminder_sent(is_sent)`, `idx_calendar_reminder_at(remind_at)`.
 
 ## Relationships
 
 ```mermaid
 flowchart LR
-  user[(user)] -. owner_id .-> C[calendar_calendar]
-  C -->|calendar_id| E[calendar_event]
-  E -->|event_id| A[calendar_attendee]
+  E[calendar_event] -->|event_id| A[calendar_attendee]
   E -->|target_type=event| R[calendar_reminder]
   R -. target_type/task<br/>compliance_document/custom .-> EXT[any module entity]
+  E -. audience_type/audience_id .-> G[employee group / user]
+  R -. audience_type/audience_id .-> G
 ```
 
 All FKs are soft, workflow-enforced. `reminder.interval` is decoded at the dispatcher boundary; unknown values are acknowledged but not rescheduled.
