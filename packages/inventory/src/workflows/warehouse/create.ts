@@ -3,6 +3,7 @@ import { WAREHOUSE_EVENTS } from "#/pubsub";
 import { requireWarehouse } from "#/services/stock-service";
 import { CreateWarehouseSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertReturned } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -40,25 +41,23 @@ export const createWarehouse = Workflow.name("inventory.warehouse.create")
       })
       .returning();
 
-    if (!warehouse) {
-      throw new Error("Failed to create warehouse.");
-    }
+    const created = assertReturned(warehouse, "Failed to create warehouse.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: warehouse.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE,
-      newState: { id: warehouse.id, is_group: warehouse.is_group, name: warehouse.name },
+      newState: { id: created.id, is_group: created.is_group, name: created.name },
     });
 
     await ctx.pubsub.publish(WAREHOUSE_EVENTS.CREATED, {
-      isGroup: warehouse.is_group,
-      name: warehouse.name,
-      parentId: warehouse.parent_id ?? undefined,
-      warehouseId: warehouse.id,
-      warehouseType: warehouse.warehouse_type,
+      isGroup: created.is_group,
+      name: created.name,
+      parentId: created.parent_id ?? undefined,
+      warehouseId: created.id,
+      warehouseType: created.warehouse_type,
     });
 
-    return warehouse;
+    return created;
   });

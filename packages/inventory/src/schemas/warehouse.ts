@@ -1,18 +1,7 @@
 import { WarehouseTypeSchema } from "#/schemas/enums";
-import { IdSchema, WarehouseNameSchema } from "#/schemas/utils";
+import { IdSchema, PaginationSchema, WarehouseNameSchema } from "#/schemas/utils";
 
-import {
-  boolean,
-  integer,
-  maxLength,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { boolean, maxLength, minLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const CreateWarehouseTypeSchema = object({
@@ -36,9 +25,8 @@ export const UpdateWarehouseTypeSchema = object({
 export type UpdateWarehouseTypeInput = InferOutput<typeof UpdateWarehouseTypeSchema>;
 
 export const WarehouseTypeFiltersSchema = object({
+  ...PaginationSchema.entries,
   includeDisabled: optional(boolean(), false),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
 });
 
 export type WarehouseTypeFiltersInput = InferOutput<typeof WarehouseTypeFiltersSchema>;
@@ -68,10 +56,9 @@ export const UpdateWarehouseSchema = object({
 export type UpdateWarehouseInput = InferOutput<typeof UpdateWarehouseSchema>;
 
 export const WarehouseFiltersSchema = object({
+  ...PaginationSchema.entries,
   includeDisabled: optional(boolean(), false),
   isGroup: optional(boolean()),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   parentId: optional(nullable(IdSchema)),
   warehouseType: optional(WarehouseTypeSchema),
 });

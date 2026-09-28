@@ -1,13 +1,7 @@
 import { acl } from "#/auth";
 import { control_plane_schemas, tenant_schemas } from "#/db-schemas";
 import { events } from "#/pubsub";
-import { getInventoryConfig, resetInventoryRuntime, setInventoryConfig } from "#/runtime";
-import {
-  registerReorderScanHandler,
-  registerReorderScanner,
-  REORDER_SCAN_CRON,
-  unregisterReorderScanner,
-} from "#/services/reorder-scanner";
+import { REORDER_SCAN_CRON, registerReorderScan } from "#/services/reorder-scanner";
 import type { InventoryModuleConfig } from "#/types";
 import * as wf from "#/workflows";
 
@@ -26,10 +20,12 @@ const DEFAULT_CONFIG: Required<InventoryModuleConfig> = {
 
 export type { InventoryModuleConfig };
 
-function isUnit(unit: Unit | undefined, name: "db"): unit is DatabaseUnit;
-function isUnit(unit: Unit | undefined, name: "pubsub"): unit is PubSubUnit;
-function isUnit(unit: Unit | undefined, name: string): boolean {
-  return unit?.$name === name;
+function isDbUnit(unit: Unit | undefined): unit is DatabaseUnit {
+  return unit?.$name === "db";
+}
+
+function isPubSubUnit(unit: Unit | undefined): unit is PubSubUnit {
+  return unit?.$name === "pubsub";
 }
 
 export class Inventory implements Module {
@@ -39,31 +35,15 @@ export class Inventory implements Module {
 
   readonly $name = "inventory";
   readonly $dependencies: readonly string[] = ["masters", "products"];
-  readonly $consumes: readonly string[] = [
-    "products.item_created",
-    "products.item_updated",
-    "products.item_disabled",
-    "products.item_price_created",
-    "products.item_price_updated",
-    "masters.unit_of_measure_updated",
-    "accounting.material_request_created",
-    "accounting.purchase_order_created",
-    "accounting.sales_order_created",
-    "accounting.sales_order_updated",
-    "accounting.sales_order_closed",
-    "accounting.sales_order_cancelled",
-    "accounting.receipt_created",
-    "accounting.delivery_created",
-  ];
+  readonly $consumes: readonly string[] = [];
   readonly $config: Required<InventoryModuleConfig>;
 
   #db: DatabaseUnit | null = null;
   #pubsub: PubSubUnit | null = null;
-  #reorderScanTopic: string | null = null;
+  #unregisterReorderScan: (() => Promise<void>) | null = null;
 
   constructor(config: InventoryModuleConfig) {
     this.$config = { ...DEFAULT_CONFIG, ...config };
-    setInventoryConfig(this.$config);
   }
 
   $prepareInfra(): ModuleInfra {
@@ -76,10 +56,10 @@ export class Inventory implements Module {
 
   $initialize(units: Record<string, Unit>): void {
     const { db, pubsub } = units;
-    if (isUnit(db, "db")) {
+    if (isDbUnit(db)) {
       this.#db = db;
     }
-    if (isUnit(pubsub, "pubsub")) {
+    if (isPubSubUnit(pubsub)) {
       this.#pubsub = pubsub;
     }
   }
@@ -92,24 +72,20 @@ export class Inventory implements Module {
     if (!ctx.audit) {
       throw new Error("Inventory runtime requires an audit unit in context");
     }
-    const config = getInventoryConfig();
-    const topic = await registerReorderScanner(this.#pubsub, config.reorderScanCron);
-    this.#reorderScanTopic = topic;
-    await registerReorderScanHandler(topic, {
-      audit: ctx.audit,
-      db: this.#db.db,
-      pubsub: this.#pubsub,
-    });
+    this.#unregisterReorderScan = await registerReorderScan(
+      this.#pubsub,
+      { audit: ctx.audit, db: this.#db.db },
+      this.$config.reorderScanCron,
+    );
   }
 
   async $cleanup(): Promise<void> {
-    if (this.#pubsub) {
-      await unregisterReorderScanner(this.#reorderScanTopic, { pubsub: this.#pubsub });
+    if (this.#unregisterReorderScan) {
+      await this.#unregisterReorderScan();
     }
-    this.#reorderScanTopic = null;
+    this.#unregisterReorderScan = null;
     this.#db = null;
     this.#pubsub = null;
-    resetInventoryRuntime();
   }
 
   readonly batches = wf.batches;

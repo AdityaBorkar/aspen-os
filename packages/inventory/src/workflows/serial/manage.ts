@@ -5,9 +5,10 @@ import { requireWarehouse } from "#/services/stock-service";
 import { CreateSerialSchema, IdSchema, SerialFiltersSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchSerialStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
 
@@ -43,25 +44,23 @@ export const createSerial = Workflow.name("inventory.serial.create")
           : null,
       })
       .returning();
-    if (!serial) {
-      throw new Error("Failed to create serial.");
-    }
+    const created = assertReturned(serial, "Failed to create serial.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: serial.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.SERIAL,
-      newState: { id: serial.id, item_id: serial.item_id, serial_no: serial.serial_no },
+      newState: { id: created.id, item_id: created.item_id, serial_no: created.serial_no },
     });
 
     await ctx.pubsub.publish(SERIAL_EVENTS.CREATED, {
-      itemId: serial.item_id,
-      serialId: serial.id,
-      serialNo: serial.serial_no,
+      itemId: created.item_id,
+      serialId: created.id,
+      serialNo: created.serial_no,
     });
 
-    return serial;
+    return created;
   });
 
 export const getSerial = Workflow.name("inventory.serial.get")
@@ -85,13 +84,13 @@ export const listSerials = Workflow.name("inventory.serial.list")
     if (parsed.batchNo) {
       conditions.push(eq(inventorySerial.batch_no, parsed.batchNo));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventorySerial)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -107,9 +106,7 @@ export const expireSerial = Workflow.name("inventory.serial.expire")
       .set({ status: "expired", updated_at: new Date() })
       .where(eq(inventorySerial.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to expire serial.");
-    }
+    const next = assertReturned(updated, "Failed to expire serial.");
     await ctx.audit.write({
       action: AUDIT_ACTION.EXPIRED,
       crudAction: "update",
@@ -117,7 +114,7 @@ export const expireSerial = Workflow.name("inventory.serial.expire")
       entityType: AUDIT_ENTITY_TYPE.SERIAL,
       newState: { id: input.id, status: "expired" },
     });
-    return updated;
+    return next;
   });
 
 export const cancelSerial = Workflow.name("inventory.serial.cancel")
@@ -135,9 +132,7 @@ export const cancelSerial = Workflow.name("inventory.serial.cancel")
       .set({ status: "cancelled", updated_at: new Date() })
       .where(eq(inventorySerial.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to cancel serial.");
-    }
+    const next = assertReturned(updated, "Failed to cancel serial.");
     await ctx.audit.write({
       action: AUDIT_ACTION.CANCELLED,
       crudAction: "update",
@@ -145,5 +140,5 @@ export const cancelSerial = Workflow.name("inventory.serial.cancel")
       entityType: AUDIT_ENTITY_TYPE.SERIAL,
       newState: { id: input.id, status: "cancelled" },
     });
-    return updated;
+    return next;
   });

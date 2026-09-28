@@ -4,10 +4,10 @@ import { inventoryReservationEntry } from "#/db-schemas/reservation-entry";
 import { PICK_LIST_EVENTS, RESERVATION_EVENTS } from "#/pubsub";
 import { suggestPickLocations } from "#/services/pick-suggest";
 import {
-  getAvailableQty,
   getEffectiveSetting,
-  getOnHandQty,
+  getStockStates,
   requireWarehouse,
+  asDb,
 } from "#/services/stock-service";
 import {
   CreatePickListSchema,
@@ -19,6 +19,8 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPickListStep } from "#/workflow-steps/fetch-inventory";
+import { checkReservationAvailability } from "#/workflows/reservation/manage";
+import { assertReturned, paginationOf, requireStatus, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -32,13 +34,10 @@ export const createPickList = Workflow.name("inventory.pick-list.create")
     if (parsed.parentWarehouseId) {
       await requireWarehouse(ctx.db, parsed.parentWarehouseId, { allowGroup: true });
     }
-    await Promise.all(
-      parsed.items.map(async (item) => {
-        if (item.warehouseId) {
-          await requireWarehouse(ctx.db, item.warehouseId);
-        }
-      }),
-    );
+    const warehouseIds = [
+      ...new Set(parsed.items.flatMap((item) => (item.warehouseId ? [item.warehouseId] : []))),
+    ];
+    await Promise.all(warehouseIds.map((warehouseId) => requireWarehouse(ctx.db, warehouseId)));
 
     const [pickList] = await ctx.db
       .insert(inventoryPickList)
@@ -50,41 +49,39 @@ export const createPickList = Workflow.name("inventory.pick-list.create")
         status: "draft",
       })
       .returning();
-    if (!pickList) {
-      throw new Error("Failed to create pick list.");
-    }
+    const created = assertReturned(pickList, "Failed to create pick list.");
 
-    await Promise.all(
-      parsed.items.map((item) =>
-        ctx.db.insert(inventoryPickListItem).values({
+    if (parsed.items.length > 0) {
+      await ctx.db.insert(inventoryPickListItem).values(
+        parsed.items.map((item) => ({
           batch_no: item.batchNo ?? null,
           item_id: item.itemId,
           material_request_id: item.materialRequestId ?? null,
-          pick_list_id: pickList.id,
+          pick_list_id: created.id,
           picked_qty: 0,
           qty: item.qty,
           sales_order_id: item.salesOrderId ?? null,
           sales_order_item_id: item.salesOrderItemId ?? null,
           serial_nos: item.serialNos ?? [],
           warehouse_id: item.warehouseId ?? null,
-        }),
-      ),
-    );
+        })),
+      );
+    }
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: pickList.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.PICK_LIST,
-      newState: { id: pickList.id, purpose: pickList.purpose, status: pickList.status },
+      newState: { id: created.id, purpose: created.purpose, status: created.status },
     });
 
     await ctx.pubsub.publish(PICK_LIST_EVENTS.CREATED, {
-      pickListId: pickList.id,
-      purpose: pickList.purpose,
+      pickListId: created.id,
+      purpose: created.purpose,
     });
 
-    return pickList;
+    return created;
   });
 
 export const getPickList = Workflow.name("inventory.pick-list.get")
@@ -109,13 +106,13 @@ export const listPickLists = Workflow.name("inventory.pick-list.list")
     if (parsed.status) {
       conditions.push(eq(inventoryPickList.status, parsed.status));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryPickList)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -124,54 +121,50 @@ export const updatePickList = Workflow.name("inventory.pick-list.update")
   .handler(async ({ id, patch }, ctx) => {
     const parsed = parse(UpdatePickListSchema, patch);
     const current = await ctx.step.run(fetchPickListStep, { id });
-    if (current.status !== "draft") {
-      throw new Error(
-        "Only draft pick lists can be edited (planner batch picks survive save until submit).",
-      );
-    }
+    requireStatus(current.status, ["draft"], "be edited", "pick list");
     if (parsed.parentWarehouseId !== undefined && parsed.parentWarehouseId !== null) {
       await requireWarehouse(ctx.db, parsed.parentWarehouseId, { allowGroup: true });
     }
 
-    const values: Partial<typeof inventoryPickList.$inferInsert> = {};
-    if (parsed.parentWarehouseId !== undefined) {
-      values.parent_warehouse_id = parsed.parentWarehouseId;
-    }
-    if (parsed.promptQty !== undefined) {
-      values.prompt_qty = parsed.promptQty;
-    }
-    if (parsed.scanMode !== undefined) {
-      values.scan_mode = parsed.scanMode;
-    }
+    const updated = await ctx.db.transaction(async (tx) => {
+      const values: Partial<typeof inventoryPickList.$inferInsert> = {};
+      if (parsed.parentWarehouseId !== undefined) {
+        values.parent_warehouse_id = parsed.parentWarehouseId;
+      }
+      if (parsed.promptQty !== undefined) {
+        values.prompt_qty = parsed.promptQty;
+      }
+      if (parsed.scanMode !== undefined) {
+        values.scan_mode = parsed.scanMode;
+      }
+      const [row] = await tx
+        .update(inventoryPickList)
+        .set({ ...values, updated_at: new Date() })
+        .where(eq(inventoryPickList.id, id))
+        .returning();
+      const next = assertReturned(row, "Failed to update pick list.");
 
-    const [updated] = await ctx.db
-      .update(inventoryPickList)
-      .set({ ...values, updated_at: new Date() })
-      .where(eq(inventoryPickList.id, id))
-      .returning();
-    if (!updated) {
-      throw new Error("Failed to update pick list.");
-    }
-
-    if (parsed.items !== undefined) {
-      await ctx.db.delete(inventoryPickListItem).where(eq(inventoryPickListItem.pick_list_id, id));
-      await Promise.all(
-        parsed.items.map((item) =>
-          ctx.db.insert(inventoryPickListItem).values({
-            batch_no: item.batchNo ?? null,
-            item_id: item.itemId,
-            material_request_id: item.materialRequestId ?? null,
-            pick_list_id: id,
-            picked_qty: 0,
-            qty: item.qty,
-            sales_order_id: item.salesOrderId ?? null,
-            sales_order_item_id: item.salesOrderItemId ?? null,
-            serial_nos: item.serialNos ?? [],
-            warehouse_id: item.warehouseId ?? null,
-          }),
-        ),
-      );
-    }
+      if (parsed.items !== undefined) {
+        await tx.delete(inventoryPickListItem).where(eq(inventoryPickListItem.pick_list_id, id));
+        if (parsed.items.length > 0) {
+          await tx.insert(inventoryPickListItem).values(
+            parsed.items.map((item) => ({
+              batch_no: item.batchNo ?? null,
+              item_id: item.itemId,
+              material_request_id: item.materialRequestId ?? null,
+              pick_list_id: id,
+              picked_qty: 0,
+              qty: item.qty,
+              sales_order_id: item.salesOrderId ?? null,
+              sales_order_item_id: item.salesOrderItemId ?? null,
+              serial_nos: item.serialNos ?? [],
+              warehouse_id: item.warehouseId ?? null,
+            })),
+          );
+        }
+      }
+      return next;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
@@ -188,37 +181,38 @@ export const refreshPickListStock = Workflow.name("inventory.pick-list.refresh-s
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const pickList = await ctx.step.run(fetchPickListStep, { id: input.id });
-    if (pickList.status !== "draft") {
-      throw new Error(
-        "Stock can only be refreshed on draft pick lists (before downstream creation).",
-      );
-    }
+    requireStatus(pickList.status, ["draft"], "be refreshed", "pick list");
     const items = await ctx.db
       .select()
       .from(inventoryPickListItem)
       .where(eq(inventoryPickListItem.pick_list_id, input.id));
-    const lines = await Promise.all(
-      items.map(async (item) => {
-        if (!item.warehouse_id) {
-          return {
-            availableQty: null,
-            itemId: item.item_id,
-            onHandQty: null,
-            pickItemId: item.id,
-          };
-        }
-        const [available, onHand] = await Promise.all([
-          getAvailableQty(ctx.db, item.item_id, item.warehouse_id),
-          getOnHandQty(ctx.db, item.item_id, item.warehouse_id),
-        ]);
+    const located = items.filter(
+      (item): item is typeof item & { warehouse_id: string } => item.warehouse_id !== null,
+    );
+    const states = await getStockStates(
+      ctx.db,
+      located.map((item) => ({
+        itemId: item.item_id,
+        warehouseId: item.warehouse_id,
+      })),
+    );
+    const lines = items.map((item) => {
+      if (!item.warehouse_id) {
         return {
-          availableQty: available,
+          availableQty: null,
           itemId: item.item_id,
-          onHandQty: onHand,
+          onHandQty: null,
           pickItemId: item.id,
         };
-      }),
-    );
+      }
+      const state = states.get(`${item.item_id}::${item.warehouse_id}`);
+      return {
+        availableQty: state?.available ?? 0,
+        itemId: item.item_id,
+        onHandQty: state?.onHand ?? 0,
+        pickItemId: item.id,
+      };
+    });
     return { lines, pickListId: input.id };
   });
 
@@ -226,9 +220,7 @@ export const submitPickList = Workflow.name("inventory.pick-list.submit")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchPickListStep, { id: input.id });
-    if (current.status !== "draft") {
-      throw new Error("Only draft pick lists can be submitted.");
-    }
+    requireStatus(current.status, ["draft"], "be submitted", "pick list");
     const items = await ctx.db
       .select()
       .from(inventoryPickListItem)
@@ -249,9 +241,7 @@ export const submitPickList = Workflow.name("inventory.pick-list.submit")
       .set({ status: "submitted", updated_at: new Date() })
       .where(eq(inventoryPickList.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to submit pick list.");
-    }
+    const next = assertReturned(updated, "Failed to submit pick list.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.SUBMITTED,
@@ -263,10 +253,10 @@ export const submitPickList = Workflow.name("inventory.pick-list.submit")
 
     await ctx.pubsub.publish(PICK_LIST_EVENTS.SUBMITTED, {
       pickListId: input.id,
-      purpose: updated.purpose,
+      purpose: next.purpose,
     });
 
-    return updated;
+    return next;
   });
 
 export const cancelPickList = Workflow.name("inventory.pick-list.cancel")
@@ -284,9 +274,7 @@ export const cancelPickList = Workflow.name("inventory.pick-list.cancel")
       .set({ status: "cancelled", updated_at: new Date() })
       .where(eq(inventoryPickList.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to cancel pick list.");
-    }
+    const next = assertReturned(updated, "Failed to cancel pick list.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CANCELLED,
@@ -298,28 +286,31 @@ export const cancelPickList = Workflow.name("inventory.pick-list.cancel")
 
     await ctx.pubsub.publish(PICK_LIST_EVENTS.CANCELLED, {
       pickListId: input.id,
-      purpose: updated.purpose,
+      purpose: next.purpose,
     });
 
-    return updated;
+    return next;
   });
 
 export const markPickListConsumed = Workflow.name("inventory.pick-list.mark-consumed")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchPickListStep, { id: input.id });
-    if (current.status !== "submitted") {
-      throw new Error("Only submitted pick lists can be marked consumed.");
-    }
+    requireStatus(current.status, ["submitted"], "be marked consumed", "pick list");
     const [updated] = await ctx.db
       .update(inventoryPickList)
       .set({ is_consumed: true, updated_at: new Date() })
       .where(eq(inventoryPickList.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to mark pick list consumed.");
-    }
-    return updated;
+    const next = assertReturned(updated, "Failed to mark pick list consumed.");
+    await ctx.audit.write({
+      action: AUDIT_ACTION.CONSUMED,
+      crudAction: "update",
+      entityId: input.id,
+      entityType: AUDIT_ENTITY_TYPE.PICK_LIST,
+      newState: { id: input.id, is_consumed: true },
+    });
+    return next;
   });
 
 export const suggestPickListLocations = Workflow.name("inventory.pick-list.suggest")
@@ -327,11 +318,7 @@ export const suggestPickListLocations = Workflow.name("inventory.pick-list.sugge
   .handler(async ({ input }, ctx) => {
     const parsed = parse(SuggestPickLocationsSchema, input);
     return suggestPickLocations(ctx.db, {
-      items: parsed.items.map((item) => ({
-        batchNo: item.batchNo ?? null,
-        itemId: item.itemId,
-        qty: item.qty,
-      })),
+      items: parsed.items,
       parentWarehouseId: parsed.parentWarehouseId ?? null,
     });
   });
@@ -340,61 +327,48 @@ export const reservePickList = Workflow.name("inventory.pick-list.reserve")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const current = await ctx.step.run(fetchPickListStep, { id: input.id });
-    if (current.status !== "submitted") {
-      throw new Error("Only submitted pick lists can reserve stock.");
-    }
-    const setting = await getEffectiveSetting(ctx.db);
-    if (!setting.enableStockReservation) {
-      throw new Error("Stock reservation is disabled in inventory settings.");
-    }
-    const items = await ctx.db
-      .select()
-      .from(inventoryPickListItem)
-      .where(eq(inventoryPickListItem.pick_list_id, input.id));
-    if (items.length === 0) {
-      throw new Error("Cannot reserve an empty pick list.");
-    }
-    const checks = await Promise.all(
-      items.map(async (item) => {
-        if (!item.warehouse_id) {
-          throw new Error(`Pick item for "${item.item_id}" has no warehouse location.`);
-        }
-        return {
-          available: await getAvailableQty(ctx.db, item.item_id, item.warehouse_id),
-          item,
-        };
-      }),
-    );
-    for (const check of checks) {
-      if (check.available - check.item.qty < 0) {
-        throw new Error(
-          `Cannot reserve ${check.item.qty} units of "${check.item.item_id}": only ${check.available} available.`,
-        );
+    requireStatus(current.status, ["submitted"], "reserve stock", "pick list");
+    const created = await ctx.db.transaction(async (tx) => {
+      const db = asDb(tx);
+      const setting = await getEffectiveSetting(db);
+      if (!setting.enableStockReservation) {
+        throw new Error("Stock reservation is disabled in inventory settings.");
       }
-    }
-    const created = await Promise.all(
-      items.map(async (item) => {
+      const items = await db
+        .select()
+        .from(inventoryPickListItem)
+        .where(eq(inventoryPickListItem.pick_list_id, input.id));
+      if (items.length === 0) {
+        throw new Error("Cannot reserve an empty pick list.");
+      }
+      for (const item of items) {
         if (!item.warehouse_id) {
           throw new Error(`Pick item for "${item.item_id}" has no warehouse location.`);
         }
-        const [reservation] = await ctx.db
-          .insert(inventoryReservationEntry)
-          .values({
+        await checkReservationAvailability(db, item.item_id, item.warehouse_id, item.qty);
+      }
+      const locatedItems = items.filter(
+        (item): item is typeof item & { warehouse_id: string } => item.warehouse_id !== null,
+      );
+      const rows = await db
+        .insert(inventoryReservationEntry)
+        .values(
+          locatedItems.map((item) => ({
             item_id: item.item_id,
             pick_list_id: input.id,
             reserved_qty: item.qty,
             sales_order_id: item.sales_order_id,
             sales_order_item_id: item.sales_order_item_id,
-            status: "reserved",
+            status: "reserved" as const,
             warehouse_id: item.warehouse_id,
-          })
-          .returning();
-        if (!reservation) {
-          throw new Error("Failed to create reservation.");
-        }
-        return reservation;
-      }),
-    );
+          })),
+        )
+        .returning();
+      if (rows.length !== items.length) {
+        throw new Error("Failed to create reservations for all pick items.");
+      }
+      return rows;
+    });
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
@@ -419,15 +393,28 @@ export const updatePickedQty = Workflow.name("inventory.pick-list.update-picked"
   .handler(async ({ input }, ctx) => {
     const parsed = parse(UpdatePickedQtySchema, input);
     const current = await ctx.step.run(fetchPickListStep, { id: parsed.id });
-    if (current.status !== "submitted") {
-      throw new Error("Picked quantities can only be updated on submitted pick lists.");
+    requireStatus(current.status, ["submitted"], "update picked quantities", "pick list");
+    const existing = await ctx.db
+      .select()
+      .from(inventoryPickListItem)
+      .where(eq(inventoryPickListItem.pick_list_id, parsed.id));
+    const byId = new Map(existing.map((row) => [row.id, row]));
+    for (const line of parsed.lines) {
+      if (line.pickedQty < 0) {
+        throw new Error("Picked quantity cannot be negative.");
+      }
+      const row = byId.get(line.pickItemId);
+      if (!row || row.pick_list_id !== parsed.id) {
+        throw new Error(`Pick item "${line.pickItemId}" not found on this list.`);
+      }
+      if (line.pickedQty - row.qty > 0) {
+        throw new Error(`Picked quantity exceeds the required ${row.qty} for this line.`);
+      }
     }
-    const updated = await Promise.all(
-      parsed.lines.map(async (line) => {
-        if (line.pickedQty < 0) {
-          throw new Error("Picked quantity cannot be negative.");
-        }
-        const [row] = await ctx.db
+    const updated = await ctx.db.transaction(async (tx) => {
+      const rows = [];
+      for (const line of parsed.lines) {
+        const [row] = await tx
           .update(inventoryPickListItem)
           .set({ picked_qty: line.pickedQty })
           .where(
@@ -437,15 +424,10 @@ export const updatePickedQty = Workflow.name("inventory.pick-list.update-picked"
             ),
           )
           .returning();
-        if (!row) {
-          throw new Error(`Pick item "${line.pickItemId}" not found on this list.`);
-        }
-        if (line.pickedQty - row.qty > 0) {
-          throw new Error(`Picked quantity exceeds the required ${row.qty} for this line.`);
-        }
-        return row;
-      }),
-    );
+        rows.push(assertReturned(row, `Pick item "${line.pickItemId}" not found on this list.`));
+      }
+      return rows;
+    });
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",

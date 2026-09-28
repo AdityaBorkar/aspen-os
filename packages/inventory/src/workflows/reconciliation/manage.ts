@@ -7,52 +7,65 @@ import {
   IdSchema,
   UpdateReconciliationSchema,
 } from "#/types";
-import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, DEFAULT_DIFFERENCE_ACCOUNT } from "#/utils/constants";
+import {
+  AUDIT_ACTION,
+  AUDIT_ENTITY_TYPE,
+  DEFAULT_DIFFERENCE_ACCOUNT,
+  DEFAULT_OPENING_DIFFERENCE_ACCOUNT,
+  RECONCILIATION_PURPOSE,
+} from "#/utils/constants";
 import { fetchReconciliationStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { object, parse } from "valibot";
+
+function defaultDifferenceAccount(purpose: string): string {
+  return purpose === RECONCILIATION_PURPOSE.OPENING_STOCK
+    ? DEFAULT_OPENING_DIFFERENCE_ACCOUNT
+    : DEFAULT_DIFFERENCE_ACCOUNT;
+}
 
 export const createReconciliation = Workflow.name("inventory.reconciliation.create")
   .input(object({ input: CreateReconciliationSchema }))
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateReconciliationSchema, input);
 
-    const [reconciliation] = await ctx.db
-      .insert(inventoryReconciliation)
-      .values({
-        difference_account: parsed.differenceAccount ?? DEFAULT_DIFFERENCE_ACCOUNT,
-        posting_date: toDateOnly(parsed.postingDate),
-        posting_time: parsed.postingTime ?? null,
-        purpose: parsed.purpose,
-        status: "draft",
-      })
-      .returning();
+    const reconciliation = await ctx.db.transaction(async (tx) => {
+      const [header] = await tx
+        .insert(inventoryReconciliation)
+        .values({
+          difference_account: parsed.differenceAccount ?? defaultDifferenceAccount(parsed.purpose),
+          posting_date: toDateOnly(parsed.postingDate),
+          posting_time: parsed.postingTime ?? null,
+          purpose: parsed.purpose,
+          status: "draft",
+        })
+        .returning();
+      const created = assertReturned(header, "Failed to create reconciliation.");
 
-    if (!reconciliation) {
-      throw new Error("Failed to create reconciliation.");
-    }
-
-    await Promise.all(
-      parsed.items.map(async (item) => {
+      for (const item of parsed.items) {
         if (item.qty === null && item.valuationRate === null) {
           throw new Error(
             "Each reconciliation row needs a counted quantity, a valuation rate, or both.",
           );
         }
-        await ctx.db.insert(inventoryReconciliationItem).values({
+      }
+      await tx.insert(inventoryReconciliationItem).values(
+        parsed.items.map((item) => ({
           batch_no: item.batchNo ?? null,
           item_id: item.itemId,
           qty: item.qty,
           reconcile_mode: item.reconcileMode ?? null,
-          reconciliation_id: reconciliation.id,
+          reconciliation_id: created.id,
           serial_nos: item.serialNos ?? [],
           valuation_rate: item.valuationRate ?? null,
           warehouse_id: item.warehouseId,
-        });
-      }),
-    );
+        })),
+      );
+      return created;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
@@ -89,45 +102,45 @@ export const updateReconciliation = Workflow.name("inventory.reconciliation.upda
       throw new Error("Only draft reconciliations can be edited.");
     }
 
-    const values: Partial<typeof inventoryReconciliation.$inferInsert> = {};
-    if (parsed.differenceAccount !== undefined) {
-      values.difference_account = parsed.differenceAccount;
-    }
-    if (parsed.postingDate !== undefined) {
-      values.posting_date = toDateOnly(parsed.postingDate);
-    }
-    if (parsed.postingTime !== undefined) {
-      values.posting_time = parsed.postingTime;
-    }
+    const updated = await ctx.db.transaction(async (tx) => {
+      const values: Partial<typeof inventoryReconciliation.$inferInsert> = {};
+      if (parsed.differenceAccount !== undefined) {
+        values.difference_account = parsed.differenceAccount;
+      }
+      if (parsed.postingDate !== undefined) {
+        values.posting_date = toDateOnly(parsed.postingDate);
+      }
+      if (parsed.postingTime !== undefined) {
+        values.posting_time = parsed.postingTime;
+      }
+      const [row] = await tx
+        .update(inventoryReconciliation)
+        .set({ ...values, updated_at: new Date() })
+        .where(eq(inventoryReconciliation.id, id))
+        .returning();
+      const next = assertReturned(row, "Failed to update reconciliation.");
 
-    const [updated] = await ctx.db
-      .update(inventoryReconciliation)
-      .set({ ...values, updated_at: new Date() })
-      .where(eq(inventoryReconciliation.id, id))
-      .returning();
-    if (!updated) {
-      throw new Error("Failed to update reconciliation.");
-    }
-
-    if (parsed.items !== undefined) {
-      await ctx.db
-        .delete(inventoryReconciliationItem)
-        .where(eq(inventoryReconciliationItem.reconciliation_id, id));
-      await Promise.all(
-        parsed.items.map((item) =>
-          ctx.db.insert(inventoryReconciliationItem).values({
-            batch_no: item.batchNo ?? null,
-            item_id: item.itemId,
-            qty: item.qty,
-            reconcile_mode: item.reconcileMode ?? null,
-            reconciliation_id: id,
-            serial_nos: item.serialNos ?? [],
-            valuation_rate: item.valuationRate ?? null,
-            warehouse_id: item.warehouseId,
-          }),
-        ),
-      );
-    }
+      if (parsed.items !== undefined) {
+        await tx
+          .delete(inventoryReconciliationItem)
+          .where(eq(inventoryReconciliationItem.reconciliation_id, id));
+        if (parsed.items.length > 0) {
+          await tx.insert(inventoryReconciliationItem).values(
+            parsed.items.map((item) => ({
+              batch_no: item.batchNo ?? null,
+              item_id: item.itemId,
+              qty: item.qty,
+              reconcile_mode: item.reconcileMode ?? null,
+              reconciliation_id: id,
+              serial_nos: item.serialNos ?? [],
+              valuation_rate: item.valuationRate ?? null,
+              warehouse_id: item.warehouseId,
+            })),
+          );
+        }
+      }
+      return next;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
@@ -148,32 +161,28 @@ export const addReconciliationItems = Workflow.name("inventory.reconciliation.ad
     if (current.status !== "draft") {
       throw new Error("Items can only be added to draft reconciliations.");
     }
-    const inserted = await Promise.all(
-      parsed.items.map(async (item) => {
-        if (item.qty === null && item.valuationRate === null) {
-          throw new Error(
-            "Each reconciliation row needs a counted quantity, a valuation rate, or both.",
-          );
-        }
-        const [row] = await ctx.db
-          .insert(inventoryReconciliationItem)
-          .values({
-            batch_no: item.batchNo ?? null,
-            item_id: item.itemId,
-            qty: item.qty,
-            reconcile_mode: item.reconcileMode ?? null,
-            reconciliation_id: parsed.id,
-            serial_nos: item.serialNos ?? [],
-            valuation_rate: item.valuationRate ?? null,
-            warehouse_id: item.warehouseId,
-          })
-          .returning();
-        if (!row) {
-          throw new Error("Failed to add reconciliation row.");
-        }
-        return row;
-      }),
-    );
+    for (const item of parsed.items) {
+      if (item.qty === null && item.valuationRate === null) {
+        throw new Error(
+          "Each reconciliation row needs a counted quantity, a valuation rate, or both.",
+        );
+      }
+    }
+    const inserted = await ctx.db
+      .insert(inventoryReconciliationItem)
+      .values(
+        parsed.items.map((item) => ({
+          batch_no: item.batchNo ?? null,
+          item_id: item.itemId,
+          qty: item.qty,
+          reconcile_mode: item.reconcileMode ?? null,
+          reconciliation_id: parsed.id,
+          serial_nos: item.serialNos ?? [],
+          valuation_rate: item.valuationRate ?? null,
+          warehouse_id: item.warehouseId,
+        })),
+      )
+      .returning();
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",

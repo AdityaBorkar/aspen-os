@@ -1,9 +1,14 @@
 import { BatchStatusSchema, SerialStatusSchema, ValuationMethodSchema } from "#/schemas/enums";
-import { DateStringSchema, IdSchema, QuantitySchema } from "#/schemas/utils";
+import {
+  DateStringSchema,
+  IdSchema,
+  PaginationSchema,
+  PositiveQuantitySchema,
+  QuantitySchema,
+} from "#/schemas/utils";
 
 import {
   boolean,
-  integer,
   maxLength,
   minLength,
   nullable,
@@ -33,10 +38,9 @@ export const CreateSerialSchema = object({
 export type CreateSerialInput = InferOutput<typeof CreateSerialSchema>;
 
 export const SerialFiltersSchema = object({
+  ...PaginationSchema.entries,
   batchNo: optional(nullable(string())),
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   status: optional(SerialStatusSchema),
   warehouseId: optional(nullable(IdSchema)),
 });
@@ -86,16 +90,15 @@ export const MoveBatchSchema = object({
 export type MoveBatchInput = InferOutput<typeof MoveBatchSchema>;
 
 export const BatchFiltersSchema = object({
+  ...PaginationSchema.entries,
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   status: optional(BatchStatusSchema),
 });
 
 export type BatchFiltersInput = InferOutput<typeof BatchFiltersSchema>;
 
 export const ExpiringBatchesSchema = object({
-  daysAhead: optional(pipe(number(), integer("Must be an integer")), 30),
+  daysAhead: optional(PositiveQuantitySchema, 30),
 });
 
 export type ExpiringBatchesInput = InferOutput<typeof ExpiringBatchesSchema>;
@@ -112,7 +115,7 @@ export const UpdateSettingSchema = object({
   enableSerialBatch: optional(boolean()),
   enableStockReservation: optional(boolean()),
   freezeAllowedRole: optional(nullable(string())),
-  freezeOlderThanDays: optional(nullable(pipe(number(), integer("Must be an integer")))),
+  freezeOlderThanDays: optional(nullable(PositiveQuantitySchema)),
   freezeUptoDate: optional(nullable(DateStringSchema)),
   limitPercent: optional(nullable(number())),
   overDeliverReceiveRole: optional(nullable(string())),

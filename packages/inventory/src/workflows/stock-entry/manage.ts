@@ -12,9 +12,10 @@ import {
   UpdateStockEntrySchema,
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
 
@@ -80,61 +81,62 @@ export const updateStockEntry = Workflow.name("inventory.stock-entry.update")
       values.work_order_id = parsed.workOrderId;
     }
 
-    const [updated] = await ctx.db
-      .update(inventoryStockEntry)
-      .set({ ...values, updated_at: new Date() })
-      .where(eq(inventoryStockEntry.id, id))
-      .returning();
-    if (!updated) {
-      throw new Error("Failed to update stock entry.");
-    }
+    const updated = await ctx.db.transaction(async (tx) => {
+      const [row] = await tx
+        .update(inventoryStockEntry)
+        .set({ ...values, updated_at: new Date() })
+        .where(eq(inventoryStockEntry.id, id))
+        .returning();
+      const next = assertReturned(row, "Failed to update stock entry.");
 
-    if (parsed.items !== undefined) {
-      await ctx.db
-        .delete(inventoryStockEntryItem)
-        .where(eq(inventoryStockEntryItem.stock_entry_id, id));
-      await Promise.all(
-        parsed.items.map((item) =>
-          ctx.db.insert(inventoryStockEntryItem).values({
-            allow_negative_stock: item.allowNegativeStock ?? null,
-            basic_rate: item.basicRate ?? null,
-            batch_no: item.batchNo ?? null,
-            conversion_factor: item.conversionFactor ?? 1,
-            item_id: item.itemId,
-            qty: item.qty,
-            requires_batch: item.requiresBatch ?? false,
-            requires_serial: item.requiresSerial ?? false,
-            sales_order_id: item.salesOrderId ?? null,
-            sales_order_item_id: item.salesOrderItemId ?? null,
-            sample_qty: item.sampleQty ?? 0,
-            serial_nos: item.serialNos ?? [],
-            source_warehouse_id:
-              item.sourceWarehouseId === undefined ? sourceId : item.sourceWarehouseId,
-            stock_entry_id: id,
-            target_warehouse_id:
-              item.targetWarehouseId === undefined ? targetId : item.targetWarehouseId,
-            uom: item.uom,
-            valuation_method: item.valuationMethod ?? null,
-          }),
-        ),
-      );
-    }
+      if (parsed.items !== undefined) {
+        await tx
+          .delete(inventoryStockEntryItem)
+          .where(eq(inventoryStockEntryItem.stock_entry_id, id));
+        if (parsed.items.length > 0) {
+          await tx.insert(inventoryStockEntryItem).values(
+            parsed.items.map((item) => ({
+              allow_negative_stock: item.allowNegativeStock ?? null,
+              basic_rate: item.basicRate ?? null,
+              batch_no: item.batchNo ?? null,
+              conversion_factor: item.conversionFactor ?? 1,
+              item_id: item.itemId,
+              qty: item.qty,
+              requires_batch: item.requiresBatch ?? false,
+              requires_serial: item.requiresSerial ?? false,
+              sales_order_id: item.salesOrderId ?? null,
+              sales_order_item_id: item.salesOrderItemId ?? null,
+              sample_qty: item.sampleQty ?? 0,
+              serial_nos: item.serialNos ?? [],
+              source_warehouse_id:
+                item.sourceWarehouseId === undefined ? sourceId : item.sourceWarehouseId,
+              stock_entry_id: id,
+              target_warehouse_id:
+                item.targetWarehouseId === undefined ? targetId : item.targetWarehouseId,
+              uom: item.uom,
+              valuation_method: item.valuationMethod ?? null,
+            })),
+          );
+        }
+      }
 
-    if (parsed.additionalCosts !== undefined) {
-      await ctx.db
-        .delete(inventoryAdditionalCost)
-        .where(eq(inventoryAdditionalCost.stock_entry_id, id));
-      await Promise.all(
-        parsed.additionalCosts.map((cost) =>
-          ctx.db.insert(inventoryAdditionalCost).values({
-            amount: cost.amount,
-            description: cost.description ?? null,
-            expense_account: cost.expenseAccount,
-            stock_entry_id: id,
-          }),
-        ),
-      );
-    }
+      if (parsed.additionalCosts !== undefined) {
+        await tx
+          .delete(inventoryAdditionalCost)
+          .where(eq(inventoryAdditionalCost.stock_entry_id, id));
+        if (parsed.additionalCosts.length > 0) {
+          await tx.insert(inventoryAdditionalCost).values(
+            parsed.additionalCosts.map((cost) => ({
+              amount: cost.amount,
+              description: cost.description ?? null,
+              expense_account: cost.expenseAccount,
+              stock_entry_id: id,
+            })),
+          );
+        }
+      }
+      return next;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
@@ -152,7 +154,7 @@ export const cancelStockEntry = Workflow.name("inventory.stock-entry.cancel")
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CancelStockEntrySchema, input);
     const reversalIds = await ctx.step.run("reverse-posting", async () =>
-      reversePosting(ctx.db, parsed.id),
+      ctx.db.transaction(async (tx) => reversePosting(tx, parsed.id)),
     );
 
     const [entry] = await ctx.db
@@ -184,21 +186,21 @@ export const cancelStockEntry = Workflow.name("inventory.stock-entry.cancel")
             eq(inventoryStockLedger.voucher_id, parsed.id),
           ),
         );
-      // oxlint-disable eslint/no-await-in-loop
-      for (const reversal of reversals) {
-        await ctx.pubsub.publish(STOCK_EVENTS.CHANGED, {
-          batchNo: reversal.batch_no ?? undefined,
-          itemId: reversal.item_id,
-          postingDate: reversal.posting_date,
-          qtyDelta: reversal.qty_delta,
-          serialNo: reversal.serial_no ?? undefined,
-          valuationRate: reversal.valuation_rate,
-          voucherId: parsed.id,
-          voucherType: "stock_entry_cancel",
-          warehouseId: reversal.warehouse_id,
-        });
-      }
-      // oxlint-enable eslint/no-await-in-loop
+      await Promise.all(
+        reversals.map((reversal) =>
+          ctx.pubsub.publish(STOCK_EVENTS.CHANGED, {
+            batchNo: reversal.batch_no ?? undefined,
+            itemId: reversal.item_id,
+            postingDate: reversal.posting_date,
+            qtyDelta: reversal.qty_delta,
+            serialNo: reversal.serial_no ?? undefined,
+            valuationRate: reversal.valuation_rate,
+            voucherId: parsed.id,
+            voucherType: "stock_entry_cancel",
+            warehouseId: reversal.warehouse_id,
+          }),
+        ),
+      );
     }
 
     return { entry, reversalIds };
@@ -208,87 +210,67 @@ export const amendStockEntry = Workflow.name("inventory.stock-entry.amend")
   .input(object({ input: CancelStockEntrySchema }))
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CancelStockEntrySchema, input);
-    await ctx.step.run("reverse-posting", async () => reversePosting(ctx.db, parsed.id));
+    const draft = await ctx.db.transaction(async (tx) => {
+      await ctx.step.run("reverse-posting", async () => reversePosting(tx, parsed.id));
 
-    const [original] = await ctx.db
-      .select()
-      .from(inventoryStockEntry)
-      .where(eq(inventoryStockEntry.id, parsed.id))
-      .limit(1);
-    if (!original) {
-      throw new Error(`Stock entry "${parsed.id}" not found.`);
-    }
-    const items = await ctx.db
-      .select()
-      .from(inventoryStockEntryItem)
-      .where(eq(inventoryStockEntryItem.stock_entry_id, parsed.id));
-    const costs = await ctx.db
-      .select()
-      .from(inventoryAdditionalCost)
-      .where(eq(inventoryAdditionalCost.stock_entry_id, parsed.id));
+      const [original] = await tx
+        .select()
+        .from(inventoryStockEntry)
+        .where(eq(inventoryStockEntry.id, parsed.id))
+        .limit(1);
+      const source = assertReturned(original, `Stock entry "${parsed.id}" not found.`);
+      const items = await tx
+        .select()
+        .from(inventoryStockEntryItem)
+        .where(eq(inventoryStockEntryItem.stock_entry_id, parsed.id));
+      const costs = await tx
+        .select()
+        .from(inventoryAdditionalCost)
+        .where(eq(inventoryAdditionalCost.stock_entry_id, parsed.id));
 
-    const [draft] = await ctx.db
-      .insert(inventoryStockEntry)
-      .values({
-        add_to_transit: original.add_to_transit,
-        allow_zero_valuation: original.allow_zero_valuation,
-        amend_from: original.id,
-        apply_putaway_rule: original.apply_putaway_rule,
-        inspection_required: original.inspection_required,
-        is_opening: original.is_opening,
-        party_id: original.party_id,
-        posting_date: original.posting_date,
-        posting_time: original.posting_time,
-        purpose: original.purpose,
-        source_warehouse_id: original.source_warehouse_id,
-        status: "draft",
-        target_warehouse_id: original.target_warehouse_id,
-        work_order_id: original.work_order_id,
-      })
-      .returning();
-    if (!draft) {
-      throw new Error("Failed to create amended draft.");
-    }
-    await Promise.all(
-      items.map((item) =>
-        ctx.db.insert(inventoryStockEntryItem).values({
-          allow_negative_stock: item.allow_negative_stock,
-          basic_rate: item.basic_rate,
-          batch_no: item.batch_no,
-          conversion_factor: item.conversion_factor,
-          item_id: item.item_id,
-          qty: item.qty,
-          requires_batch: item.requires_batch,
-          requires_serial: item.requires_serial,
-          sales_order_id: item.sales_order_id,
-          sales_order_item_id: item.sales_order_item_id,
-          sample_qty: item.sample_qty,
-          serial_nos: item.serial_nos,
-          source_warehouse_id: item.source_warehouse_id,
-          stock_entry_id: draft.id,
-          target_warehouse_id: item.target_warehouse_id,
-          uom: item.uom,
-          valuation_method: item.valuation_method,
-        }),
-      ),
-    );
-    await Promise.all(
-      costs.map((cost) =>
-        ctx.db.insert(inventoryAdditionalCost).values({
-          amount: cost.amount,
-          description: cost.description,
-          expense_account: cost.expense_account,
-          stock_entry_id: draft.id,
-        }),
-      ),
-    );
+      const {
+        created_at: _headerCreated,
+        id: _headerId,
+        updated_at: _headerUpdated,
+        ...headerRest
+      } = source;
+      void _headerCreated;
+      void _headerId;
+      void _headerUpdated;
+      const [next] = await tx
+        .insert(inventoryStockEntry)
+        .values({ ...headerRest, amend_from: source.id, status: "draft" })
+        .returning();
+      const created = assertReturned(next, "Failed to create amended draft.");
+      if (items.length > 0) {
+        await tx.insert(inventoryStockEntryItem).values(
+          items.map((item) => {
+            const { created_at: _itemCreated, id: _itemId, ...itemRest } = item;
+            void _itemCreated;
+            void _itemId;
+            return { ...itemRest, stock_entry_id: created.id };
+          }),
+        );
+      }
+      if (costs.length > 0) {
+        await tx.insert(inventoryAdditionalCost).values(
+          costs.map((cost) => {
+            const { created_at: _costCreated, id: _costId, ...costRest } = cost;
+            void _costCreated;
+            void _costId;
+            return { ...costRest, stock_entry_id: created.id };
+          }),
+        );
+      }
+      return created;
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.AMENDED,
       crudAction: "create",
       entityId: draft.id,
       entityType: AUDIT_ENTITY_TYPE.STOCK_ENTRY,
-      newState: { amendFrom: original.id, id: draft.id },
+      newState: { amendFrom: parsed.id, id: draft.id },
     });
 
     return draft;
@@ -308,20 +290,23 @@ export const listStockEntries = Workflow.name("inventory.stock-entry.list")
     if (parsed.warehouseId) {
       conditions.push(eq(inventoryStockEntry.target_warehouse_id, parsed.warehouseId));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    if (parsed.itemId) {
+      const itemRows = await ctx.db
+        .select({ stock_entry_id: inventoryStockEntryItem.stock_entry_id })
+        .from(inventoryStockEntryItem)
+        .where(eq(inventoryStockEntryItem.item_id, parsed.itemId));
+      const ids = [...new Set(itemRows.map((row) => row.stock_entry_id))];
+      if (ids.length === 0) {
+        return [];
+      }
+      conditions.push(inArray(inventoryStockEntry.id, ids));
+    }
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryStockEntry)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
-    if (!parsed.itemId) {
-      return rows;
-    }
-    const itemRows = await ctx.db
-      .select({ stock_entry_id: inventoryStockEntryItem.stock_entry_id })
-      .from(inventoryStockEntryItem)
-      .where(eq(inventoryStockEntryItem.item_id, parsed.itemId));
-    const ids = new Set(itemRows.map((row) => row.stock_entry_id));
-    return rows.filter((row) => ids.has(row.id));
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
+    return rows;
   });

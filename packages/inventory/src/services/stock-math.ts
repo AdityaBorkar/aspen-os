@@ -1,32 +1,91 @@
 import { STOCK_ENTRY_PURPOSE } from "#/utils/constants";
 import type { StockEntryPurpose } from "#/utils/constants";
 
-interface PurposeWarehouseRule {
+interface PurposeLegality {
+  allowIn: boolean;
+  allowOut: boolean;
   needsSource: boolean;
   needsTarget: boolean;
 }
 
-const PURPOSE_WAREHOUSE_RULES = {
-  [STOCK_ENTRY_PURPOSE.MATERIAL_ISSUE]: { needsSource: true, needsTarget: false },
-  [STOCK_ENTRY_PURPOSE.MATERIAL_RECEIPT]: { needsSource: false, needsTarget: true },
-  [STOCK_ENTRY_PURPOSE.MATERIAL_TRANSFER]: { needsSource: true, needsTarget: true },
-  [STOCK_ENTRY_PURPOSE.TRANSFER_FOR_MANUFACTURE]: { needsSource: true, needsTarget: true },
-  [STOCK_ENTRY_PURPOSE.CONSUMPTION_FOR_MANUFACTURE]: { needsSource: true, needsTarget: false },
-  [STOCK_ENTRY_PURPOSE.MANUFACTURE]: { needsSource: false, needsTarget: true },
-  [STOCK_ENTRY_PURPOSE.REPACK]: { needsSource: true, needsTarget: true },
-  [STOCK_ENTRY_PURPOSE.SEND_TO_SUBCONTRACTOR]: { needsSource: true, needsTarget: false },
-  [STOCK_ENTRY_PURPOSE.CUSTOMER_PROVIDED_RECEIPT]: { needsSource: false, needsTarget: true },
-} satisfies Record<StockEntryPurpose, PurposeWarehouseRule>;
+const PURPOSE_LEGALITY = {
+  [STOCK_ENTRY_PURPOSE.MATERIAL_ISSUE]: {
+    allowIn: false,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: false,
+  },
+  [STOCK_ENTRY_PURPOSE.MATERIAL_RECEIPT]: {
+    allowIn: true,
+    allowOut: false,
+    needsSource: false,
+    needsTarget: true,
+  },
+  [STOCK_ENTRY_PURPOSE.MATERIAL_TRANSFER]: {
+    allowIn: true,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: true,
+  },
+  [STOCK_ENTRY_PURPOSE.TRANSFER_FOR_MANUFACTURE]: {
+    allowIn: true,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: true,
+  },
+  [STOCK_ENTRY_PURPOSE.CONSUMPTION_FOR_MANUFACTURE]: {
+    allowIn: false,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: false,
+  },
+  [STOCK_ENTRY_PURPOSE.MANUFACTURE]: {
+    allowIn: true,
+    allowOut: true,
+    needsSource: false,
+    needsTarget: true,
+  },
+  [STOCK_ENTRY_PURPOSE.REPACK]: {
+    allowIn: true,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: true,
+  },
+  [STOCK_ENTRY_PURPOSE.SEND_TO_SUBCONTRACTOR]: {
+    allowIn: false,
+    allowOut: true,
+    needsSource: true,
+    needsTarget: false,
+  },
+  [STOCK_ENTRY_PURPOSE.CUSTOMER_PROVIDED_RECEIPT]: {
+    allowIn: true,
+    allowOut: false,
+    needsSource: false,
+    needsTarget: true,
+  },
+} satisfies Record<StockEntryPurpose, PurposeLegality>;
 
-export function getPurposeWarehouseRule(purpose: StockEntryPurpose): PurposeWarehouseRule {
-  const rule = PURPOSE_WAREHOUSE_RULES[purpose];
-  if (!rule) {
-    throw new Error(`Unknown stock entry purpose "${purpose}".`);
-  }
-  return rule;
+export interface PurposeWarehouseRule {
+  needsSource: boolean;
+  needsTarget: boolean;
 }
 
-export function validateHeaderWarehouses(
+export function getPurposeWarehouseRule(purpose: StockEntryPurpose): PurposeWarehouseRule {
+  const rule = PURPOSE_LEGALITY[purpose];
+  return { needsSource: rule.needsSource, needsTarget: rule.needsTarget };
+}
+
+export interface RowLegRule {
+  allowIn: boolean;
+  allowOut: boolean;
+}
+
+export function getRowLegRule(purpose: StockEntryPurpose): RowLegRule {
+  const rule = PURPOSE_LEGALITY[purpose];
+  return { allowIn: rule.allowIn, allowOut: rule.allowOut };
+}
+
+function assertDifferentWarehouses(
   purpose: StockEntryPurpose,
   sourceWarehouseId: string | null,
   targetWarehouseId: string | null,
@@ -41,29 +100,25 @@ export function validateHeaderWarehouses(
   }
 }
 
-export interface RowLegRule {
-  allowIn: boolean;
-  allowOut: boolean;
-}
-
-export function getRowLegRule(purpose: StockEntryPurpose): RowLegRule {
-  switch (purpose) {
-    case STOCK_ENTRY_PURPOSE.MATERIAL_ISSUE:
-    case STOCK_ENTRY_PURPOSE.CONSUMPTION_FOR_MANUFACTURE:
-    case STOCK_ENTRY_PURPOSE.SEND_TO_SUBCONTRACTOR: {
-      return { allowIn: false, allowOut: true };
-    }
-    case STOCK_ENTRY_PURPOSE.MATERIAL_RECEIPT:
-    case STOCK_ENTRY_PURPOSE.CUSTOMER_PROVIDED_RECEIPT: {
-      return { allowIn: true, allowOut: false };
-    }
-    case STOCK_ENTRY_PURPOSE.MATERIAL_TRANSFER:
-    case STOCK_ENTRY_PURPOSE.TRANSFER_FOR_MANUFACTURE:
-    case STOCK_ENTRY_PURPOSE.MANUFACTURE:
-    case STOCK_ENTRY_PURPOSE.REPACK: {
-      return { allowIn: true, allowOut: true };
-    }
+export function validateHeaderWarehouses(
+  purpose: StockEntryPurpose,
+  sourceWarehouseId: string | null,
+  targetWarehouseId: string | null,
+): void {
+  const rule = PURPOSE_LEGALITY[purpose];
+  if (rule.needsSource && !sourceWarehouseId) {
+    throw new Error(`Purpose "${purpose}" requires a source warehouse.`);
   }
+  if (rule.needsTarget && !targetWarehouseId) {
+    throw new Error(`Purpose "${purpose}" requires a target warehouse.`);
+  }
+  if (!rule.allowOut && sourceWarehouseId) {
+    throw new Error(`Purpose "${purpose}" must not carry a source warehouse.`);
+  }
+  if (!rule.allowIn && targetWarehouseId) {
+    throw new Error(`Purpose "${purpose}" must not carry a target warehouse.`);
+  }
+  assertDifferentWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
 }
 
 export function validateRowLegs(
@@ -71,7 +126,7 @@ export function validateRowLegs(
   sourceWarehouseId: string | null,
   targetWarehouseId: string | null,
 ): void {
-  const rule = getRowLegRule(purpose);
+  const rule = PURPOSE_LEGALITY[purpose];
   if (!sourceWarehouseId && !targetWarehouseId) {
     throw new Error(
       `Purpose "${purpose}" rows need a source warehouse, a target warehouse, or both.`,
@@ -83,14 +138,7 @@ export function validateRowLegs(
   if (targetWarehouseId && !rule.allowIn) {
     throw new Error(`Purpose "${purpose}" rows must not carry a target warehouse.`);
   }
-  if (
-    sourceWarehouseId &&
-    targetWarehouseId &&
-    sourceWarehouseId === targetWarehouseId &&
-    purpose !== STOCK_ENTRY_PURPOSE.REPACK
-  ) {
-    throw new Error("Source and target warehouses must differ.");
-  }
+  assertDifferentWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
 }
 
 export function validatePurposeWarehouses(
@@ -98,19 +146,6 @@ export function validatePurposeWarehouses(
   sourceWarehouseId: string | null,
   targetWarehouseId: string | null,
 ): void {
-  const rule = getPurposeWarehouseRule(purpose);
-  if (rule.needsSource && !sourceWarehouseId) {
-    throw new Error(`Purpose "${purpose}" requires a source warehouse.`);
-  }
-  if (!rule.needsSource && sourceWarehouseId && purpose !== STOCK_ENTRY_PURPOSE.MANUFACTURE) {
-    throw new Error(`Purpose "${purpose}" must not carry a source warehouse.`);
-  }
-  if (rule.needsTarget && !targetWarehouseId) {
-    throw new Error(`Purpose "${purpose}" requires a target warehouse.`);
-  }
-  if (!rule.needsTarget && targetWarehouseId) {
-    throw new Error(`Purpose "${purpose}" must not carry a target warehouse.`);
-  }
   validateHeaderWarehouses(purpose, sourceWarehouseId, targetWarehouseId);
 }
 
@@ -144,7 +179,7 @@ export function fifoIssueRate(oldestReceiptRate: number | null, fallbackRate: nu
 }
 
 export interface PutawayCapacity {
-  free: number;
+  capacity: number | null;
   warehouseId: string;
 }
 
@@ -160,7 +195,8 @@ export function splitAcrossWarehouses(qty: number, capacities: PutawayCapacity[]
     if (remaining <= 0) {
       break;
     }
-    const take = Math.min(remaining, Math.max(capacity.free, 0));
+    const free = capacity.capacity === null ? Number.POSITIVE_INFINITY : capacity.capacity;
+    const take = Math.min(remaining, Math.max(free, 0));
     if (take > 0) {
       splits.push({ qty: take, warehouseId: capacity.warehouseId });
       remaining -= take;
@@ -187,6 +223,11 @@ export function daysBetween(fromDateOnly: string, toDateOnlyValue: string): numb
   return Math.floor((to - from) / 86_400_000);
 }
 
+export interface FreezeWindow {
+  olderThanDays: number | null;
+  uptoDate: string | null;
+}
+
 // oxlint-disable-next-line eslint/max-params -- freeze check reads three independent window settings; grouping would hide the guard logic
 export function isFrozen(
   postingDateOnly: string,
@@ -194,12 +235,24 @@ export function isFrozen(
   freezeOlderThanDays: number | null,
   todayOnly: string,
 ): boolean {
-  if (freezeUptoDate && postingDateOnly <= freezeUptoDate) {
+  return isFrozenWindow(
+    postingDateOnly,
+    { olderThanDays: freezeOlderThanDays, uptoDate: freezeUptoDate },
+    todayOnly,
+  );
+}
+
+export function isFrozenWindow(
+  postingDateOnly: string,
+  window: FreezeWindow,
+  todayOnly: string,
+): boolean {
+  if (window.uptoDate && postingDateOnly <= window.uptoDate) {
     return true;
   }
-  if (freezeOlderThanDays !== null && freezeOlderThanDays >= 0) {
+  if (window.olderThanDays !== null && window.olderThanDays >= 0) {
     const age = daysBetween(postingDateOnly, todayOnly);
-    if (age > freezeOlderThanDays) {
+    if (age > window.olderThanDays) {
       return true;
     }
   }

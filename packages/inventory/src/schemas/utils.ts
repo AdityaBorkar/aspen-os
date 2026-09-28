@@ -1,4 +1,18 @@
-import { check, integer, maxLength, minLength, number, pipe, string } from "valibot";
+import { IdSchema as PlatformIdSchema } from "@aspen-os/platform/server";
+import {
+  array,
+  check,
+  integer,
+  maxLength,
+  minLength,
+  nullable,
+  number,
+  object,
+  optional,
+  pipe,
+  string,
+} from "valibot";
+import type { InferOutput } from "valibot";
 
 export {
   EmailSchema,
@@ -30,8 +44,19 @@ export const DateStringSchema = pipe(
   check((value) => !Number.isNaN(Date.parse(value)), "Must be a valid date"),
 );
 
-export const PrioritySchema = pipe(
-  number(),
-  integer("Must be an integer"),
-  check((value) => value >= 1, "Must be at least 1"),
+export const PaginationSchema = object({
+  limit: optional(pipe(number(), integer("Must be an integer")), 50),
+  offset: optional(pipe(number(), integer("Must be an integer")), 0),
+});
+
+export type PaginationInput = InferOutput<typeof PaginationSchema>;
+
+export const SerialNosSchema = optional(
+  array(pipe(string(), minLength(1, "Serial number is required"))),
+  [],
 );
+
+export const DocActionSchema = object({
+  actorRole: optional(nullable(string())),
+  id: PlatformIdSchema,
+});

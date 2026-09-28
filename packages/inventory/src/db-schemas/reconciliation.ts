@@ -1,4 +1,5 @@
 import { inventoryDocStatusEnum, inventoryReconciliationPurposeEnum } from "#/db-schemas/enums";
+import { DEFAULT_DIFFERENCE_ACCOUNT } from "#/utils/constants";
 
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
@@ -7,7 +8,7 @@ export const inventoryReconciliation = pgTable(
   "inventory_reconciliation",
   {
     created_at: timestamp({ withTimezone: true }).notNull().defaultNow(),
-    difference_account: text().notNull().default("Stock Adjustment"),
+    difference_account: text().notNull().default(DEFAULT_DIFFERENCE_ACCOUNT),
     id: uuidv7().primaryKey(),
     posting_date: date().notNull(),
     posting_time: text(),

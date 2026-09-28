@@ -7,23 +7,16 @@ import {
 } from "#/schemas/enums";
 import {
   DateStringSchema,
+  DocActionSchema,
   IdSchema,
+  PaginationSchema,
   PositiveQuantitySchema,
   QuantitySchema,
+  SerialNosSchema,
 } from "#/schemas/utils";
+import { DEFAULT_DIFFERENCE_ACCOUNT } from "#/utils/constants";
 
-import {
-  array,
-  boolean,
-  integer,
-  minLength,
-  nullable,
-  number,
-  object,
-  optional,
-  pipe,
-  string,
-} from "valibot";
+import { array, boolean, minLength, nullable, object, optional, pipe, string } from "valibot";
 import type { InferOutput } from "valibot";
 
 export const ReconciliationItemSchema = object({
@@ -31,8 +24,8 @@ export const ReconciliationItemSchema = object({
   itemId: IdSchema,
   qty: optional(nullable(QuantitySchema)),
   reconcileMode: optional(nullable(ReconcileModeSchema)),
-  serialNos: optional(array(pipe(string(), minLength(1, "Serial number is required"))), []),
-  valuationRate: optional(nullable(number())),
+  serialNos: SerialNosSchema,
+  valuationRate: optional(nullable(PositiveQuantitySchema)),
   warehouseId: IdSchema,
 });
 
@@ -41,7 +34,7 @@ export type ReconciliationItemInput = InferOutput<typeof ReconciliationItemSchem
 export const CreateReconciliationSchema = object({
   differenceAccount: optional(
     pipe(string(), minLength(1, "Difference account is required")),
-    "Stock Adjustment",
+    DEFAULT_DIFFERENCE_ACCOUNT,
   ),
   items: pipe(array(ReconciliationItemSchema), minLength(1, "At least one item is required")),
   postingDate: DateStringSchema,
@@ -67,16 +60,12 @@ export const UpdateReconciliationSchema = object({
 
 export type UpdateReconciliationInput = InferOutput<typeof UpdateReconciliationSchema>;
 
-export const SubmitReconciliationSchema = object({
-  actorRole: optional(nullable(string())),
-  id: IdSchema,
-});
+export const SubmitReconciliationSchema = DocActionSchema;
 
 export type SubmitReconciliationInput = InferOutput<typeof SubmitReconciliationSchema>;
 
 export const ReconciliationFiltersSchema = object({
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
+  ...PaginationSchema.entries,
   purpose: optional(ReconciliationPurposeSchema),
   status: optional(DocStatusSchema),
 });
@@ -102,9 +91,8 @@ export const ConsumeReservationSchema = object({
 export type ConsumeReservationInput = InferOutput<typeof ConsumeReservationSchema>;
 
 export const ReservationFiltersSchema = object({
+  ...PaginationSchema.entries,
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   salesOrderId: optional(nullable(IdSchema)),
   status: optional(ReservationStatusSchema),
   warehouseId: optional(nullable(IdSchema)),
@@ -119,7 +107,7 @@ export const PickListItemSchema = object({
   qty: QuantitySchema,
   salesOrderId: optional(nullable(IdSchema)),
   salesOrderItemId: optional(nullable(IdSchema)),
-  serialNos: optional(array(pipe(string(), minLength(1, "Serial number is required"))), []),
+  serialNos: SerialNosSchema,
   warehouseId: optional(nullable(IdSchema)),
 });
 
@@ -160,8 +148,7 @@ export const UpdatePickedQtySchema = object({
 export type UpdatePickedQtyInput = InferOutput<typeof UpdatePickedQtySchema>;
 
 export const PickListFiltersSchema = object({
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
+  ...PaginationSchema.entries,
   purpose: optional(PickListPurposeSchema),
   status: optional(DocStatusSchema),
 });
@@ -194,7 +181,7 @@ export const CreatePutawayRuleSchema = object({
   capacity: QuantitySchema,
   capacityUom: pipe(string(), minLength(1, "Capacity UOM is required")),
   itemId: IdSchema,
-  priority: optional(pipe(number(), integer("Must be an integer")), 1),
+  priority: optional(PositiveQuantitySchema, 1),
   warehouseId: IdSchema,
 });
 
@@ -204,16 +191,15 @@ export const UpdatePutawayRuleSchema = object({
   capacity: optional(QuantitySchema),
   capacityUom: optional(pipe(string(), minLength(1, "Capacity UOM is required"))),
   isDisabled: optional(boolean()),
-  priority: optional(pipe(number(), integer("Must be an integer"))),
+  priority: optional(PositiveQuantitySchema),
 });
 
 export type UpdatePutawayRuleInput = InferOutput<typeof UpdatePutawayRuleSchema>;
 
 export const PutawayRuleFiltersSchema = object({
+  ...PaginationSchema.entries,
   includeDisabled: optional(boolean(), false),
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   warehouseId: optional(nullable(IdSchema)),
 });
 

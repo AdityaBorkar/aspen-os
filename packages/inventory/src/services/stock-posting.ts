@@ -6,6 +6,7 @@ import { inventorySerial } from "#/db-schemas/serial";
 import { inventoryStockEntry } from "#/db-schemas/stock-entry";
 import { inventoryStockEntryItem } from "#/db-schemas/stock-entry-item";
 import { inventoryStockLedger } from "#/db-schemas/stock-ledger";
+import { inventoryWarehouse } from "#/db-schemas/warehouse";
 import {
   distributeAdditionalCosts,
   fifoIssueRate,
@@ -16,18 +17,19 @@ import {
 } from "#/services/stock-math";
 import {
   assertFreezeAllowed,
-  getAvailableQty,
+  getBatchBalances,
   getEffectiveSetting,
   getLatestValuationRate,
   getOldestReceiptRate,
-  getOnHandQty,
-  getStockValuation,
-  requireWarehouse,
+  getStockStates,
+  shouldAutoReserve,
+  asDb,
 } from "#/services/stock-service";
-import type { DB, EffectiveSetting } from "#/services/stock-service";
-import { STOCK_ENTRY_PURPOSE } from "#/utils/constants";
+import type { DB, DbOrTx, EffectiveSetting, Tx } from "#/services/stock-service";
+import { STOCK_ENTRY_PURPOSE, VALUATION_METHOD } from "#/utils/constants";
+import type { ValuationMethod } from "#/utils/constants";
 
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 
 export type StockEntryRow = typeof inventoryStockEntry.$inferSelect;
 export type StockEntryItemRow = typeof inventoryStockEntryItem.$inferSelect;
@@ -40,12 +42,9 @@ export interface PreparedSubmit {
   setting: EffectiveSetting;
 }
 
-export async function prepareSubmit(
-  db: DB,
-  entryId: string,
-  actorRole: string | null,
-): Promise<PreparedSubmit> {
-  const [entry] = await db
+export async function requireDraftEntry(db: DbOrTx, entryId: string): Promise<StockEntryRow> {
+  const handle = asDb(db);
+  const [entry] = await handle
     .select()
     .from(inventoryStockEntry)
     .where(eq(inventoryStockEntry.id, entryId))
@@ -54,26 +53,41 @@ export async function prepareSubmit(
     throw new Error(`Stock entry "${entryId}" not found.`);
   }
   if (entry.status !== "draft") {
+    throw new Error(`Only draft stock entries can be edited (current: ${entry.status}).`);
+  }
+  return entry;
+}
+
+export async function prepareSubmit(
+  db: DbOrTx,
+  entryId: string,
+  actorRole: string | null,
+): Promise<PreparedSubmit> {
+  const handle = asDb(db);
+  const entry = await requireDraftEntry(handle, entryId);
+  if (entry.status !== "draft") {
     throw new Error(`Only draft stock entries can be submitted (current: ${entry.status}).`);
   }
-  const items = await db
-    .select()
-    .from(inventoryStockEntryItem)
-    .where(eq(inventoryStockEntryItem.stock_entry_id, entryId));
+  const [items, costs, setting] = await Promise.all([
+    handle
+      .select()
+      .from(inventoryStockEntryItem)
+      .where(eq(inventoryStockEntryItem.stock_entry_id, entryId)),
+    handle
+      .select()
+      .from(inventoryAdditionalCost)
+      .where(eq(inventoryAdditionalCost.stock_entry_id, entryId)),
+    getEffectiveSetting(handle),
+  ]);
   if (items.length === 0) {
     throw new Error("Cannot submit a stock entry without items.");
   }
-  const costs = await db
-    .select()
-    .from(inventoryAdditionalCost)
-    .where(eq(inventoryAdditionalCost.stock_entry_id, entryId));
-  const setting = await getEffectiveSetting(db);
   assertFreezeAllowed(setting, entry.posting_date, actorRole);
   validateHeaderWarehouses(entry.purpose, entry.source_warehouse_id, entry.target_warehouse_id);
   return { costs, entry, items, setting };
 }
 
-export interface PostingLeg {
+export interface UnpricedLeg {
   allowNegative: boolean;
   basicRate: number;
   batchNo: string | null;
@@ -82,49 +96,51 @@ export interface PostingLeg {
   isSerialTracked: boolean;
   itemId: string;
   qty: number;
-  rate: number;
   salesOrderId: string | null;
   salesOrderItemId: string | null;
   serialNos: string[];
-  valuationMethod: string;
+  valuationMethod: ValuationMethod;
   warehouseId: string;
   movement: "in" | "out";
 }
 
+export interface PricedLeg extends UnpricedLeg {
+  rate: number;
+}
+
+export type PostingLeg = PricedLeg;
+
 export interface ComputedPosting {
-  legs: PostingLeg[];
+  legs: PricedLeg[];
   putawaySplits: { itemId: string; qty: number; warehouseId: string }[];
 }
 
-function effectiveWarehouse(row: StockEntryItemRow, side: "source" | "target"): string | null {
-  // Row warehouses are resolved against the header at creation time
-  // (omitted fields inherit, explicit null opts out), so by submit time the
-  // row carries its literal legs with no further fallback.
-  if (side === "source") {
-    return row.source_warehouse_id;
+function resolveValuationMethod(raw: string | null, fallback: ValuationMethod): ValuationMethod {
+  if (raw === VALUATION_METHOD.FIFO || raw === VALUATION_METHOD.MOVING_AVERAGE) {
+    return raw;
   }
-  return row.target_warehouse_id;
+  return fallback;
 }
 
-export async function computePosting(db: DB, prepared: PreparedSubmit): Promise<ComputedPosting> {
-  const { costs, entry, items, setting } = prepared;
-  const putawaySplits: ComputedPosting["putawaySplits"] = [];
-
-  if (entry.add_to_transit) {
-    if (!entry.target_warehouse_id) {
-      throw new Error("Add-to-transit transfers require a transit target warehouse.");
-    }
-    const target = await requireWarehouse(db, entry.target_warehouse_id);
-    if (target.warehouse_type !== "transit") {
-      throw new Error("Add-to-transit transfers require a transit-type target warehouse.");
-    }
+function resolveAllowNegative(
+  entry: StockEntryRow,
+  leg: Pick<UnpricedLeg, "allowNegative">,
+): boolean {
+  if (entry.is_opening) {
+    return true;
   }
+  return leg.allowNegative;
+}
 
-  const legs: PostingLeg[] = [];
-  // oxlint-disable eslint/no-await-in-loop
+function expandRowsToLegs(
+  items: StockEntryItemRow[],
+  entry: StockEntryRow,
+  setting: EffectiveSetting,
+): UnpricedLeg[] {
+  const legs: UnpricedLeg[] = [];
   for (const row of items) {
-    const sourceId = effectiveWarehouse(row, "source");
-    const targetId = effectiveWarehouse(row, "target");
+    const sourceId = row.source_warehouse_id;
+    const targetId = row.target_warehouse_id;
     validateRowLegs(entry.purpose, sourceId, targetId);
     if (row.qty <= 0) {
       throw new Error("Item quantity must be greater than zero.");
@@ -147,28 +163,23 @@ export async function computePosting(db: DB, prepared: PreparedSubmit): Promise<
     if (basicRate === null && !entry.allow_zero_valuation) {
       throw new Error(`Item "${row.item_id}" is missing a basic rate (or allow zero valuation).`);
     }
-    const resolvedBasic = basicRate ?? 0;
     const base = {
       allowNegative: row.allow_negative_stock ?? setting.allowNegativeStock,
-      basicRate: resolvedBasic,
+      basicRate: basicRate ?? 0,
       batchNo: row.batch_no,
       entryItemId: row.id,
       isSample: false,
       isSerialTracked,
       itemId: row.item_id,
-      qty: row.qty,
-      rate: 0,
       salesOrderId: row.sales_order_id,
       salesOrderItemId: row.sales_order_item_id,
       serialNos: [...row.serial_nos],
-      valuationMethod: row.valuation_method ?? setting.defaultValuationMethod,
+      valuationMethod: resolveValuationMethod(row.valuation_method, setting.defaultValuationMethod),
     };
     if (sourceId) {
-      await requireWarehouse(db, sourceId);
-      legs.push({ ...base, movement: "out", warehouseId: sourceId });
+      legs.push({ ...base, movement: "out", qty: row.qty, warehouseId: sourceId });
     }
     if (targetId) {
-      await requireWarehouse(db, targetId);
       const sampleQty = row.sample_qty ?? 0;
       if (sampleQty < 0 || sampleQty > row.qty) {
         throw new Error("Sample quantity must be between zero and the row quantity.");
@@ -181,9 +192,6 @@ export async function computePosting(db: DB, prepared: PreparedSubmit): Promise<
       const retentionId = sampleQty > 0 ? setting.sampleRetentionWarehouseId : null;
       if (sampleQty > 0 && !retentionId) {
         throw new Error("Sample retention requires a sample retention warehouse in settings.");
-      }
-      if (retentionId) {
-        await requireWarehouse(db, retentionId);
       }
       const mainQty = row.qty - sampleQty;
       if (mainQty > 0) {
@@ -209,123 +217,209 @@ export async function computePosting(db: DB, prepared: PreparedSubmit): Promise<
       }
     }
   }
-
   if (legs.length === 0) {
     throw new Error("No stock movement legs resolved for this entry.");
   }
+  return legs;
+}
 
-  const receiptLegs = legs.filter((leg) => leg.movement === "in");
+async function validateLegWarehouses(
+  db: DbOrTx,
+  legs: UnpricedLeg[],
+  entry: StockEntryRow,
+): Promise<void> {
+  const handle = asDb(db);
+  const ids = [...new Set(legs.map((leg) => leg.warehouseId))];
+  if (entry.add_to_transit && entry.target_warehouse_id) {
+    ids.push(entry.target_warehouse_id);
+  }
+  const uniqueIds = [...new Set(ids)];
+  const rows =
+    uniqueIds.length === 0
+      ? []
+      : await handle
+          .select()
+          .from(inventoryWarehouse)
+          .where(inArray(inventoryWarehouse.id, uniqueIds));
+  const byId = new Map(rows.map((row) => [row.id, row]));
+  for (const id of uniqueIds) {
+    const warehouse = byId.get(id);
+    if (!warehouse) {
+      throw new Error(`Warehouse "${id}" not found.`);
+    }
+    if (warehouse.is_disabled) {
+      throw new Error(`Warehouse "${warehouse.name}" is disabled.`);
+    }
+    if (warehouse.is_group) {
+      throw new Error(`Warehouse "${warehouse.name}" is a group and cannot hold stock.`);
+    }
+  }
+  if (entry.add_to_transit) {
+    if (!entry.target_warehouse_id) {
+      throw new Error("Add-to-transit transfers require a transit target warehouse.");
+    }
+    const target = byId.get(entry.target_warehouse_id);
+    if (target?.warehouse_type !== "transit") {
+      throw new Error("Add-to-transit transfers require a transit-type target warehouse.");
+    }
+  }
+}
+
+async function priceIssueLegs(
+  db: DbOrTx,
+  legs: UnpricedLeg[],
+  entry: StockEntryRow,
+): Promise<PricedLeg[]> {
+  const handle = asDb(db);
   const issueLegs = legs.filter((leg) => leg.movement === "out");
-  const totalAdditional = costs.reduce((sum, cost) => sum + (cost.amount ?? 0), 0);
-
-  const isRollup =
-    entry.purpose === STOCK_ENTRY_PURPOSE.REPACK ||
-    entry.purpose === STOCK_ENTRY_PURPOSE.MANUFACTURE;
-
-  for (const leg of issueLegs) {
-    const valuation = await getStockValuation(db, leg.itemId, leg.warehouseId);
-    const currentAvg = valuation.qty > 0 ? valuation.value / valuation.qty : 0;
-    if (leg.valuationMethod === "fifo") {
-      const oldest = await getOldestReceiptRate(db, leg.itemId, leg.warehouseId);
-      const latest = await getLatestValuationRate(db, leg.itemId, leg.warehouseId);
-      leg.rate = fifoIssueRate(oldest, latest ?? currentAvg);
-    } else {
-      leg.rate =
-        currentAvg > 0
-          ? currentAvg
-          : ((await getLatestValuationRate(db, leg.itemId, leg.warehouseId)) ?? 0);
-    }
-    leg.basicRate = leg.rate;
-
-    const allowNegative = entry.is_opening ? true : leg.allowNegative;
-    if (leg.isSerialTracked || leg.batchNo) {
-      const onHand = await getOnHandQty(db, leg.itemId, leg.warehouseId);
-      if (onHand - leg.qty < 0) {
-        throw new Error(
-          `Insufficient stock for serial/batch item "${leg.itemId}" (negative stock is never allowed).`,
-        );
+  if (issueLegs.length === 0) {
+    return [];
+  }
+  const states = await getStockStates(
+    handle,
+    issueLegs.map((leg) => ({ itemId: leg.itemId, warehouseId: leg.warehouseId })),
+  );
+  const priced = await Promise.all(
+    issueLegs.map(async (leg) => {
+      const key = `${leg.itemId}::${leg.warehouseId}`;
+      const state = states.get(key) ?? { available: 0, onHand: 0, reserved: 0, value: 0 };
+      const currentAvg = state.onHand > 0 ? state.value / state.onHand : 0;
+      let rate: number;
+      if (leg.valuationMethod === VALUATION_METHOD.FIFO) {
+        const [oldest, latest] = await Promise.all([
+          getOldestReceiptRate(handle, leg.itemId, leg.warehouseId),
+          getLatestValuationRate(handle, leg.itemId, leg.warehouseId),
+        ]);
+        rate = fifoIssueRate(oldest, latest ?? currentAvg);
+      } else {
+        if (currentAvg > 0) {
+          rate = currentAvg;
+        } else {
+          rate = (await getLatestValuationRate(handle, leg.itemId, leg.warehouseId)) ?? 0;
+        }
       }
-    } else if (!allowNegative) {
-      const available = await getAvailableQty(db, leg.itemId, leg.warehouseId);
-      if (available - leg.qty < 0) {
-        throw new Error(
-          `Insufficient stock for item "${leg.itemId}" in warehouse "${leg.warehouseId}".`,
-        );
+      const allowNegative = resolveAllowNegative(entry, leg);
+      if (leg.isSerialTracked || leg.batchNo) {
+        if (state.onHand - leg.qty < 0) {
+          throw new Error(
+            `Insufficient stock for serial/batch item "${leg.itemId}" (negative stock is never allowed).`,
+          );
+        }
+      } else if (!allowNegative) {
+        if (state.available - leg.qty < 0) {
+          throw new Error(
+            `Insufficient stock for item "${leg.itemId}" in warehouse "${leg.warehouseId}".`,
+          );
+        }
       }
-    }
-
-    if (leg.batchNo) {
-      await assertBatchIssuable(db, {
+      return { ...leg, rate };
+    }),
+  );
+  const batchChecks = priced.filter(
+    (leg): leg is PricedLeg & { batchNo: string } => leg.batchNo !== null,
+  );
+  await Promise.all(
+    batchChecks.map((leg) =>
+      assertBatchIssuable(handle, {
         batchNo: leg.batchNo,
         itemId: leg.itemId,
         postingDateOnly: toDateOnly(entry.posting_date),
         qty: leg.qty,
         warehouseId: leg.warehouseId,
-      });
-    }
-    if (leg.isSerialTracked) {
-      await assertSerialsAvailable(db, {
+      }),
+    ),
+  );
+  const serialChecks = priced.filter((leg) => leg.isSerialTracked);
+  if (serialChecks.length > 0) {
+    const allSerials = [...new Set(serialChecks.flatMap((leg) => leg.serialNos))];
+    await assertSerialsAvailable(handle, {
+      itemId: serialChecks[0]?.itemId ?? "",
+      items: serialChecks.map((leg) => ({
         itemId: leg.itemId,
         serialNos: leg.serialNos,
         warehouseId: leg.warehouseId,
-      });
-    }
-  }
-
-  if (isRollup && issueLegs.length > 0 && receiptLegs.length > 0) {
-    const inputValue =
-      issueLegs.reduce((sum, leg) => sum + leg.qty * leg.rate, 0) + totalAdditional;
-    const issuedQty = new Map<string, number>();
-    const issuedValue = new Map<string, number>();
-    for (const leg of issueLegs) {
-      issuedQty.set(leg.itemId, (issuedQty.get(leg.itemId) ?? 0) + leg.qty);
-      issuedValue.set(leg.itemId, (issuedValue.get(leg.itemId) ?? 0) + leg.qty * leg.rate);
-    }
-    // Receipts for items also issued in this entry are transfers carried at
-    // cost; only genuinely new items absorb the rolled-up input value.
-    const newReceipts = receiptLegs.filter((leg) => !issuedQty.has(leg.itemId));
-    let transferValue = 0;
-    for (const leg of receiptLegs) {
-      const qty = issuedQty.get(leg.itemId) ?? 0;
-      if (qty <= 0) {
-        continue;
-      }
-      const value = issuedValue.get(leg.itemId) ?? 0;
-      leg.rate = qty > 0 ? value / qty : 0;
-      transferValue += leg.qty * leg.rate;
-    }
-    const remaining = inputValue - transferValue;
-    const weights = newReceipts.map((leg) =>
-      leg.basicRate > 0 ? leg.qty * leg.basicRate : leg.qty,
-    );
-    const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
-    newReceipts.forEach((leg, index) => {
-      const weight = weights[index] ?? 0;
-      const share =
-        weightTotal > 0 ? (weight / weightTotal) * remaining : remaining / newReceipts.length;
-      leg.rate = leg.qty > 0 ? share / leg.qty : 0;
+      })),
+      serialNos: allSerials,
+      warehouseId: serialChecks[0]?.warehouseId ?? "",
     });
-  } else {
-    const basicAmounts = receiptLegs.map((leg) => leg.qty * leg.basicRate);
-    const shares = distributeAdditionalCosts(basicAmounts, totalAdditional);
-    for (const [index, leg] of receiptLegs.entries()) {
-      const share = shares[index] ?? 0;
-      // Receipt rows carry the transaction rate (basic + cost share). The
-      // moving average is derived (value / qty), never stored on the row.
-      leg.rate = leg.basicRate + (leg.qty > 0 ? share / leg.qty : 0);
-    }
   }
+  return priced;
+}
 
-  if (entry.apply_putaway_rule && receiptLegs.length > 0) {
-    // Retain samples always route to the retention warehouse, never putaway.
-    const putawayLegs = receiptLegs.filter((leg) => !leg.isSample);
-    const originalReceiptCount = putawayLegs.length;
-    for (let index = 0; index < originalReceiptCount; index += 1) {
-      const leg = putawayLegs[index];
-      if (!leg) {
-        continue;
-      }
-      const rules = await db
+function priceStandardReceipts(receiptLegs: PricedLeg[], totalAdditional: number): void {
+  const basicAmounts = receiptLegs.map((leg) => leg.qty * leg.basicRate);
+  const shares = distributeAdditionalCosts(basicAmounts, totalAdditional);
+  receiptLegs.forEach((leg, index) => {
+    const share = shares[index] ?? 0;
+    leg.rate = leg.basicRate + (leg.qty > 0 ? share / leg.qty : 0);
+  });
+}
+
+function priceRollupReceipts(
+  issueLegs: PricedLeg[],
+  receiptLegs: PricedLeg[],
+  totalAdditional: number,
+): void {
+  const inputValue = issueLegs.reduce((sum, leg) => sum + leg.qty * leg.rate, 0) + totalAdditional;
+  const issuedQty = new Map<string, number>();
+  const issuedValue = new Map<string, number>();
+  for (const leg of issueLegs) {
+    issuedQty.set(leg.itemId, (issuedQty.get(leg.itemId) ?? 0) + leg.qty);
+    issuedValue.set(leg.itemId, (issuedValue.get(leg.itemId) ?? 0) + leg.qty * leg.rate);
+  }
+  const newReceipts = receiptLegs.filter((leg) => !issuedQty.has(leg.itemId));
+  let transferValue = 0;
+  for (const leg of receiptLegs) {
+    const qty = issuedQty.get(leg.itemId) ?? 0;
+    if (qty <= 0) {
+      continue;
+    }
+    const value = issuedValue.get(leg.itemId) ?? 0;
+    leg.rate = qty > 0 ? value / qty : 0;
+    transferValue += leg.qty * leg.rate;
+  }
+  const remaining = inputValue - transferValue;
+  const weights = newReceipts.map((leg) => (leg.basicRate > 0 ? leg.qty * leg.basicRate : leg.qty));
+  const weightTotal = weights.reduce((sum, weight) => sum + weight, 0);
+  newReceipts.forEach((leg, index) => {
+    const weight = weights[index] ?? 0;
+    const share =
+      weightTotal > 0 ? (weight / weightTotal) * remaining : remaining / newReceipts.length;
+    leg.rate = leg.qty > 0 ? share / leg.qty : 0;
+  });
+}
+
+function priceReceiptLegs(
+  issueLegs: PricedLeg[],
+  receiptLegs: PricedLeg[],
+  totalAdditional: number,
+  entry: StockEntryRow,
+): void {
+  const isRollup =
+    entry.purpose === STOCK_ENTRY_PURPOSE.REPACK ||
+    entry.purpose === STOCK_ENTRY_PURPOSE.MANUFACTURE;
+  if (isRollup && issueLegs.length > 0 && receiptLegs.length > 0) {
+    priceRollupReceipts(issueLegs, receiptLegs, totalAdditional);
+    return;
+  }
+  priceStandardReceipts(receiptLegs, totalAdditional);
+}
+
+async function applyPutawayToReceipts(
+  db: DbOrTx,
+  receiptLegs: PricedLeg[],
+  entry: StockEntryRow,
+): Promise<{ extraLegs: PricedLeg[]; splits: ComputedPosting["putawaySplits"] }> {
+  const handle = asDb(db);
+  const splits: ComputedPosting["putawaySplits"] = [];
+  const extraLegs: PricedLeg[] = [];
+  if (!entry.apply_putaway_rule || receiptLegs.length === 0) {
+    return { extraLegs, splits };
+  }
+  const putawayLegs = receiptLegs.filter((leg) => !leg.isSample);
+  await Promise.all(
+    putawayLegs.map(async (leg) => {
+      const rules = await handle
         .select()
         .from(inventoryPutawayRule)
         .where(
@@ -336,37 +430,53 @@ export async function computePosting(db: DB, prepared: PreparedSubmit): Promise<
         )
         .orderBy(inventoryPutawayRule.priority);
       if (rules.length === 0) {
-        continue;
+        return;
       }
-      const capacities = [];
-      for (const rule of rules) {
-        const onHand = await getOnHandQty(db, leg.itemId, rule.warehouse_id);
-        capacities.push({
-          free: (rule.capacity ?? 0) - onHand,
-          warehouseId: rule.warehouse_id,
-        });
+      const states = await getStockStates(
+        handle,
+        rules.map((rule) => ({ itemId: leg.itemId, warehouseId: rule.warehouse_id })),
+      );
+      const capacities = rules.map((rule) => {
+        const onHand = states.get(`${leg.itemId}::${rule.warehouse_id}`)?.onHand ?? 0;
+        return { capacity: rule.capacity - onHand, warehouseId: rule.warehouse_id };
+      });
+      const putawaySplits = splitAcrossWarehouses(leg.qty, capacities);
+      if (putawaySplits.length === 1 && putawaySplits[0]?.warehouseId === leg.warehouseId) {
+        return;
       }
-      const splits = splitAcrossWarehouses(leg.qty, capacities);
-      if (splits.length === 1 && splits[0]?.warehouseId === leg.warehouseId) {
-        continue;
-      }
-      const [first] = splits;
+      const [first] = putawaySplits;
       if (!first) {
         throw new Error("Putaway split produced no target warehouse.");
       }
-      for (const split of splits) {
-        putawaySplits.push({ itemId: leg.itemId, qty: split.qty, warehouseId: split.warehouseId });
+      for (const split of putawaySplits) {
+        splits.push({ itemId: leg.itemId, qty: split.qty, warehouseId: split.warehouseId });
       }
       leg.warehouseId = first.warehouseId;
       leg.qty = first.qty;
-      for (const extra of splits.slice(1)) {
-        legs.push({ ...leg, qty: extra.qty, warehouseId: extra.warehouseId });
+      for (const extra of putawaySplits.slice(1)) {
+        extraLegs.push({ ...leg, qty: extra.qty, warehouseId: extra.warehouseId });
       }
-    }
-  }
-  // oxlint-enable eslint/no-await-in-loop
+    }),
+  );
+  return { extraLegs, splits };
+}
 
-  return { legs, putawaySplits };
+export async function computePosting(
+  db: DbOrTx,
+  prepared: PreparedSubmit,
+): Promise<ComputedPosting> {
+  const handle = asDb(db);
+  const { costs, entry, items, setting } = prepared;
+  const unpriced = expandRowsToLegs(items, entry, setting);
+  await validateLegWarehouses(handle, unpriced, entry);
+  const pricedIssues = await priceIssueLegs(handle, unpriced, entry);
+  const receiptUnpriced = unpriced.filter((leg) => leg.movement === "in");
+  const receiptLegs: PricedLeg[] = receiptUnpriced.map((leg) => ({ ...leg, rate: leg.basicRate }));
+  const totalAdditional = costs.reduce((sum, cost) => sum + (cost.amount ?? 0), 0);
+  priceReceiptLegs(pricedIssues, receiptLegs, totalAdditional, entry);
+  const { extraLegs, splits } = await applyPutawayToReceipts(handle, receiptLegs, entry);
+  const legs = [...pricedIssues, ...receiptLegs, ...extraLegs];
+  return { legs, putawaySplits: splits };
 }
 
 export interface BatchIssueCheck {
@@ -377,9 +487,10 @@ export interface BatchIssueCheck {
   warehouseId: string;
 }
 
-async function assertBatchIssuable(db: DB, check: BatchIssueCheck): Promise<void> {
+async function assertBatchIssuable(db: DbOrTx, check: BatchIssueCheck): Promise<void> {
+  const handle = asDb(db);
   const { batchNo, itemId, postingDateOnly, qty, warehouseId } = check;
-  const [batch] = await db
+  const [batch] = await handle
     .select()
     .from(inventoryBatch)
     .where(and(eq(inventoryBatch.item_id, itemId), eq(inventoryBatch.batch_id, batchNo)))
@@ -390,7 +501,8 @@ async function assertBatchIssuable(db: DB, check: BatchIssueCheck): Promise<void
   if (batch.status === "expired" || (batch.expiry_date && batch.expiry_date < postingDateOnly)) {
     throw new Error(`Batch "${batchNo}" is expired and cannot be issued.`);
   }
-  const balance = await getBatchBalance(db, { batchNo, itemId, warehouseId });
+  const balances = await getBatchBalances(handle, itemId, warehouseId, [batchNo]);
+  const balance = balances.get(batchNo) ?? 0;
   if (balance - qty < 0) {
     throw new Error(
       `Insufficient batch stock for batch "${batchNo}" (negative stock is never allowed).`,
@@ -404,47 +516,51 @@ export interface BatchBalanceQuery {
   warehouseId: string;
 }
 
-export async function getBatchBalance(db: DB, query: BatchBalanceQuery): Promise<number> {
+export async function getBatchBalance(db: DbOrTx, query: BatchBalanceQuery): Promise<number> {
+  const handle = asDb(db);
   const { batchNo, itemId, warehouseId } = query;
-  const [balance] = await db
-    .select({ total: sql<number>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)` })
-    .from(inventoryStockLedger)
-    .where(
-      and(
-        eq(inventoryStockLedger.item_id, itemId),
-        eq(inventoryStockLedger.warehouse_id, warehouseId),
-        eq(inventoryStockLedger.batch_no, batchNo),
-      ),
-    );
-  return balance?.total ?? 0;
+  const balances = await getBatchBalances(handle, itemId, warehouseId, [batchNo]);
+  return balances.get(batchNo) ?? 0;
 }
 
 export interface SerialAvailabilityCheck {
   itemId: string;
   serialNos: string[];
   warehouseId: string;
+  items?: { itemId: string; serialNos: string[]; warehouseId: string }[];
 }
 
 export async function assertSerialsAvailable(
-  db: DB,
+  db: DbOrTx,
   check: SerialAvailabilityCheck,
 ): Promise<void> {
-  const { itemId, serialNos, warehouseId } = check;
-  // oxlint-disable eslint/no-await-in-loop
-  for (const serialNo of serialNos) {
-    const [serial] = await db
-      .select()
-      .from(inventorySerial)
-      .where(eq(inventorySerial.serial_no, serialNo))
-      .limit(1);
-    if (!serial || serial.item_id !== itemId) {
-      throw new Error(`Serial "${serialNo}" does not exist for item "${itemId}".`);
-    }
-    if (serial.status !== "available" || serial.warehouse_id !== warehouseId) {
-      throw new Error(`Serial "${serialNo}" is not available in warehouse "${warehouseId}".`);
+  const handle = asDb(db);
+  const groups =
+    check.items && check.items.length > 0
+      ? check.items
+      : [{ itemId: check.itemId, serialNos: check.serialNos, warehouseId: check.warehouseId }];
+  const allSerials = [...new Set(groups.flatMap((group) => group.serialNos))];
+  if (allSerials.length === 0) {
+    return;
+  }
+  const rows = await handle
+    .select()
+    .from(inventorySerial)
+    .where(inArray(inventorySerial.serial_no, allSerials));
+  const byNo = new Map(rows.map((row) => [row.serial_no, row]));
+  for (const group of groups) {
+    for (const serialNo of group.serialNos) {
+      const serial = byNo.get(serialNo);
+      if (!serial || serial.item_id !== group.itemId) {
+        throw new Error(`Serial "${serialNo}" does not exist for item "${group.itemId}".`);
+      }
+      if (serial.status !== "available" || serial.warehouse_id !== group.warehouseId) {
+        throw new Error(
+          `Serial "${serialNo}" is not available in warehouse "${group.warehouseId}".`,
+        );
+      }
     }
   }
-  // oxlint-enable eslint/no-await-in-loop
 }
 
 export interface AppliedPosting {
@@ -458,29 +574,39 @@ export interface PostingApplication {
   entry: StockEntryRow;
 }
 
+function weightedRateByEntryItem(legs: PricedLeg[]): Map<string, number> {
+  const qtyByItem = new Map<string, number>();
+  const valueByItem = new Map<string, number>();
+  for (const leg of legs) {
+    qtyByItem.set(leg.entryItemId, (qtyByItem.get(leg.entryItemId) ?? 0) + leg.qty);
+    valueByItem.set(leg.entryItemId, (valueByItem.get(leg.entryItemId) ?? 0) + leg.qty * leg.rate);
+  }
+  const rates = new Map<string, number>();
+  for (const [entryItemId, qty] of qtyByItem) {
+    const value = valueByItem.get(entryItemId) ?? 0;
+    rates.set(entryItemId, qty > 0 ? value / qty : 0);
+  }
+  return rates;
+}
+
 export async function applyPosting(
-  db: DB,
+  db: DbOrTx,
   application: PostingApplication,
 ): Promise<AppliedPosting> {
+  const handle = asDb(db);
   const { autoReserve, computed, entry } = application;
-  const ledgerIds: string[] = [];
-  const autoReserved: AppliedPosting["autoReserved"] = [];
   const postingDate = toDateOnly(entry.posting_date);
 
-  // oxlint-disable eslint/no-await-in-loop
-  for (const leg of computed.legs) {
-    const qtyDelta = leg.movement === "in" ? leg.qty : -leg.qty;
-    const serials = leg.isSerialTracked ? leg.serialNos : [null];
-    for (const serialNo of serials) {
-      const unitQty = leg.isSerialTracked ? (leg.movement === "in" ? 1 : -1) : qtyDelta;
-      const [ledger] = await db
-        .insert(inventoryStockLedger)
-        .values({
+  const ledgerValues: (typeof inventoryStockLedger.$inferInsert)[] = computed.legs.flatMap(
+    (leg): (typeof inventoryStockLedger.$inferInsert)[] => {
+      const qtyDelta = leg.movement === "in" ? leg.qty : -leg.qty;
+      if (leg.isSerialTracked) {
+        return leg.serialNos.map((serialNo) => ({
           batch_no: leg.batchNo,
           item_id: leg.itemId,
           posting_date: postingDate,
           posting_time: entry.posting_time,
-          qty_delta: unitQty,
+          qty_delta: leg.movement === "in" ? 1 : -1,
           serial_no: serialNo,
           stock_entry_id: entry.id,
           valuation_rate: leg.rate,
@@ -488,50 +614,75 @@ export async function applyPosting(
           voucher_item_id: leg.entryItemId,
           voucher_type: "stock_entry",
           warehouse_id: leg.warehouseId,
-        })
-        .returning();
-      if (ledger) {
-        ledgerIds.push(ledger.id);
+        }));
       }
-    }
+      return [
+        {
+          batch_no: leg.batchNo,
+          item_id: leg.itemId,
+          posting_date: postingDate,
+          posting_time: entry.posting_time,
+          qty_delta: qtyDelta,
+          serial_no: null,
+          stock_entry_id: entry.id,
+          valuation_rate: leg.rate,
+          voucher_id: entry.id,
+          voucher_item_id: leg.entryItemId,
+          voucher_type: "stock_entry",
+          warehouse_id: leg.warehouseId,
+        },
+      ];
+    },
+  );
+  const insertedLedgers =
+    ledgerValues.length === 0
+      ? []
+      : await handle
+          .insert(inventoryStockLedger)
+          .values(ledgerValues)
+          .returning({ id: inventoryStockLedger.id });
+  const ledgerIds = insertedLedgers.map((row) => row.id);
 
-    if (leg.movement === "in") {
-      if (leg.batchNo) {
-        await ensureBatchExists(db, leg.itemId, leg.batchNo);
-      }
-      if (leg.isSerialTracked) {
-        for (const serialNo of leg.serialNos) {
-          await db.insert(inventorySerial).values({
-            batch_no: leg.batchNo,
-            item_id: leg.itemId,
-            purchase_id: entry.id,
-            serial_no: serialNo,
-            status: "available",
-            valuation_rate: leg.rate,
-            warehouse_id: leg.warehouseId,
-          });
-        }
-      }
-      if (autoReserve && leg.salesOrderId) {
-        const [reservation] = await db
-          .insert(inventoryReservationEntry)
-          .values({
-            item_id: leg.itemId,
-            reserved_qty: leg.qty,
-            sales_order_id: leg.salesOrderId,
-            sales_order_item_id: leg.salesOrderItemId,
-            status: "reserved",
-            warehouse_id: leg.warehouseId,
-          })
-          .returning();
-        if (reservation) {
-          autoReserved.push({ itemId: leg.itemId, qty: leg.qty, reservationId: reservation.id });
-        }
-      }
-    } else {
-      if (leg.isSerialTracked) {
-        for (const serialNo of leg.serialNos) {
-          await db
+  const receiptLegs = computed.legs.filter((leg) => leg.movement === "in");
+  const batchesToEnsure = new Map<string, { batchNo: string; itemId: string }>();
+  for (const leg of receiptLegs) {
+    if (leg.batchNo) {
+      batchesToEnsure.set(`${leg.itemId}::${leg.batchNo}`, {
+        batchNo: leg.batchNo,
+        itemId: leg.itemId,
+      });
+    }
+  }
+  await Promise.all(
+    [...batchesToEnsure.values()].map((entry) =>
+      ensureBatchExists(handle, entry.itemId, entry.batchNo),
+    ),
+  );
+
+  const serialInserts: (typeof inventorySerial.$inferInsert)[] = receiptLegs
+    .filter((leg) => leg.isSerialTracked)
+    .flatMap((leg) =>
+      leg.serialNos.map((serialNo) => ({
+        batch_no: leg.batchNo,
+        item_id: leg.itemId,
+        purchase_id: entry.id,
+        serial_no: serialNo,
+        status: "available" as const,
+        valuation_rate: leg.rate,
+        warehouse_id: leg.warehouseId,
+      })),
+    );
+  if (serialInserts.length > 0) {
+    await handle.insert(inventorySerial).values(serialInserts).onConflictDoNothing();
+  }
+  const serialDeliveries = computed.legs.filter(
+    (leg) => leg.movement === "out" && leg.isSerialTracked,
+  );
+  await Promise.all(
+    serialDeliveries.map((leg) =>
+      Promise.all(
+        leg.serialNos.map((serialNo) =>
+          handle
             .update(inventorySerial)
             .set({
               delivery_id: entry.id,
@@ -539,19 +690,57 @@ export async function applyPosting(
               updated_at: new Date(),
               warehouse_id: null,
             })
-            .where(eq(inventorySerial.serial_no, serialNo));
-        }
+            .where(eq(inventorySerial.serial_no, serialNo)),
+        ),
+      ),
+    ),
+  );
+
+  const autoReserved: AppliedPosting["autoReserved"] = [];
+  if (autoReserve) {
+    const reservable = receiptLegs.filter((leg) => leg.salesOrderId);
+    if (reservable.length > 0) {
+      const inserted = await handle
+        .insert(inventoryReservationEntry)
+        .values(
+          reservable.map((leg) => ({
+            item_id: leg.itemId,
+            reserved_qty: leg.qty,
+            sales_order_id: leg.salesOrderId,
+            sales_order_item_id: leg.salesOrderItemId,
+            status: "reserved" as const,
+            warehouse_id: leg.warehouseId,
+          })),
+        )
+        .returning({
+          id: inventoryReservationEntry.id,
+          item_id: inventoryReservationEntry.item_id,
+        });
+      const qtyById = new Map<string, number>();
+      for (const leg of reservable) {
+        qtyById.set(leg.itemId, leg.qty);
+      }
+      for (const row of inserted) {
+        autoReserved.push({
+          itemId: row.item_id,
+          qty: qtyById.get(row.item_id) ?? 0,
+          reservationId: row.id,
+        });
       }
     }
-
-    await db
-      .update(inventoryStockEntryItem)
-      .set({ valuation_rate: leg.rate })
-      .where(eq(inventoryStockEntryItem.id, leg.entryItemId));
   }
-  // oxlint-enable eslint/no-await-in-loop
 
-  await db
+  const rates = weightedRateByEntryItem(computed.legs);
+  await Promise.all(
+    [...rates].map(([entryItemId, rate]) =>
+      handle
+        .update(inventoryStockEntryItem)
+        .set({ valuation_rate: rate })
+        .where(eq(inventoryStockEntryItem.id, entryItemId)),
+    ),
+  );
+
+  await handle
     .update(inventoryStockEntry)
     .set({ status: "submitted", updated_at: new Date() })
     .where(eq(inventoryStockEntry.id, entry.id));
@@ -559,21 +748,39 @@ export async function applyPosting(
   return { autoReserved, ledgerIds };
 }
 
-export async function ensureBatchExists(db: DB, itemId: string, batchNo: string): Promise<void> {
-  const [existing] = await db
-    .select({ id: inventoryBatch.id })
-    .from(inventoryBatch)
-    .where(and(eq(inventoryBatch.item_id, itemId), eq(inventoryBatch.batch_id, batchNo)))
-    .limit(1);
-  if (!existing) {
-    await db
-      .insert(inventoryBatch)
-      .values({ batch_id: batchNo, item_id: itemId, status: "active" });
-  }
+export async function submitEntry(
+  db: DB,
+  entryId: string,
+  actorRole: string | null,
+): Promise<{ applied: AppliedPosting; computed: ComputedPosting; entry: StockEntryRow }> {
+  return db.transaction(async (tx: Tx) => {
+    const handle = asDb(tx);
+    const prepared = await prepareSubmit(handle, entryId, actorRole);
+    const computed = await computePosting(handle, prepared);
+    const applied = await applyPosting(handle, {
+      autoReserve: shouldAutoReserve(prepared.setting),
+      computed,
+      entry: prepared.entry,
+    });
+    return { applied, computed, entry: prepared.entry };
+  });
 }
 
-export async function reversePosting(db: DB, entryId: string): Promise<string[]> {
-  const [entry] = await db
+export async function ensureBatchExists(
+  db: DbOrTx,
+  itemId: string,
+  batchNo: string,
+): Promise<void> {
+  const handle = asDb(db);
+  await handle
+    .insert(inventoryBatch)
+    .values({ batch_id: batchNo, item_id: itemId, status: "active" })
+    .onConflictDoNothing({ target: [inventoryBatch.item_id, inventoryBatch.batch_id] });
+}
+
+export async function reversePosting(db: DbOrTx, entryId: string): Promise<string[]> {
+  const handle = asDb(db);
+  const [entry] = await handle
     .select()
     .from(inventoryStockEntry)
     .where(eq(inventoryStockEntry.id, entryId))
@@ -584,13 +791,13 @@ export async function reversePosting(db: DB, entryId: string): Promise<string[]>
   if (entry.status !== "submitted") {
     throw new Error("Only submitted stock entries can be cancelled.");
   }
-  const reversalIds = await reverseVoucher(db, {
+  const reversalIds = await reverseVoucher(handle, {
     cancelVoucherType: "stock_entry_cancel",
     voucherId: entryId,
     voucherType: "stock_entry",
   });
 
-  await db
+  await handle
     .update(inventoryStockEntry)
     .set({ status: "cancelled", updated_at: new Date() })
     .where(eq(inventoryStockEntry.id, entryId));
@@ -604,9 +811,10 @@ export interface VoucherReversal {
   voucherType: string;
 }
 
-export async function reverseVoucher(db: DB, reversal: VoucherReversal): Promise<string[]> {
+export async function reverseVoucher(db: DbOrTx, reversal: VoucherReversal): Promise<string[]> {
+  const handle = asDb(db);
   const { cancelVoucherType, voucherId, voucherType } = reversal;
-  const originals = await db
+  const originals = await handle
     .select()
     .from(inventoryStockLedger)
     .where(
@@ -616,12 +824,13 @@ export async function reverseVoucher(db: DB, reversal: VoucherReversal): Promise
       ),
     );
 
-  const reversalIds: string[] = [];
-  // oxlint-disable eslint/no-await-in-loop
-  for (const original of originals) {
-    const [created] = await db
-      .insert(inventoryStockLedger)
-      .values({
+  if (originals.length === 0) {
+    return [];
+  }
+  const inserted = await handle
+    .insert(inventoryStockLedger)
+    .values(
+      originals.map((original) => ({
         batch_no: original.batch_no,
         item_id: original.item_id,
         posting_date: original.posting_date,
@@ -634,14 +843,17 @@ export async function reverseVoucher(db: DB, reversal: VoucherReversal): Promise
         voucher_item_id: original.voucher_item_id,
         voucher_type: cancelVoucherType,
         warehouse_id: original.warehouse_id,
-      })
-      .returning();
-    if (created) {
-      reversalIds.push(created.id);
-    }
-    if (original.serial_no) {
+      })),
+    )
+    .returning({ id: inventoryStockLedger.id });
+  const reversalIds = inserted.map((row) => row.id);
+  const serialed = originals.filter(
+    (original): original is typeof original & { serial_no: string } => original.serial_no !== null,
+  );
+  await Promise.all(
+    serialed.map((original) => {
       const restore = original.qty_delta < 0;
-      await db
+      return handle
         .update(inventorySerial)
         .set(
           restore
@@ -654,24 +866,8 @@ export async function reverseVoucher(db: DB, reversal: VoucherReversal): Promise
             : { status: "cancelled", updated_at: new Date() },
         )
         .where(eq(inventorySerial.serial_no, original.serial_no));
-    }
-  }
-  // oxlint-enable eslint/no-await-in-loop
+    }),
+  );
 
   return reversalIds;
-}
-
-export async function requireDraftEntry(db: DB, entryId: string): Promise<StockEntryRow> {
-  const [entry] = await db
-    .select()
-    .from(inventoryStockEntry)
-    .where(eq(inventoryStockEntry.id, entryId))
-    .limit(1);
-  if (!entry) {
-    throw new Error(`Stock entry "${entryId}" not found.`);
-  }
-  if (entry.status !== "draft") {
-    throw new Error(`Only draft stock entries can be edited (current: ${entry.status}).`);
-  }
-  return entry;
 }

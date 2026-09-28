@@ -4,24 +4,130 @@ import { inventorySerial } from "#/db-schemas/serial";
 import { inventoryStockLedger } from "#/db-schemas/stock-ledger";
 import { RECONCILIATION_EVENTS, STOCK_EVENTS } from "#/pubsub";
 import { toDateOnly } from "#/services/stock-math";
-import {
-  assertSerialsAvailable,
-  ensureBatchExists,
-  reverseVoucher,
-} from "#/services/stock-posting";
+import { ensureBatchExists, reverseVoucher } from "#/services/stock-posting";
 import {
   assertFreezeAllowed,
   getEffectiveSetting,
-  getStockValuation,
+  getStockStates,
   requireWarehouse,
+  asDb,
 } from "#/services/stock-service";
 import { ReconciliationFiltersSchema, SubmitReconciliationSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
+
+type ReconciliationRow = typeof inventoryReconciliation.$inferSelect;
+type ReconciliationItemRow = typeof inventoryReconciliationItem.$inferSelect;
+
+interface ReconciliationLeg {
+  batchNo: string | null;
+  itemId: string;
+  qtyDelta: number;
+  rate: number;
+  serialNo: string | null;
+  voucherItemId: string;
+  warehouseId: string;
+}
+
+interface BuiltReconciliationLegs {
+  legs: ReconciliationLeg[];
+  serialsToCreate: string[];
+  serialsToDeliver: string[];
+}
+
+function buildLegsForItem(
+  item: ReconciliationItemRow,
+  onHandQty: number,
+  currentAvg: number,
+): BuiltReconciliationLegs {
+  const targetRate = item.valuation_rate ?? currentAvg;
+  const targetQty = item.qty ?? onHandQty;
+  const delta = targetQty - onHandQty;
+  if (item.serial_nos.length > 0 && item.serial_nos.length !== Math.abs(delta) && delta !== 0) {
+    throw new Error(
+      `Reconcile-selected rows must list exactly one serial per adjusted unit (delta ${delta}, listed ${item.serial_nos.length}).`,
+    );
+  }
+  const direction = Math.sign(delta);
+  if (direction > 0) {
+    const serials = item.serial_nos.length > 0 ? item.serial_nos : [null];
+    return {
+      legs: serials.map((serialNo) => ({
+        batchNo: item.batch_no,
+        itemId: item.item_id,
+        qtyDelta: item.serial_nos.length > 0 ? 1 : delta,
+        rate: targetRate,
+        serialNo,
+        voucherItemId: item.id,
+        warehouseId: item.warehouse_id,
+      })),
+      serialsToCreate: item.serial_nos,
+      serialsToDeliver: [],
+    };
+  }
+  if (direction < 0) {
+    const serials = item.serial_nos.length > 0 ? item.serial_nos : [null];
+    return {
+      legs: serials.map((serialNo) => ({
+        batchNo: item.batch_no,
+        itemId: item.item_id,
+        qtyDelta: item.serial_nos.length > 0 ? -1 : delta,
+        rate: targetRate,
+        serialNo,
+        voucherItemId: item.id,
+        warehouseId: item.warehouse_id,
+      })),
+      serialsToCreate: [],
+      serialsToDeliver: item.serial_nos,
+    };
+  }
+  if (item.valuation_rate !== null && onHandQty > 0) {
+    return {
+      legs: [
+        {
+          batchNo: item.batch_no,
+          itemId: item.item_id,
+          qtyDelta: -onHandQty,
+          rate: currentAvg,
+          serialNo: null,
+          voucherItemId: item.id,
+          warehouseId: item.warehouse_id,
+        },
+        {
+          batchNo: item.batch_no,
+          itemId: item.item_id,
+          qtyDelta: onHandQty,
+          rate: item.valuation_rate,
+          serialNo: null,
+          voucherItemId: item.id,
+          warehouseId: item.warehouse_id,
+        },
+      ],
+      serialsToCreate: [],
+      serialsToDeliver: [],
+    };
+  }
+  return {
+    legs: [
+      {
+        batchNo: item.batch_no,
+        itemId: item.item_id,
+        qtyDelta: 0,
+        rate: targetRate,
+        serialNo: null,
+        voucherItemId: item.id,
+        warehouseId: item.warehouse_id,
+      },
+    ],
+    serialsToCreate: [],
+    serialsToDeliver: [],
+  };
+}
 
 export const submitReconciliation = Workflow.name("inventory.reconciliation.submit")
   .input(object({ input: SubmitReconciliationSchema }))
@@ -32,194 +138,140 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
       .from(inventoryReconciliation)
       .where(eq(inventoryReconciliation.id, parsed.id))
       .limit(1);
-    if (!reconciliation) {
-      throw new Error(`Reconciliation "${parsed.id}" not found.`);
-    }
-    if (reconciliation.status !== "draft") {
+    const header: ReconciliationRow = assertReturned(
+      reconciliation,
+      `Reconciliation "${parsed.id}" not found.`,
+    );
+    if (header.status !== "draft") {
       throw new Error("Only draft reconciliations can be submitted.");
     }
     const setting = await getEffectiveSetting(ctx.db);
-    assertFreezeAllowed(setting, reconciliation.posting_date, parsed.actorRole ?? null);
-    const postingDate = toDateOnly(reconciliation.posting_date);
+    assertFreezeAllowed(setting, header.posting_date, parsed.actorRole ?? null);
+    const postingDate = toDateOnly(header.posting_date);
 
     const items = await ctx.db
       .select()
       .from(inventoryReconciliationItem)
       .where(eq(inventoryReconciliationItem.reconciliation_id, parsed.id));
 
-    const ledgerIds: string[] = [];
-    // oxlint-disable eslint/no-await-in-loop
     for (const item of items) {
-      await requireWarehouse(ctx.db, item.warehouse_id);
       if (item.reconcile_mode === "reconcile_selected" && item.serial_nos.length === 0) {
         throw new Error("Reconcile-selected rows must list the serial numbers being reconciled.");
       }
-      const valuation = await getStockValuation(ctx.db, item.item_id, item.warehouse_id);
-      const currentAvg = valuation.qty > 0 ? valuation.value / valuation.qty : 0;
-      const targetRate = item.valuation_rate ?? currentAvg;
-      const targetQty = item.qty ?? valuation.qty;
-      const delta = targetQty - valuation.qty;
-      if (item.serial_nos.length > 0 && item.serial_nos.length !== Math.abs(delta)) {
-        throw new Error(
-          `Reconcile-selected rows must list exactly one serial per adjusted unit (delta ${delta}, listed ${item.serial_nos.length}).`,
+    }
+    const states = await getStockStates(
+      ctx.db,
+      items.map((item) => ({ itemId: item.item_id, warehouseId: item.warehouse_id })),
+    );
+    const uniqueWarehouses = [...new Set(items.map((item) => item.warehouse_id))];
+    await Promise.all(uniqueWarehouses.map((warehouseId) => requireWarehouse(ctx.db, warehouseId)));
+
+    const allLegs: ReconciliationLeg[] = [];
+    const serialsToCreate: {
+      batchNo: string | null;
+      itemId: string;
+      rate: number;
+      serialNo: string;
+      warehouseId: string;
+    }[] = [];
+    const serialsToDeliver: string[] = [];
+    const batchesToEnsure = new Map<string, { batchNo: string; itemId: string }>();
+    for (const item of items) {
+      const state = states.get(`${item.item_id}::${item.warehouse_id}`);
+      const onHand = state?.onHand ?? 0;
+      const currentAvg = onHand > 0 ? (state?.value ?? 0) / onHand : 0;
+      const built = buildLegsForItem(item, onHand, currentAvg);
+      allLegs.push(...built.legs);
+      if (item.batch_no && built.legs.some((leg) => leg.qtyDelta > 0)) {
+        batchesToEnsure.set(`${item.item_id}::${item.batch_no}`, {
+          batchNo: item.batch_no,
+          itemId: item.item_id,
+        });
+      }
+      for (const serialNo of built.serialsToCreate) {
+        serialsToCreate.push({
+          batchNo: item.batch_no,
+          itemId: item.item_id,
+          rate: item.valuation_rate ?? currentAvg,
+          serialNo,
+          warehouseId: item.warehouse_id,
+        });
+      }
+      serialsToDeliver.push(...built.serialsToDeliver);
+    }
+
+    const ledgerIds = await ctx.db.transaction(async (tx) => {
+      const db = asDb(tx);
+      await Promise.all(
+        [...batchesToEnsure.values()].map((entry) =>
+          ensureBatchExists(db, entry.itemId, entry.batchNo),
+        ),
+      );
+      const inserted =
+        allLegs.length === 0
+          ? []
+          : await db
+              .insert(inventoryStockLedger)
+              .values(
+                allLegs.map((leg) => ({
+                  batch_no: leg.batchNo,
+                  item_id: leg.itemId,
+                  posting_date: postingDate,
+                  posting_time: header.posting_time,
+                  qty_delta: leg.qtyDelta,
+                  serial_no: leg.serialNo,
+                  valuation_rate: leg.rate,
+                  voucher_id: header.id,
+                  voucher_item_id: leg.voucherItemId,
+                  voucher_type: "reconciliation",
+                  warehouse_id: leg.warehouseId,
+                })),
+              )
+              .returning({ id: inventoryStockLedger.id });
+      if (serialsToCreate.length > 0) {
+        await db.insert(inventorySerial).values(
+          serialsToCreate.map((entry) => ({
+            batch_no: entry.batchNo,
+            item_id: entry.itemId,
+            purchase_id: header.id,
+            serial_no: entry.serialNo,
+            status: "available" as const,
+            valuation_rate: entry.rate,
+            warehouse_id: entry.warehouseId,
+          })),
         );
       }
-
-      if (delta > 0) {
-        if (item.batch_no) {
-          await ensureBatchExists(ctx.db, item.item_id, item.batch_no);
-        }
-        const serials = item.serial_nos.length > 0 ? item.serial_nos : [null];
-        for (const serialNo of serials) {
-          const unitQty = item.serial_nos.length > 0 ? 1 : delta;
-          const [ledger] = await ctx.db
-            .insert(inventoryStockLedger)
-            .values({
-              batch_no: item.batch_no,
-              item_id: item.item_id,
-              posting_date: postingDate,
-              posting_time: reconciliation.posting_time,
-              qty_delta: unitQty,
-              serial_no: serialNo,
-              valuation_rate: targetRate,
-              voucher_id: reconciliation.id,
-              voucher_item_id: item.id,
-              voucher_type: "reconciliation",
-              warehouse_id: item.warehouse_id,
+      await Promise.all(
+        serialsToDeliver.map((serialNo) =>
+          db
+            .update(inventorySerial)
+            .set({
+              delivery_id: header.id,
+              status: "delivered",
+              updated_at: new Date(),
+              warehouse_id: null,
             })
-            .returning();
-          if (ledger) {
-            ledgerIds.push(ledger.id);
-          }
-          if (serialNo) {
-            await ctx.db.insert(inventorySerial).values({
-              batch_no: item.batch_no,
-              item_id: item.item_id,
-              purchase_id: reconciliation.id,
-              serial_no: serialNo,
-              status: "available",
-              valuation_rate: targetRate,
-              warehouse_id: item.warehouse_id,
-            });
-          }
-        }
-      } else if (delta < 0) {
-        if (item.serial_nos.length > 0) {
-          await assertSerialsAvailable(ctx.db, {
-            itemId: item.item_id,
-            serialNos: item.serial_nos,
-            warehouseId: item.warehouse_id,
-          });
-        }
-        const serials = item.serial_nos.length > 0 ? item.serial_nos : [null];
-        for (const serialNo of serials) {
-          const unitQty = item.serial_nos.length > 0 ? -1 : delta;
-          const [ledger] = await ctx.db
-            .insert(inventoryStockLedger)
-            .values({
-              batch_no: item.batch_no,
-              item_id: item.item_id,
-              posting_date: postingDate,
-              posting_time: reconciliation.posting_time,
-              qty_delta: unitQty,
-              serial_no: serialNo,
-              valuation_rate: targetRate,
-              voucher_id: reconciliation.id,
-              voucher_item_id: item.id,
-              voucher_type: "reconciliation",
-              warehouse_id: item.warehouse_id,
-            })
-            .returning();
-          if (ledger) {
-            ledgerIds.push(ledger.id);
-          }
-          if (serialNo) {
-            await ctx.db
-              .update(inventorySerial)
-              .set({
-                delivery_id: reconciliation.id,
-                status: "delivered",
-                updated_at: new Date(),
-                warehouse_id: null,
-              })
-              .where(eq(inventorySerial.serial_no, serialNo));
-          }
-        }
-      } else if (item.valuation_rate !== null && valuation.qty > 0) {
-        const [issue] = await ctx.db
-          .insert(inventoryStockLedger)
-          .values({
-            batch_no: item.batch_no,
-            item_id: item.item_id,
-            posting_date: postingDate,
-            posting_time: reconciliation.posting_time,
-            qty_delta: -valuation.qty,
-            valuation_rate: currentAvg,
-            voucher_id: reconciliation.id,
-            voucher_item_id: item.id,
-            voucher_type: "reconciliation",
-            warehouse_id: item.warehouse_id,
-          })
-          .returning();
-        const [receipt] = await ctx.db
-          .insert(inventoryStockLedger)
-          .values({
-            batch_no: item.batch_no,
-            item_id: item.item_id,
-            posting_date: postingDate,
-            posting_time: reconciliation.posting_time,
-            qty_delta: valuation.qty,
-            valuation_rate: item.valuation_rate,
-            voucher_id: reconciliation.id,
-            voucher_item_id: item.id,
-            voucher_type: "reconciliation",
-            warehouse_id: item.warehouse_id,
-          })
-          .returning();
-        if (issue) {
-          ledgerIds.push(issue.id);
-        }
-        if (receipt) {
-          ledgerIds.push(receipt.id);
-        }
-      } else {
-        const [marker] = await ctx.db
-          .insert(inventoryStockLedger)
-          .values({
-            batch_no: item.batch_no,
-            item_id: item.item_id,
-            posting_date: postingDate,
-            posting_time: reconciliation.posting_time,
-            qty_delta: 0,
-            valuation_rate: targetRate,
-            voucher_id: reconciliation.id,
-            voucher_item_id: item.id,
-            voucher_type: "reconciliation",
-            warehouse_id: item.warehouse_id,
-          })
-          .returning();
-        if (marker) {
-          ledgerIds.push(marker.id);
-        }
-      }
-    }
-    // oxlint-enable eslint/no-await-in-loop
-    await ctx.db
-      .update(inventoryReconciliation)
-      .set({ status: "submitted", updated_at: new Date() })
-      .where(eq(inventoryReconciliation.id, parsed.id));
+            .where(eq(inventorySerial.serial_no, serialNo)),
+        ),
+      );
+      await db
+        .update(inventoryReconciliation)
+        .set({ status: "submitted", updated_at: new Date() })
+        .where(eq(inventoryReconciliation.id, parsed.id));
+      return inserted.map((row) => row.id);
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.SUBMITTED,
       crudAction: "update",
       entityId: parsed.id,
       entityType: AUDIT_ENTITY_TYPE.RECONCILIATION,
-      newState: { id: parsed.id, purpose: reconciliation.purpose, status: "submitted" },
+      newState: { id: parsed.id, purpose: header.purpose, status: "submitted" },
     });
 
     await ctx.pubsub.publish(RECONCILIATION_EVENTS.SUBMITTED, {
       postingDate,
-      purpose: reconciliation.purpose,
+      purpose: header.purpose,
       reconciliationId: parsed.id,
     });
 
@@ -232,21 +284,21 @@ export const submitReconciliation = Workflow.name("inventory.reconciliation.subm
           eq(inventoryStockLedger.voucher_id, parsed.id),
         ),
       );
-    // oxlint-disable eslint/no-await-in-loop
-    for (const row of rows) {
-      await ctx.pubsub.publish(STOCK_EVENTS.CHANGED, {
-        batchNo: row.batch_no ?? undefined,
-        itemId: row.item_id,
-        postingDate: row.posting_date,
-        qtyDelta: row.qty_delta,
-        serialNo: row.serial_no ?? undefined,
-        valuationRate: row.valuation_rate,
-        voucherId: parsed.id,
-        voucherType: "reconciliation",
-        warehouseId: row.warehouse_id,
-      });
-    }
-    // oxlint-enable eslint/no-await-in-loop
+    await Promise.all(
+      rows.map((row) =>
+        ctx.pubsub.publish(STOCK_EVENTS.CHANGED, {
+          batchNo: row.batch_no ?? undefined,
+          itemId: row.item_id,
+          postingDate: row.posting_date,
+          qtyDelta: row.qty_delta,
+          serialNo: row.serial_no ?? undefined,
+          valuationRate: row.valuation_rate,
+          voucherId: parsed.id,
+          voucherType: "reconciliation",
+          warehouseId: row.warehouse_id,
+        }),
+      ),
+    );
 
     return { ledgerIds, reconciliationId: parsed.id };
   });
@@ -266,11 +318,13 @@ export const cancelReconciliation = Workflow.name("inventory.reconciliation.canc
     if (reconciliation.status !== "submitted") {
       throw new Error("Only submitted reconciliations can be cancelled.");
     }
-    const reversalIds = await reverseVoucher(ctx.db, {
-      cancelVoucherType: "reconciliation_cancel",
-      voucherId: parsed.id,
-      voucherType: "reconciliation",
-    });
+    const reversalIds = await ctx.db.transaction(async (tx) =>
+      reverseVoucher(tx, {
+        cancelVoucherType: "reconciliation_cancel",
+        voucherId: parsed.id,
+        voucherType: "reconciliation",
+      }),
+    );
     await ctx.db
       .update(inventoryReconciliation)
       .set({ status: "cancelled", updated_at: new Date() })
@@ -298,12 +352,12 @@ export const listReconciliations = Workflow.name("inventory.reconciliation.list"
     if (parsed.status) {
       conditions.push(eq(inventoryReconciliation.status, parsed.status));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryReconciliation)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });

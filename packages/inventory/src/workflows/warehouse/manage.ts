@@ -4,9 +4,10 @@ import { hasChildren, hasLedgerHistory, requireWarehouse } from "#/services/stoc
 import { IdSchema, UpdateWarehouseSchema, WarehouseFiltersSchema, WithIdSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchWarehouseStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
 
@@ -37,13 +38,13 @@ export const listWarehouses = Workflow.name("inventory.warehouse.list")
     if (parsed.warehouseType) {
       conditions.push(eq(inventoryWarehouse.warehouse_type, parsed.warehouseType));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryWarehouse)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -111,31 +112,29 @@ export const updateWarehouse = Workflow.name("inventory.warehouse.update")
       .where(eq(inventoryWarehouse.id, id))
       .returning();
 
-    if (!updated) {
-      throw new Error("Failed to update warehouse.");
-    }
+    const next = assertReturned(updated, "Failed to update warehouse.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE,
-      newState: { id: updated.id, name: updated.name },
+      newState: { id: next.id, name: next.name },
       previousState: { id: current.id, name: current.name },
     });
 
     await ctx.pubsub.publish(WAREHOUSE_EVENTS.UPDATED, {
-      accountHead: updated.account_head ?? undefined,
-      addressId: updated.address_id ?? undefined,
-      contactId: updated.contact_id ?? undefined,
-      isGroup: updated.is_group,
-      name: updated.name,
-      parentId: updated.parent_id ?? undefined,
+      accountHead: next.account_head ?? undefined,
+      addressId: next.address_id ?? undefined,
+      contactId: next.contact_id ?? undefined,
+      isGroup: next.is_group,
+      name: next.name,
+      parentId: next.parent_id ?? undefined,
       warehouseId: id,
-      warehouseType: updated.warehouse_type,
+      warehouseType: next.warehouse_type,
     });
 
-    return updated;
+    return next;
   });
 
 export const disableWarehouse = Workflow.name("inventory.warehouse.disable")
@@ -152,19 +151,17 @@ export const disableWarehouse = Workflow.name("inventory.warehouse.disable")
       .where(eq(inventoryWarehouse.id, input.id))
       .returning();
 
-    if (!updated) {
-      throw new Error("Failed to disable warehouse.");
-    }
+    const next = assertReturned(updated, "Failed to disable warehouse.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.DISABLED,
       crudAction: "update",
       entityId: input.id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE,
-      newState: { id: updated.id, is_disabled: true },
+      newState: { id: next.id, is_disabled: true },
     });
 
     await ctx.pubsub.publish(WAREHOUSE_EVENTS.DISABLED, { warehouseId: input.id });
 
-    return updated;
+    return next;
   });

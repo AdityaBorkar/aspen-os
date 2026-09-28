@@ -10,41 +10,51 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchReservationStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
+
+export async function checkReservationAvailability(
+  db: Parameters<typeof getAvailableQty>[0],
+  itemId: string,
+  warehouseId: string,
+  qty: number,
+): Promise<void> {
+  const available = await getAvailableQty(db, itemId, warehouseId);
+  if (available - qty < 0) {
+    throw new Error(`Cannot reserve ${qty} units: only ${available} available.`);
+  }
+}
 
 export const createReservation = Workflow.name("inventory.reservation.create")
   .input(object({ input: CreateReservationSchema }))
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateReservationSchema, input);
-    const setting = await getEffectiveSetting(ctx.db);
-    if (!setting.enableStockReservation) {
-      throw new Error("Stock reservation is disabled in inventory settings.");
-    }
-    await requireWarehouse(ctx.db, parsed.warehouseId);
-    const available = await getAvailableQty(ctx.db, parsed.itemId, parsed.warehouseId);
-    if (available - parsed.reservedQty < 0) {
-      throw new Error(`Cannot reserve ${parsed.reservedQty} units: only ${available} available.`);
-    }
+    const reservation = await ctx.db.transaction(async (tx) => {
+      const setting = await getEffectiveSetting(tx);
+      if (!setting.enableStockReservation) {
+        throw new Error("Stock reservation is disabled in inventory settings.");
+      }
+      await requireWarehouse(tx, parsed.warehouseId);
+      await checkReservationAvailability(tx, parsed.itemId, parsed.warehouseId, parsed.reservedQty);
 
-    const [reservation] = await ctx.db
-      .insert(inventoryReservationEntry)
-      .values({
-        item_id: parsed.itemId,
-        pick_list_id: parsed.pickListId ?? null,
-        reserved_qty: parsed.reservedQty,
-        sales_order_id: parsed.salesOrderId ?? null,
-        sales_order_item_id: parsed.salesOrderItemId ?? null,
-        status: "reserved",
-        warehouse_id: parsed.warehouseId,
-      })
-      .returning();
-    if (!reservation) {
-      throw new Error("Failed to create reservation.");
-    }
+      const [row] = await tx
+        .insert(inventoryReservationEntry)
+        .values({
+          item_id: parsed.itemId,
+          pick_list_id: parsed.pickListId ?? null,
+          reserved_qty: parsed.reservedQty,
+          sales_order_id: parsed.salesOrderId ?? null,
+          sales_order_item_id: parsed.salesOrderItemId ?? null,
+          status: "reserved",
+          warehouse_id: parsed.warehouseId,
+        })
+        .returning();
+      return assertReturned(row, "Failed to create reservation.");
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
@@ -84,13 +94,13 @@ export const listReservations = Workflow.name("inventory.reservation.list")
     if (parsed.status) {
       conditions.push(eq(inventoryReservationEntry.status, parsed.status));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryReservationEntry)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -98,32 +108,32 @@ export const consumeReservation = Workflow.name("inventory.reservation.consume")
   .input(object({ input: ConsumeReservationSchema }))
   .handler(async ({ input }, ctx) => {
     const parsed = parse(ConsumeReservationSchema, input);
-    const current = await ctx.step.run(fetchReservationStep, { id: parsed.id });
-    if (current.status === "delivered" || current.status === "cancelled") {
-      throw new Error(`Reservation is already ${current.status}.`);
-    }
-    const remaining = current.reserved_qty - current.delivered_qty;
-    if (parsed.qty <= 0 || parsed.qty > remaining) {
-      throw new Error(`Cannot consume ${parsed.qty} units: ${remaining} remain reserved.`);
-    }
-    const deliveredQty = current.delivered_qty + parsed.qty;
-    const status = deliveredQty >= current.reserved_qty ? "delivered" : "partially_delivered";
+    const updated = await ctx.db.transaction(async (tx) => {
+      const current = await ctx.step.run(fetchReservationStep, { id: parsed.id });
+      if (current.status === "delivered" || current.status === "cancelled") {
+        throw new Error(`Reservation is already ${current.status}.`);
+      }
+      const remaining = current.reserved_qty - current.delivered_qty;
+      if (parsed.qty <= 0 || parsed.qty > remaining) {
+        throw new Error(`Cannot consume ${parsed.qty} units: ${remaining} remain reserved.`);
+      }
+      const deliveredQty = current.delivered_qty + parsed.qty;
+      const status = deliveredQty >= current.reserved_qty ? "delivered" : "partially_delivered";
 
-    const [updated] = await ctx.db
-      .update(inventoryReservationEntry)
-      .set({ delivered_qty: deliveredQty, status, updated_at: new Date() })
-      .where(eq(inventoryReservationEntry.id, parsed.id))
-      .returning();
-    if (!updated) {
-      throw new Error("Failed to consume reservation.");
-    }
+      const [row] = await tx
+        .update(inventoryReservationEntry)
+        .set({ delivered_qty: deliveredQty, status, updated_at: new Date() })
+        .where(eq(inventoryReservationEntry.id, parsed.id))
+        .returning();
+      return assertReturned(row, "Failed to consume reservation.");
+    });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CONSUMED,
       crudAction: "update",
       entityId: parsed.id,
       entityType: AUDIT_ENTITY_TYPE.RESERVATION,
-      newState: { delivered_qty: deliveredQty, id: parsed.id, status },
+      newState: { delivered_qty: updated.delivered_qty, id: parsed.id, status: updated.status },
     });
 
     await ctx.pubsub.publish(RESERVATION_EVENTS.CONSUMED, {
@@ -151,9 +161,7 @@ export const releaseReservation = Workflow.name("inventory.reservation.release")
       .set({ status: "cancelled", updated_at: new Date() })
       .where(eq(inventoryReservationEntry.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to release reservation.");
-    }
+    const next = assertReturned(updated, "Failed to release reservation.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.RELEASED,
@@ -164,44 +172,47 @@ export const releaseReservation = Workflow.name("inventory.reservation.release")
     });
 
     await ctx.pubsub.publish(RESERVATION_EVENTS.RELEASED, {
-      itemId: updated.item_id,
+      itemId: next.item_id,
       reservationId: input.id,
-      warehouseId: updated.warehouse_id,
+      warehouseId: next.warehouse_id,
     });
 
-    return updated;
+    return next;
   });
+
+export interface ReleaseManyResult {
+  released: (typeof inventoryReservationEntry.$inferSelect)[];
+  skipped: string[];
+}
 
 export const releaseManyReservations = Workflow.name("inventory.reservation.release-many")
   .input(object({ input: ReleaseReservationsSchema }))
-  .handler(async ({ input }, ctx) => {
+  .handler(async ({ input }, ctx): Promise<ReleaseManyResult> => {
     const parsed = parse(ReleaseReservationsSchema, input);
-    const released = await Promise.all(
-      parsed.ids.map(async (id) => {
-        const current = await ctx.step.run(fetchReservationStep, { id });
-        if (current.status === "cancelled") {
-          return current;
-        }
-        if (current.status === "delivered") {
-          throw new Error(`Reservation "${id}" is delivered and cannot be released.`);
-        }
-        const [updated] = await ctx.db
-          .update(inventoryReservationEntry)
-          .set({ status: "cancelled", updated_at: new Date() })
-          .where(eq(inventoryReservationEntry.id, id))
-          .returning();
-        if (!updated) {
-          throw new Error(`Failed to release reservation "${id}".`);
-        }
-        return updated;
-      }),
-    );
+    const released: (typeof inventoryReservationEntry.$inferSelect)[] = [];
+    const skipped: string[] = [];
+    for (const id of parsed.ids) {
+      const current = await ctx.step.run(fetchReservationStep, { id });
+      if (current.status === "cancelled") {
+        skipped.push(id);
+        continue;
+      }
+      if (current.status === "delivered") {
+        throw new Error(`Reservation "${id}" is delivered and cannot be released.`);
+      }
+      const [updated] = await ctx.db
+        .update(inventoryReservationEntry)
+        .set({ status: "cancelled", updated_at: new Date() })
+        .where(eq(inventoryReservationEntry.id, id))
+        .returning();
+      released.push(assertReturned(updated, `Failed to release reservation "${id}".`));
+    }
     await ctx.audit.write({
       action: AUDIT_ACTION.RELEASED,
       crudAction: "update",
-      entityId: parsed.ids.join(","),
+      entityId: released[0]?.id ?? parsed.ids[0] ?? "none",
       entityType: AUDIT_ENTITY_TYPE.RESERVATION,
-      newState: { count: released.length, status: "cancelled" },
+      newState: { count: released.length, skipped: skipped.length, status: "cancelled" },
     });
     await Promise.all(
       released.map((reservation) =>
@@ -212,5 +223,5 @@ export const releaseManyReservations = Workflow.name("inventory.reservation.rele
         }),
       ),
     );
-    return released;
+    return { released, skipped };
   });

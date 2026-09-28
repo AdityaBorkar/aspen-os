@@ -4,6 +4,7 @@ import { toDateOnly } from "#/services/stock-math";
 import { getEffectiveSetting } from "#/services/stock-service";
 import { ReorderScanSchema, UpdateSettingSchema } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { assertReturned } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -12,9 +13,15 @@ import { object, parse } from "valibot";
 export const getSetting = Workflow.name("inventory.setting.get")
   .input(object({}))
   .handler(async (_input, ctx) => {
-    const effective = await getEffectiveSetting(ctx.db);
-    const [row] = await ctx.db.select().from(inventorySetting).limit(1);
-    return { effective, row: row ?? null };
+    const [effective, row] = await Promise.all([
+      getEffectiveSetting(ctx.db),
+      ctx.db
+        .select()
+        .from(inventorySetting)
+        .limit(1)
+        .then((rows) => rows[0] ?? null),
+    ]);
+    return { effective, row };
   });
 
 export const updateSetting = Workflow.name("inventory.setting.update")
@@ -88,20 +95,14 @@ export const updateSetting = Workflow.name("inventory.setting.update")
         .insert(inventorySetting)
         .values({ ...values, singleton: true })
         .returning();
-      if (!created) {
-        throw new Error("Failed to create inventory settings.");
-      }
-      row = created;
+      row = assertReturned(created, "Failed to create inventory settings.");
     } else {
       const [updated] = await ctx.db
         .update(inventorySetting)
         .set({ ...values, updated_at: new Date() })
         .where(eq(inventorySetting.id, row.id))
         .returning();
-      if (!updated) {
-        throw new Error("Failed to update inventory settings.");
-      }
-      row = updated;
+      row = assertReturned(updated, "Failed to update inventory settings.");
     }
 
     await ctx.audit.write({

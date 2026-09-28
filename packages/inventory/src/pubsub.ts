@@ -1,3 +1,10 @@
+import type {
+  PickListPurpose,
+  ReconciliationPurpose,
+  StockEntryPurpose,
+  WarehouseType,
+} from "#/utils/constants";
+
 export const WAREHOUSE_EVENTS = {
   CREATED: "inventory.warehouse_created",
   DISABLED: "inventory.warehouse_disabled",
@@ -70,7 +77,7 @@ export interface WarehouseCreatedEvent extends WarehouseEvent {
   isGroup: boolean;
   name: string;
   parentId?: string;
-  warehouseType: string;
+  warehouseType: WarehouseType;
 }
 
 export interface WarehouseUpdatedEvent extends WarehouseEvent {
@@ -80,7 +87,7 @@ export interface WarehouseUpdatedEvent extends WarehouseEvent {
   isGroup?: boolean;
   name?: string;
   parentId?: string | null;
-  warehouseType?: string;
+  warehouseType?: WarehouseType;
 }
 
 export interface StockChangedEvent {
@@ -99,23 +106,23 @@ export interface StockChangedEvent {
 export interface StockEntryLifecycleEvent {
   additionalCostTotal: number;
   postingDate: string;
-  purpose: string;
+  purpose: StockEntryPurpose;
   stockEntryId: string;
 }
 
 export interface ReconciliationSubmittedEvent {
   postingDate: string;
-  purpose: string;
+  purpose: ReconciliationPurpose;
   reconciliationId: string;
 }
 
 export interface ReorderTriggeredEvent {
+  availableQty: number;
   itemId: string;
   materialRequestType: string;
   reorderLevel: number;
   reorderQty: number;
   requestForWarehouseId: string;
-  projectedQty: number;
 }
 
 export interface ReservationLifecycleEvent {
@@ -130,7 +137,7 @@ export interface ReservationConsumedEvent extends ReservationLifecycleEvent {
 
 export interface PickListLifecycleEvent {
   pickListId: string;
-  purpose: string;
+  purpose: PickListPurpose;
 }
 
 export interface PutawayAppliedEvent {

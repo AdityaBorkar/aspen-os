@@ -1,11 +1,17 @@
-import { DocStatusSchema, StockEntryPurposeSchema } from "#/schemas/enums";
-import { DateStringSchema, IdSchema, PositiveQuantitySchema } from "#/schemas/utils";
+import { DocStatusSchema, StockEntryPurposeSchema, ValuationMethodSchema } from "#/schemas/enums";
+import {
+  DateStringSchema,
+  DocActionSchema,
+  IdSchema,
+  PaginationSchema,
+  PositiveQuantitySchema,
+  SerialNosSchema,
+} from "#/schemas/utils";
 
 import {
   array,
   boolean,
   check,
-  integer,
   maxLength,
   minLength,
   nullable,
@@ -42,7 +48,7 @@ export const StockEntryItemSchema = object({
     ),
     0,
   ),
-  serialNos: optional(array(pipe(string(), minLength(1, "Serial number is required"))), []),
+  serialNos: SerialNosSchema,
   sourceWarehouseId: optional(nullable(IdSchema)),
   targetWarehouseId: optional(nullable(IdSchema)),
   uom: pipe(
@@ -50,7 +56,7 @@ export const StockEntryItemSchema = object({
     minLength(1, "UOM is required"),
     maxLength(64, "Must be at most 64 characters"),
   ),
-  valuationMethod: optional(nullable(pipe(string(), minLength(1, "Valuation method is required")))),
+  valuationMethod: optional(nullable(ValuationMethodSchema)),
 });
 
 export type StockEntryItemInput = InferOutput<typeof StockEntryItemSchema>;
@@ -103,24 +109,17 @@ export const UpdateStockEntrySchema = object({
 
 export type UpdateStockEntryInput = InferOutput<typeof UpdateStockEntrySchema>;
 
-export const SubmitStockEntrySchema = object({
-  actorRole: optional(nullable(string())),
-  id: IdSchema,
-});
+export const SubmitStockEntrySchema = DocActionSchema;
 
 export type SubmitStockEntryInput = InferOutput<typeof SubmitStockEntrySchema>;
 
-export const CancelStockEntrySchema = object({
-  actorRole: optional(nullable(string())),
-  id: IdSchema,
-});
+export const CancelStockEntrySchema = DocActionSchema;
 
 export type CancelStockEntryInput = InferOutput<typeof CancelStockEntrySchema>;
 
 export const StockEntryFiltersSchema = object({
+  ...PaginationSchema.entries,
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   purpose: optional(StockEntryPurposeSchema),
   status: optional(DocStatusSchema),
   warehouseId: optional(nullable(IdSchema)),
@@ -129,10 +128,9 @@ export const StockEntryFiltersSchema = object({
 export type StockEntryFiltersInput = InferOutput<typeof StockEntryFiltersSchema>;
 
 export const StockLedgerFiltersSchema = object({
+  ...PaginationSchema.entries,
   batchNo: optional(nullable(string())),
   itemId: optional(nullable(IdSchema)),
-  limit: optional(pipe(number(), integer("Must be an integer")), 50),
-  offset: optional(pipe(number(), integer("Must be an integer")), 0),
   serialNo: optional(nullable(string())),
   voucherId: optional(nullable(string())),
   warehouseId: optional(nullable(IdSchema)),

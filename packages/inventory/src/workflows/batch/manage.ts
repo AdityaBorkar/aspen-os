@@ -3,7 +3,7 @@ import { inventoryStockLedger } from "#/db-schemas/stock-ledger";
 import { BATCH_EVENTS } from "#/pubsub";
 import { toDateOnly } from "#/services/stock-math";
 import { getBatchBalance } from "#/services/stock-posting";
-import { requireWarehouse } from "#/services/stock-service";
+import { requireWarehouse, asDb } from "#/services/stock-service";
 import {
   BatchFiltersSchema,
   CreateBatchSchema,
@@ -15,11 +15,14 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchBatchStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, sql } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
+
+const MS_PER_DAY = 86_400_000;
 
 export const createBatch = Workflow.name("inventory.batch.create")
   .input(object({ input: CreateBatchSchema }))
@@ -47,25 +50,23 @@ export const createBatch = Workflow.name("inventory.batch.create")
         supplier_id: parsed.supplierId ?? null,
       })
       .returning();
-    if (!batch) {
-      throw new Error("Failed to create batch.");
-    }
+    const created = assertReturned(batch, "Failed to create batch.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: batch.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.BATCH,
-      newState: { batch_id: batch.batch_id, id: batch.id, item_id: batch.item_id },
+      newState: { batch_id: created.batch_id, id: created.id, item_id: created.item_id },
     });
 
     await ctx.pubsub.publish(BATCH_EVENTS.CREATED, {
-      batchId: batch.batch_id,
-      batchRecordId: batch.id,
-      itemId: batch.item_id,
+      batchId: created.batch_id,
+      batchRecordId: created.id,
+      itemId: created.item_id,
     });
 
-    return batch;
+    return created;
   });
 
 export const getBatch = Workflow.name("inventory.batch.get")
@@ -83,13 +84,13 @@ export const listBatches = Workflow.name("inventory.batch.list")
     if (parsed.status) {
       conditions.push(eq(inventoryBatch.status, parsed.status));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryBatch)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -120,20 +121,18 @@ export const updateBatch = Workflow.name("inventory.batch.update")
       .set({ ...values, updated_at: new Date() })
       .where(eq(inventoryBatch.id, id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to update batch.");
-    }
+    const next = assertReturned(updated, "Failed to update batch.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.BATCH,
-      newState: { batch_id: updated.batch_id, id, status: updated.status },
+      newState: { batch_id: next.batch_id, id, status: next.status },
       previousState: { batch_id: current.batch_id, id, status: current.status },
     });
 
-    return updated;
+    return next;
   });
 
 export const splitBatch = Workflow.name("inventory.batch.split")
@@ -169,25 +168,23 @@ export const splitBatch = Workflow.name("inventory.batch.split")
         supplier_id: source.supplier_id,
       })
       .returning();
-    if (!created) {
-      throw new Error("Failed to split batch.");
-    }
+    const next = assertReturned(created, "Failed to split batch.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.SPLIT,
       crudAction: "create",
-      entityId: created.id,
+      entityId: next.id,
       entityType: AUDIT_ENTITY_TYPE.BATCH,
-      newState: { batch_id: created.batch_id, id: created.id, splitFrom: source.batch_id },
+      newState: { batch_id: next.batch_id, id: next.id, splitFrom: source.batch_id },
     });
 
     await ctx.pubsub.publish(BATCH_EVENTS.SPLIT, {
-      batchId: created.batch_id,
-      batchRecordId: created.id,
-      itemId: created.item_id,
+      batchId: next.batch_id,
+      batchRecordId: next.id,
+      itemId: next.item_id,
     });
 
-    return created;
+    return next;
   });
 
 export const moveBatch = Workflow.name("inventory.batch.move")
@@ -197,80 +194,90 @@ export const moveBatch = Workflow.name("inventory.batch.move")
     if (parsed.sourceWarehouseId === parsed.targetWarehouseId) {
       throw new Error("Source and target warehouses must differ.");
     }
-    await requireWarehouse(ctx.db, parsed.sourceWarehouseId);
-    await requireWarehouse(ctx.db, parsed.targetWarehouseId);
-    const today = toDateOnly(new Date().toISOString());
-    const [batch] = await ctx.db
-      .select()
-      .from(inventoryBatch)
-      .where(
-        and(eq(inventoryBatch.item_id, parsed.itemId), eq(inventoryBatch.batch_id, parsed.batchNo)),
-      )
-      .limit(1);
-    if (!batch) {
-      throw new Error(`Batch "${parsed.batchNo}" does not exist for this item.`);
-    }
-    if (batch.status === "expired" || (batch.expiry_date && batch.expiry_date < today)) {
-      throw new Error(`Batch "${parsed.batchNo}" is expired and cannot be moved.`);
-    }
-    const balance = await getBatchBalance(ctx.db, {
-      batchNo: parsed.batchNo,
-      itemId: parsed.itemId,
-      warehouseId: parsed.sourceWarehouseId,
-    });
-    if (balance - parsed.qty < 0) {
-      throw new Error(`Insufficient batch stock to move (have ${balance}, need ${parsed.qty}).`);
-    }
-
-    const [rateRow] = await ctx.db
-      .select({
-        qty: sql<number>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
-        total: sql<number>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
-      })
-      .from(inventoryStockLedger)
-      .where(
-        and(
-          eq(inventoryStockLedger.item_id, parsed.itemId),
-          eq(inventoryStockLedger.warehouse_id, parsed.sourceWarehouseId),
-          eq(inventoryStockLedger.batch_no, parsed.batchNo),
-        ),
+    const result = await ctx.db.transaction(async (tx) => {
+      const db = asDb(tx);
+      await requireWarehouse(db, parsed.sourceWarehouseId);
+      await requireWarehouse(db, parsed.targetWarehouseId);
+      const today = toDateOnly(new Date().toISOString());
+      const [batch] = await db
+        .select()
+        .from(inventoryBatch)
+        .where(
+          and(
+            eq(inventoryBatch.item_id, parsed.itemId),
+            eq(inventoryBatch.batch_id, parsed.batchNo),
+          ),
+        )
+        .limit(1);
+      const source = assertReturned(
+        batch,
+        `Batch "${parsed.batchNo}" does not exist for this item.`,
       );
-    const batchQty = rateRow?.qty ?? 0;
-    const rate = batchQty > 0 ? (rateRow?.total ?? 0) / batchQty : 0;
+      if (source.status === "expired" || (source.expiry_date && source.expiry_date < today)) {
+        throw new Error(`Batch "${parsed.batchNo}" is expired and cannot be moved.`);
+      }
+      const balance = await getBatchBalance(db, {
+        batchNo: parsed.batchNo,
+        itemId: parsed.itemId,
+        warehouseId: parsed.sourceWarehouseId,
+      });
+      if (balance - parsed.qty < 0) {
+        throw new Error(`Insufficient batch stock to move (have ${balance}, need ${parsed.qty}).`);
+      }
 
-    await ctx.db.insert(inventoryStockLedger).values({
-      batch_no: parsed.batchNo,
-      item_id: parsed.itemId,
-      posting_date: today,
-      qty_delta: -parsed.qty,
-      valuation_rate: rate,
-      voucher_id: batch.id,
-      voucher_type: "batch_move",
-      warehouse_id: parsed.sourceWarehouseId,
-    });
-    await ctx.db.insert(inventoryStockLedger).values({
-      batch_no: parsed.batchNo,
-      item_id: parsed.itemId,
-      posting_date: today,
-      qty_delta: parsed.qty,
-      valuation_rate: rate,
-      voucher_id: batch.id,
-      voucher_type: "batch_move",
-      warehouse_id: parsed.targetWarehouseId,
+      const [rateRow] = await db
+        .select({
+          qty: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta}), 0)`,
+          total: sql<string>`coalesce(sum(${inventoryStockLedger.qty_delta} * ${inventoryStockLedger.valuation_rate}), 0)`,
+        })
+        .from(inventoryStockLedger)
+        .where(
+          and(
+            eq(inventoryStockLedger.item_id, parsed.itemId),
+            eq(inventoryStockLedger.warehouse_id, parsed.sourceWarehouseId),
+            eq(inventoryStockLedger.batch_no, parsed.batchNo),
+          ),
+        );
+      const batchQty = Number(rateRow?.qty ?? 0);
+      const rate = batchQty > 0 ? Number(rateRow?.total ?? 0) / batchQty : 0;
+
+      await db.insert(inventoryStockLedger).values([
+        {
+          batch_no: parsed.batchNo,
+          item_id: parsed.itemId,
+          posting_date: today,
+          qty_delta: -parsed.qty,
+          valuation_rate: rate,
+          voucher_id: source.id,
+          voucher_type: "batch_move",
+          warehouse_id: parsed.sourceWarehouseId,
+        },
+        {
+          batch_no: parsed.batchNo,
+          item_id: parsed.itemId,
+          posting_date: today,
+          qty_delta: parsed.qty,
+          valuation_rate: rate,
+          voucher_id: source.id,
+          voucher_type: "batch_move",
+          warehouse_id: parsed.targetWarehouseId,
+        },
+      ]);
+      return { batch: source, rate };
     });
 
     await ctx.audit.write({
       action: AUDIT_ACTION.MOVED,
       crudAction: "update",
-      entityId: batch.id,
+      entityId: result.batch.id,
       entityType: AUDIT_ENTITY_TYPE.BATCH,
-      newState: { batch_id: batch.batch_id, id: batch.id, qty: parsed.qty },
+      newState: { batch_id: result.batch.batch_id, id: result.batch.id, qty: parsed.qty },
     });
 
     await ctx.pubsub.publish(BATCH_EVENTS.MOVED, {
-      batchId: batch.batch_id,
-      batchRecordId: batch.id,
-      itemId: batch.item_id,
+      batchId: result.batch.batch_id,
+      batchRecordId: result.batch.id,
+      itemId: result.batch.item_id,
     });
 
     const remaining = await getBatchBalance(ctx.db, {
@@ -278,7 +285,12 @@ export const moveBatch = Workflow.name("inventory.batch.move")
       itemId: parsed.itemId,
       warehouseId: parsed.sourceWarehouseId,
     });
-    return { batchId: batch.batch_id, movedQty: parsed.qty, rate, remainingSourceQty: remaining };
+    return {
+      batchId: result.batch.batch_id,
+      movedQty: parsed.qty,
+      rate: result.rate,
+      remainingSourceQty: remaining,
+    };
   });
 
 export const expireBatch = Workflow.name("inventory.batch.expire")
@@ -293,9 +305,7 @@ export const expireBatch = Workflow.name("inventory.batch.expire")
       .set({ status: "expired", updated_at: new Date() })
       .where(eq(inventoryBatch.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to expire batch.");
-    }
+    const next = assertReturned(updated, "Failed to expire batch.");
     await ctx.audit.write({
       action: AUDIT_ACTION.EXPIRED,
       crudAction: "update",
@@ -304,18 +314,18 @@ export const expireBatch = Workflow.name("inventory.batch.expire")
       newState: { id: input.id, status: "expired" },
     });
     await ctx.pubsub.publish(BATCH_EVENTS.EXPIRED, {
-      batchId: updated.batch_id,
-      batchRecordId: updated.id,
-      itemId: updated.item_id,
+      batchId: next.batch_id,
+      batchRecordId: next.id,
+      itemId: next.item_id,
     });
-    return updated;
+    return next;
   });
 
 export const listExpiringBatches = Workflow.name("inventory.batch.expiring")
   .input(object({ filters: ExpiringBatchesSchema }))
   .handler(async ({ filters }, ctx) => {
     const parsed = parse(ExpiringBatchesSchema, filters);
-    const horizon = new Date(Date.now() + (parsed.daysAhead ?? 30) * 86_400_000);
+    const horizon = new Date(Date.now() + (parsed.daysAhead ?? 30) * MS_PER_DAY);
     const horizonOnly = toDateOnly(horizon.toISOString());
     const rows = await ctx.db
       .select()

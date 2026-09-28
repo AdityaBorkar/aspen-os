@@ -1,5 +1,6 @@
 import { inventoryPutawayRule } from "#/db-schemas/putaway-rule";
-import { getOnHandQty, requireWarehouse } from "#/services/stock-service";
+import { getOnHandQty, requireWarehouse, asDb } from "#/services/stock-service";
+import type { DbOrTx } from "#/services/stock-service";
 import {
   CreatePutawayRuleSchema,
   IdSchema,
@@ -9,11 +10,27 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { fetchPutawayRuleStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned, paginationOf, whereFrom } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import type { SQL } from "drizzle-orm";
 import { object, parse } from "valibot";
+
+export async function getPutawayAvailability(
+  db: DbOrTx,
+  ruleId: string,
+): Promise<{ freeSpace: number; onHandQty: number; ruleId: string }> {
+  const handle = asDb(db);
+  const [rule] = await handle
+    .select()
+    .from(inventoryPutawayRule)
+    .where(eq(inventoryPutawayRule.id, ruleId))
+    .limit(1);
+  const source = assertReturned(rule, `Putaway rule "${ruleId}" not found.`);
+  const onHand = await getOnHandQty(db, source.item_id, source.warehouse_id);
+  return { freeSpace: source.capacity - onHand, onHandQty: onHand, ruleId };
+}
 
 export const createPutawayRule = Workflow.name("inventory.putaway-rule.create")
   .input(object({ input: CreatePutawayRuleSchema }))
@@ -34,27 +51,25 @@ export const createPutawayRule = Workflow.name("inventory.putaway-rule.create")
         warehouse_id: parsed.warehouseId,
       })
       .returning();
-    if (!rule) {
-      throw new Error("Failed to create putaway rule.");
-    }
+    const created = assertReturned(rule, "Failed to create putaway rule.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: rule.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.PUTAWAY_RULE,
-      newState: { id: rule.id, item_id: rule.item_id, warehouse_id: rule.warehouse_id },
+      newState: { id: created.id, item_id: created.item_id, warehouse_id: created.warehouse_id },
     });
 
-    return rule;
+    return created;
   });
 
 export const getPutawayRule = Workflow.name("inventory.putaway-rule.get")
   .input(object({ id: IdSchema }))
   .handler(async (input, ctx) => {
     const rule = await ctx.step.run(fetchPutawayRuleStep, { id: input.id });
-    const onHand = await getOnHandQty(ctx.db, rule.item_id, rule.warehouse_id);
-    return { freeSpace: rule.capacity - onHand, onHandQty: onHand, rule };
+    const availability = await getPutawayAvailability(ctx.db, rule.id);
+    return { freeSpace: availability.freeSpace, onHandQty: availability.onHandQty, rule };
   });
 
 export const listPutawayRules = Workflow.name("inventory.putaway-rule.list")
@@ -71,13 +86,13 @@ export const listPutawayRules = Workflow.name("inventory.putaway-rule.list")
     if (parsed.warehouseId) {
       conditions.push(eq(inventoryPutawayRule.warehouse_id, parsed.warehouseId));
     }
-    const where = conditions.length > 0 ? and(...conditions) : undefined;
+    const { limit, offset } = paginationOf(parsed);
     const rows = await ctx.db
       .select()
       .from(inventoryPutawayRule)
-      .where(where)
-      .limit(parsed.limit ?? 50)
-      .offset(parsed.offset ?? 0);
+      .where(whereFrom(conditions))
+      .limit(limit)
+      .offset(offset);
     return rows;
   });
 
@@ -114,19 +129,17 @@ export const updatePutawayRule = Workflow.name("inventory.putaway-rule.update")
       .set({ ...values, updated_at: new Date() })
       .where(eq(inventoryPutawayRule.id, id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to update putaway rule.");
-    }
+    const next = assertReturned(updated, "Failed to update putaway rule.");
 
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.PUTAWAY_RULE,
-      newState: { id, is_disabled: updated.is_disabled },
+      newState: { id, is_disabled: next.is_disabled },
     });
 
-    return updated;
+    return next;
   });
 
 export const disablePutawayRule = Workflow.name("inventory.putaway-rule.disable")
@@ -141,9 +154,7 @@ export const disablePutawayRule = Workflow.name("inventory.putaway-rule.disable"
       .set({ is_disabled: true, updated_at: new Date() })
       .where(eq(inventoryPutawayRule.id, input.id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to disable putaway rule.");
-    }
+    const next = assertReturned(updated, "Failed to disable putaway rule.");
     await ctx.audit.write({
       action: AUDIT_ACTION.DISABLED,
       crudAction: "update",
@@ -151,14 +162,17 @@ export const disablePutawayRule = Workflow.name("inventory.putaway-rule.disable"
       entityType: AUDIT_ENTITY_TYPE.PUTAWAY_RULE,
       newState: { id: input.id, is_disabled: true },
     });
-    return updated;
+    return next;
   });
 
 export const previewPutaway = Workflow.name("inventory.putaway-rule.preview")
   .input(object({ id: IdSchema, qty: PositiveQuantitySchema }))
   .handler(async (input, ctx) => {
-    const rule = await ctx.step.run(fetchPutawayRuleStep, { id: input.id });
-    const onHand = await getOnHandQty(ctx.db, rule.item_id, rule.warehouse_id);
-    const free = rule.capacity - onHand;
-    return { fits: free >= input.qty, freeSpace: free, onHandQty: onHand, ruleId: input.id };
+    const availability = await getPutawayAvailability(ctx.db, input.id);
+    return {
+      fits: availability.freeSpace >= input.qty,
+      freeSpace: availability.freeSpace,
+      onHandQty: availability.onHandQty,
+      ruleId: input.id,
+    };
   });

@@ -7,6 +7,7 @@ import {
 } from "#/types";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, WAREHOUSE_TYPE } from "#/utils/constants";
 import { fetchWarehouseTypeStep } from "#/workflow-steps/fetch-inventory";
+import { assertReturned } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -62,17 +63,15 @@ export const createWarehouseType = Workflow.name("inventory.warehouse-type.creat
         name: parsed.name,
       })
       .returning();
-    if (!row) {
-      throw new Error("Failed to create warehouse type.");
-    }
+    const created = assertReturned(row, "Failed to create warehouse type.");
     await ctx.audit.write({
       action: AUDIT_ACTION.CREATED,
       crudAction: "create",
-      entityId: row.id,
+      entityId: created.id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE_TYPE,
-      newState: { code: row.code, id: row.id, name: row.name },
+      newState: { code: created.code, id: created.id, name: created.name },
     });
-    return row;
+    return created;
   });
 
 export const getWarehouseType = Workflow.name("inventory.warehouse-type.get")
@@ -115,18 +114,16 @@ export const updateWarehouseType = Workflow.name("inventory.warehouse-type.updat
       .set({ ...values, updated_at: new Date() })
       .where(eq(inventoryWarehouseType.id, id))
       .returning();
-    if (!updated) {
-      throw new Error("Failed to update warehouse type.");
-    }
+    const next = assertReturned(updated, "Failed to update warehouse type.");
     await ctx.audit.write({
       action: AUDIT_ACTION.UPDATED,
       crudAction: "update",
       entityId: id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE_TYPE,
-      newState: { id: updated.id, name: updated.name },
+      newState: { id: next.id, name: next.name },
       previousState: { id: current.id, name: current.name },
     });
-    return updated;
+    return next;
   });
 
 export const disableWarehouseType = Workflow.name("inventory.warehouse-type.disable")
@@ -143,15 +140,13 @@ export const disableWarehouseType = Workflow.name("inventory.warehouse-type.disa
         and(eq(inventoryWarehouseType.id, input.id), eq(inventoryWarehouseType.is_disabled, false)),
       )
       .returning();
-    if (!updated) {
-      throw new Error("Failed to disable warehouse type.");
-    }
+    const next = assertReturned(updated, "Failed to disable warehouse type.");
     await ctx.audit.write({
       action: AUDIT_ACTION.DISABLED,
       crudAction: "update",
       entityId: input.id,
       entityType: AUDIT_ENTITY_TYPE.WAREHOUSE_TYPE,
-      newState: { id: updated.id, is_disabled: true },
+      newState: { id: next.id, is_disabled: true },
     });
-    return updated;
+    return next;
   });
