@@ -1,0 +1,22 @@
+---
+title: Overview
+description: Goals, scope, and invariants of the accounting module.
+icon: IconBook
+---
+
+## Goals
+
+Single-tenant double-entry accounting with order-to-cash, procure-to-pay, asset register,
+two reconciliation tools, and one-click financial statements.
+
+## Non-goals
+
+Cost centers, multi-company, multi-currency, VAT, pricing rules, blanket orders.
+
+## Invariants
+
+Drafts never post. Cancel reverses ledger per linked-document order. Submitted docs are
+immutable (amend equals cancel plus new draft). One control account per reconciliation
+scope. `update_stock` invoices are forbidden when a delivery or receipt already moved the
+same quantity. Allocated amounts never exceed the smaller of outstanding and available.
+Supplier invoice numbers are unique per supplier.

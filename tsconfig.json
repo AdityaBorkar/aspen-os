@@ -50,6 +50,7 @@
     { "path": "./packages/notes" },
     { "path": "./packages/pharmacy" },
     { "path": "./packages/tasks" },
-    { "path": "./packages/workspace" }
+    { "path": "./packages/workspace" },
+    { "path": "./packages/accounting" }
   ]
 }
