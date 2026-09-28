@@ -1,9 +1,10 @@
 import { productsBarcode } from "#/db-schemas";
 import { BARCODE_EVENTS } from "#/pubsub";
 import { AddBarcodeSchema } from "#/schemas";
+import { assertBarcodeUnique } from "#/services/item-codes";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
-import { assertBarcodeUnique } from "#/workflows/utils";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 
@@ -27,17 +28,19 @@ export const addBarcode = Workflow.name("products.barcode.add")
     if (!row) {
       throw new Error("Failed to add barcode.");
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
+        entityType: AUDIT_ENTITY_TYPE.BARCODE,
         newState: { barcode: row.barcode, itemId: row.item_id },
-      });
-      await ctx.pubsub.publish(BARCODE_EVENTS.ADDED, {
+      },
+      BARCODE_EVENTS.ADDED,
+      {
         barcode: { barcode: row.barcode, id: row.id, itemId: row.item_id },
-      });
-    });
+      },
+    );
     return row;
   });

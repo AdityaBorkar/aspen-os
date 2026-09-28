@@ -1,8 +1,8 @@
-import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { CreateItemPriceSchema } from "#/schemas";
-import { validateItemPriceValues } from "#/services/price-fetch-service";
+import { insertItemPriceRow } from "#/services/pricing-mutations";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object, parse } from "valibot";
@@ -13,8 +13,8 @@ export const createItemPrice = Workflow.name("products.item-price.create")
   .input(CreateInputSchema)
   .handler(async ({ input }, ctx) => {
     const parsed = parse(CreateItemPriceSchema, input);
-    const values = await ctx.step.run("validate", async () =>
-      validateItemPriceValues(ctx.db, {
+    const row = await ctx.step.run("validate", async () =>
+      insertItemPriceRow(ctx.db, {
         batchNo: parsed.batchNo ?? null,
         customerId: parsed.customerId ?? null,
         itemId: parsed.itemId,
@@ -31,12 +31,9 @@ export const createItemPrice = Workflow.name("products.item-price.create")
         validUpto: parsed.validUpto ?? null,
       }),
     );
-    const [row] = await ctx.db.insert(productsItemPrice).values(values).returning();
-    if (!row) {
-      throw new Error("Failed to create item price.");
-    }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
@@ -47,10 +44,11 @@ export const createItemPrice = Workflow.name("products.item-price.create")
           rate: row.rate,
           uom: row.uom,
         },
-      });
-      await ctx.pubsub.publish(ITEM_PRICE_EVENTS.CREATED, {
+      },
+      ITEM_PRICE_EVENTS.CREATED,
+      {
         itemPrice: { id: row.id, itemId: row.item_id, priceListId: row.price_list_id },
-      });
-    });
+      },
+    );
     return row;
   });

@@ -1,5 +1,5 @@
 import { productsItemGroup } from "#/db-schemas";
-import { buildGroupTree } from "#/workflows/utils";
+import { buildGroupTree } from "#/services/group-hierarchy";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

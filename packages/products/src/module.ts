@@ -16,14 +16,6 @@ export class Products implements Module {
 
   readonly $name = "products";
   readonly $dependencies: readonly string[] = ["masters"];
-  readonly $consumes: readonly string[] = [
-    "masters.unit_of_measure_created",
-    "masters.unit_of_measure_updated",
-    "masters.unit_of_measure_retired",
-    "masters.contact_created",
-    "masters.contact_updated",
-    "inventory.stock_changed",
-  ];
   readonly $config: ProductsModuleConfig;
 
   constructor(config: ProductsModuleConfig) {

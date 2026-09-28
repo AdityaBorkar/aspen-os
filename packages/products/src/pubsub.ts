@@ -20,6 +20,8 @@ export const BRAND_EVENTS = {
 
 export const VARIANT_EVENTS = {
   CREATED: "products.variant_created",
+  DISABLED: "products.variant_disabled",
+  ENABLED: "products.variant_enabled",
   TEMPLATE_UPDATED: "products.variant_template_updated",
 } as const;
 
@@ -124,8 +126,18 @@ export interface VariantTemplateUpdatedEvent {
   templateItemId: string;
 }
 
+export interface VariantDisabledEvent {
+  variantId: string;
+}
+
+export interface VariantEnabledEvent {
+  variantId: string;
+}
+
 export interface VariantEventMap {
   [VARIANT_EVENTS.CREATED]: VariantCreatedEvent;
+  [VARIANT_EVENTS.DISABLED]: VariantDisabledEvent;
+  [VARIANT_EVENTS.ENABLED]: VariantEnabledEvent;
   [VARIANT_EVENTS.TEMPLATE_UPDATED]: VariantTemplateUpdatedEvent;
 }
 

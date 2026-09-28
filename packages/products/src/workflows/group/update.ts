@@ -1,10 +1,11 @@
 import { productsItemGroup } from "#/db-schemas";
 import { ITEM_GROUP_EVENTS } from "#/pubsub";
 import { UpdateGroupSchema } from "#/schemas";
+import { validateParentGroup } from "#/services/group-hierarchy";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchGroupStep } from "#/workflow-steps/fetch-group";
-import { validateParentGroup } from "#/workflows/utils";
+import { fetchGroupStep } from "#/workflow-steps/fetch";
+import { eventChanges, runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNull, ne } from "drizzle-orm";
@@ -72,19 +73,21 @@ export const updateGroup = Workflow.name("products.group.update")
       throw new Error(`Item group with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.UPDATED,
         changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.GROUP,
-      });
-      await ctx.pubsub.publish(ITEM_GROUP_EVENTS.UPDATED, {
-        changes: updates,
+      },
+      ITEM_GROUP_EVENTS.UPDATED,
+      {
+        changes: eventChanges(updates),
         itemGroup: { id: updated.id, name: updated.name },
-      });
-    });
+      },
+    );
 
     return updated;
   });

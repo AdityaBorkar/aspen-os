@@ -1,7 +1,9 @@
 import { productsReorderRule } from "#/db-schemas";
+import { REORDER_RULE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchReorderRuleStep } from "#/workflow-steps/fetch-reorder-rule";
+import { fetchReorderRuleStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,13 +23,19 @@ export const enableReorderRule = Workflow.name("products.reorder-rule.enable")
     if (!updated) {
       throw new Error(`Reorder rule with id "${id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.ENABLED,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.REORDER_RULE,
-      });
-    });
+      },
+      REORDER_RULE_EVENTS.UPDATED,
+      {
+        changes: { isDisabled: false },
+        reorderRule: { id: updated.id, itemId: updated.item_id },
+      },
+    );
     return updated;
   });

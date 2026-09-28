@@ -1,5 +1,6 @@
 import { productsManufacturer } from "#/db-schemas";
 import { ListManufacturersSchema } from "#/schemas";
+import { checkPage } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ilike, or } from "drizzle-orm";
@@ -24,13 +25,19 @@ export const listManufacturers = Workflow.name("products.manufacturer.list")
         );
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const rows = await ctx.db
+      checkPage(input);
+      let query = ctx.db
         .select()
         .from(productsManufacturer)
         .where(where)
-        .orderBy(productsManufacturer.name);
-      const offset = input.offset ?? 0;
-      const limit = input.limit ?? rows.length;
-      return rows.slice(offset, offset + limit);
+        .orderBy(productsManufacturer.name)
+        .$dynamic();
+      if (input.limit !== undefined) {
+        query = query.limit(input.limit);
+      }
+      if (input.offset !== undefined) {
+        query = query.offset(input.offset);
+      }
+      return query;
     }),
   );

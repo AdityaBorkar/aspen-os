@@ -1,5 +1,6 @@
 import { productsBrand } from "#/db-schemas";
 import { ListBrandsSchema } from "#/schemas";
+import { checkPage } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ilike, or } from "drizzle-orm";
@@ -22,13 +23,19 @@ export const listBrands = Workflow.name("products.brand.list")
         );
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const rows = await ctx.db
+      checkPage(input);
+      let query = ctx.db
         .select()
         .from(productsBrand)
         .where(where)
-        .orderBy(productsBrand.name);
-      const offset = input.offset ?? 0;
-      const limit = input.limit ?? rows.length;
-      return rows.slice(offset, offset + limit);
+        .orderBy(productsBrand.name)
+        .$dynamic();
+      if (input.limit !== undefined) {
+        query = query.limit(input.limit);
+      }
+      if (input.offset !== undefined) {
+        query = query.offset(input.offset);
+      }
+      return query;
     }),
   );

@@ -1,6 +1,7 @@
 import { productsManufacturer } from "#/db-schemas";
 import { CreateManufacturerSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -32,14 +33,12 @@ export const createManufacturer = Workflow.name("products.manufacturer.create")
     if (!row) {
       throw new Error("Failed to create manufacturer.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
-        newState: { name: row.name },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
+      newState: { name: row.name },
     });
     return row;
   });

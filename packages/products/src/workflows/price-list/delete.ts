@@ -6,7 +6,8 @@ import {
   STANDARD_BUYING_PRICE_LIST,
   STANDARD_SELLING_PRICE_LIST,
 } from "#/utils/constants";
-import { fetchPriceListStep } from "#/workflow-steps/fetch-price-list";
+import { fetchPriceListStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -39,13 +40,11 @@ export const deletePriceList = Workflow.name("products.price-list.delete")
     if (!deleted) {
       throw new Error(`Price list with id "${id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.DELETED,
-        crudAction: "delete",
-        entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.DELETED,
+      crudAction: "delete",
+      entityId: id,
+      entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
     });
     return { deleted: true };
   });

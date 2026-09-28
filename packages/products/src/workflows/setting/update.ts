@@ -2,6 +2,7 @@ import { productsSetting } from "#/db-schemas";
 import { UpdateSettingsSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -38,14 +39,12 @@ export const updateSettings = Workflow.name("products.settings.update")
       if (!created) {
         throw new Error("Failed to initialize products settings.");
       }
-      await ctx.step.run("audit", async () => {
-        await ctx.audit.write({
-          action: AUDIT_ACTION.CREATED,
-          crudAction: "create",
-          entityId: created.id,
-          entityType: AUDIT_ENTITY_TYPE.SETTING,
-          newState: { id: created.id },
-        });
+      await runAuditStep(ctx, {
+        action: AUDIT_ACTION.CREATED,
+        crudAction: "create",
+        entityId: created.id,
+        entityType: AUDIT_ENTITY_TYPE.SETTING,
+        newState: { id: created.id },
       });
       return created;
     }
@@ -62,14 +61,12 @@ export const updateSettings = Workflow.name("products.settings.update")
     if (!row) {
       throw new Error("Failed to update products settings.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        changes: updates,
-        crudAction: "update",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.SETTING,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      changes: updates,
+      crudAction: "update",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.SETTING,
     });
     return row;
   });

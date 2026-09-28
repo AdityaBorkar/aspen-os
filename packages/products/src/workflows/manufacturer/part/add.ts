@@ -1,8 +1,8 @@
 import { productsManufacturerPart } from "#/db-schemas";
 import { AddManufacturerPartSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
-import { fetchManufacturerStep } from "#/workflow-steps/fetch-manufacturer";
+import { fetchItemStep, fetchManufacturerStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -37,18 +37,16 @@ export const addManufacturerPart = Workflow.name("products.manufacturer.part.add
     if (!row) {
       throw new Error("Failed to add manufacturer part.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
-        newState: {
-          itemId: row.item_id,
-          manufacturerId: row.manufacturer_id,
-          partNo: row.manufacturer_part_no,
-        },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
+      newState: {
+        itemId: row.item_id,
+        manufacturerId: row.manufacturer_id,
+        partNo: row.manufacturer_part_no,
+      },
     });
     return row;
   });

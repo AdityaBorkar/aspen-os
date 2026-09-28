@@ -1,10 +1,12 @@
 import { productsItem, productsSetting } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { UpdateItemSchema } from "#/schemas";
+import { stripHtmlToText } from "#/services/item-text";
+import { toDateKey } from "#/services/pricing-dates";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
-import { cleanDescriptionHtml } from "#/workflows/utils";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { eventChanges, runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -43,12 +45,8 @@ export const updateItem = Workflow.name("products.item.update")
         throw new Error("Cannot change valuationMethod after the first transaction.");
       }
     }
-    if (patch.templateItemId !== undefined && patch.templateItemId !== current.template_item_id) {
-      throw new Error("Cannot change template binding. Create a new variant instead.");
-    }
-    if (patch.variantKey !== undefined && patch.variantKey !== current.variant_key) {
-      throw new Error("variantKey is immutable after creation.");
-    }
+    // templateItemId and variantKey are absent from UpdateItemSchema by design:
+    // template binding and variant identity are immutable after creation.
 
     const nextHasSerial = patch.hasSerialNo ?? current.has_serial_no;
     const nextHasBatch = patch.hasBatchNo ?? current.has_batch_no;
@@ -75,7 +73,7 @@ export const updateItem = Workflow.name("products.item.update")
       descriptionInput === undefined
         ? undefined
         : shouldClean
-          ? cleanDescriptionHtml(descriptionInput)
+          ? stripHtmlToText(descriptionInput)
           : descriptionInput;
 
     const updates = stripUndefined({
@@ -110,7 +108,7 @@ export const updateItem = Workflow.name("products.item.update")
           ? undefined
           : patch.endOfLifeDate === null
             ? null
-            : (patch.endOfLifeDate.toISOString().split("T")[0] ?? null),
+            : toDateKey(patch.endOfLifeDate),
       grant_commission: patch.grantCommission,
       has_batch_no: patch.hasBatchNo,
       has_expiry_date: patch.hasExpiryDate,
@@ -143,10 +141,8 @@ export const updateItem = Workflow.name("products.item.update")
       shelf_life_days: patch.shelfLifeDays,
       standard_selling_rate: patch.standardSellingRate,
       tax_category: patch.taxCategory,
-      template_item_id: patch.templateItemId,
       valuation_method: patch.valuationMethod,
       variant_based_on: patch.variantBasedOn,
-      variant_key: patch.variantKey,
       warranty_days: patch.warrantyDays,
       weight_per_unit: patch.weightPerUnit,
       weight_uom: patch.weightUom,
@@ -166,19 +162,21 @@ export const updateItem = Workflow.name("products.item.update")
       throw new Error(`Item with id "${input.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.UPDATED,
         changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.ITEM,
-      });
-      await ctx.pubsub.publish(ITEM_EVENTS.UPDATED, {
-        changes: updates,
+      },
+      ITEM_EVENTS.UPDATED,
+      {
+        changes: eventChanges(updates),
         item: { id: updated.id, itemCode: updated.item_code },
-      });
-    });
+      },
+    );
 
     return updated;
   });

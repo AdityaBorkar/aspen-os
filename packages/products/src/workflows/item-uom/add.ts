@@ -1,7 +1,8 @@
 import { productsItemUom } from "#/db-schemas";
 import { AddItemUomSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -33,14 +34,12 @@ export const addItemUom = Workflow.name("products.item-uom.add")
     if (!row) {
       throw new Error("Failed to add item UOM.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-        newState: { conversionFactor: row.conversion_factor, itemId: row.item_id, uom: row.uom },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM_UOM,
+      newState: { conversionFactor: row.conversion_factor, itemId: row.item_id, uom: row.uom },
     });
     return row;
   });

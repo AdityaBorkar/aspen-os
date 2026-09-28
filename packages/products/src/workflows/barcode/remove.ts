@@ -2,7 +2,8 @@ import { productsBarcode } from "#/db-schemas";
 import { BARCODE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchBarcodeStep } from "#/workflow-steps/fetch-barcode";
+import { fetchBarcodeStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,17 +22,19 @@ export const removeBarcode = Workflow.name("products.barcode.remove")
     if (!deleted) {
       throw new Error(`Barcode with id "${id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.DELETED,
         crudAction: "delete",
         entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-      });
-      await ctx.pubsub.publish(BARCODE_EVENTS.REMOVED, {
+        entityType: AUDIT_ENTITY_TYPE.BARCODE,
+      },
+      BARCODE_EVENTS.REMOVED,
+      {
         barcodeId: id,
         itemId: current.item_id,
-      });
-    });
+      },
+    );
     return { deleted: true };
   });

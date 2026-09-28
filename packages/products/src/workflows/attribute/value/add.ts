@@ -1,7 +1,8 @@
 import { productsAttributeValue } from "#/db-schemas";
 import { AddAttributeValueSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchAttributeStep } from "#/workflow-steps/fetch-attribute";
+import { fetchAttributeStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -45,14 +46,12 @@ export const addAttributeValue = Workflow.name("products.attribute.value.add")
     if (!row) {
       throw new Error("Failed to add attribute value.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
-        newState: { attributeId: row.attribute_id, value: row.value },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
+      newState: { attributeId: row.attribute_id, value: row.value },
     });
     return row;
   });

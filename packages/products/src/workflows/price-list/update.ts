@@ -3,7 +3,8 @@ import { PRICE_LIST_EVENTS } from "#/pubsub";
 import { UpdatePriceListSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchPriceListStep } from "#/workflow-steps/fetch-price-list";
+import { fetchPriceListStep } from "#/workflow-steps/fetch";
+import { eventChanges, runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNotNull } from "drizzle-orm";
@@ -97,18 +98,20 @@ export const updatePriceList = Workflow.name("products.price-list.update")
     if (!updated) {
       throw new Error(`Price list with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.UPDATED,
         changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
-      });
-      await ctx.pubsub.publish(PRICE_LIST_EVENTS.UPDATED, {
-        changes: updates,
+      },
+      PRICE_LIST_EVENTS.UPDATED,
+      {
+        changes: eventChanges(updates),
         priceList: { id: updated.id, name: updated.name },
-      });
-    });
+      },
+    );
     return updated;
   });

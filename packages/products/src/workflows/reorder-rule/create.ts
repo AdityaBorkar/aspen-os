@@ -2,7 +2,8 @@ import { productsReorderRule } from "#/db-schemas";
 import { REORDER_RULE_EVENTS } from "#/pubsub";
 import { CreateReorderRuleSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 
@@ -27,17 +28,19 @@ export const createReorderRule = Workflow.name("products.reorder-rule.create")
     if (!row) {
       throw new Error("Failed to create reorder rule.");
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.REORDER_RULE,
         newState: { itemId: row.item_id },
-      });
-      await ctx.pubsub.publish(REORDER_RULE_EVENTS.CREATED, {
+      },
+      REORDER_RULE_EVENTS.CREATED,
+      {
         reorderRule: { id: row.id, itemId: row.item_id },
-      });
-    });
+      },
+    );
     return row;
   });

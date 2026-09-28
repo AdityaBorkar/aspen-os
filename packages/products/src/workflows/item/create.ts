@@ -1,12 +1,11 @@
 import { productsItem, productsItemGroup, productsSetting } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { CreateItemSchema } from "#/schemas";
+import { assertItemCodeUnique, generateUniqueItemCode } from "#/services/item-codes";
+import { stripHtmlToText } from "#/services/item-text";
+import { toDateKey } from "#/services/pricing-dates";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import {
-  assertItemCodeUnique,
-  cleanDescriptionHtml,
-  generateNamingSeriesCode,
-} from "#/workflows/utils";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -80,7 +79,7 @@ export const createItem = Workflow.name("products.item.create")
             .limit(1);
           prefix = group?.namingPrefix ?? group?.namingSeries ?? null;
         }
-        itemCode = generateNamingSeriesCode(prefix);
+        itemCode = await generateUniqueItemCode(ctx.db, prefix);
       } else {
         throw new Error("itemCode is required when item_naming_by is item_code.");
       }
@@ -91,7 +90,7 @@ export const createItem = Workflow.name("products.item.create")
     const itemName = parsed.itemName?.trim() || itemCode;
     const shouldClean = settingsRow?.clean_description_html ?? true;
     const description = parsed.description ?? null;
-    const cleaned = shouldClean ? cleanDescriptionHtml(description) : description;
+    const cleaned = shouldClean ? stripHtmlToText(description) : description;
 
     const isTemplate = parsed.hasVariants ?? false;
     if (isTemplate && parsed.variantKey !== undefined && parsed.variantKey !== null) {
@@ -127,9 +126,7 @@ export const createItem = Workflow.name("products.item.create")
         description: parsed.description ?? null,
         enable_deferred_expense: parsed.enableDeferredExpense ?? false,
         enable_deferred_revenue: parsed.enableDeferredRevenue ?? false,
-        end_of_life_date: parsed.endOfLifeDate
-          ? (parsed.endOfLifeDate.toISOString().split("T")[0] ?? null)
-          : null,
+        end_of_life_date: parsed.endOfLifeDate ? toDateKey(parsed.endOfLifeDate) : null,
         grant_commission: parsed.grantCommission ?? false,
         has_batch_no: parsed.hasBatchNo ?? false,
         has_expiry_date: parsed.hasExpiryDate ?? false,
@@ -177,18 +174,20 @@ export const createItem = Workflow.name("products.item.create")
       throw new Error("Failed to create item.");
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: item.id,
         entityType: AUDIT_ENTITY_TYPE.ITEM,
         newState: { itemCode: item.item_code, itemName: item.item_name },
-      });
-      await ctx.pubsub.publish(ITEM_EVENTS.CREATED, {
+      },
+      ITEM_EVENTS.CREATED,
+      {
         item: { id: item.id, itemCode: item.item_code, itemName: item.item_name },
-      });
-    });
+      },
+    );
 
     return item;
   });

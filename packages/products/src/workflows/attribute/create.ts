@@ -1,6 +1,7 @@
 import { productsAttribute } from "#/db-schemas";
 import { CreateAttributeSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -31,14 +32,12 @@ export const createAttribute = Workflow.name("products.attribute.create")
     if (!row) {
       throw new Error("Failed to create attribute.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
-        newState: { name: row.name },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
+      newState: { name: row.name },
     });
     return row;
   });

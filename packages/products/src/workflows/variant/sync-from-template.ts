@@ -3,7 +3,8 @@ import { VARIANT_EVENTS } from "#/pubsub";
 import { SyncVariantFromTemplateSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, VARIANT_SYNC_ALLOWLIST } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { eventChanges, runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -75,19 +76,21 @@ export const syncVariantFromTemplate = Workflow.name("products.variant.sync-from
       throw new Error(`Variant with id "${variant.id}" not found.`);
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.SYNCED,
         changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.VARIANT,
-      });
-      await ctx.pubsub.publish(VARIANT_EVENTS.TEMPLATE_UPDATED, {
-        changes: updates,
+      },
+      VARIANT_EVENTS.TEMPLATE_UPDATED,
+      {
+        changes: eventChanges(updates),
         templateItemId: template.id,
-      });
-    });
+      },
+    );
 
     return updated;
   });

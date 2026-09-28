@@ -1,5 +1,5 @@
 import { IdSchema } from "#/schemas";
-import { fetchItemPriceStep } from "#/workflow-steps/fetch-item-price";
+import { fetchItemPriceStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

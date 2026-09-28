@@ -2,6 +2,7 @@ import { productsBrand } from "#/db-schemas";
 import { BRAND_EVENTS } from "#/pubsub";
 import { CreateBrandSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -36,18 +37,20 @@ export const createBrand = Workflow.name("products.brand.create")
       throw new Error("Failed to create brand.");
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: brand.id,
         entityType: AUDIT_ENTITY_TYPE.BRAND,
         newState: { name: brand.name },
-      });
-      await ctx.pubsub.publish(BRAND_EVENTS.CREATED, {
+      },
+      BRAND_EVENTS.CREATED,
+      {
         brand: { id: brand.id, name: brand.name },
-      });
-    });
+      },
+    );
 
     return brand;
   });

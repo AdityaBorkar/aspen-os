@@ -51,6 +51,7 @@ export const AUDIT_ENTITY_TYPE = {
   GROUP: "products:group",
   ITEM: "products:item",
   ITEM_PRICE: "products:item-price",
+  ITEM_UOM: "products:item-uom",
   MANUFACTURER: "products:manufacturer",
   PRICELIST_SETTING: "products:pricelist-setting",
   PRICE_LIST: "products:price-list",

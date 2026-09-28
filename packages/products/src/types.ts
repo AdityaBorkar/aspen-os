@@ -68,6 +68,8 @@ export type {
   ReorderRuleEventMap,
   ReorderRuleUpdatedEvent,
   VariantCreatedEvent,
+  VariantDisabledEvent,
+  VariantEnabledEvent,
   VariantEventMap,
   VariantTemplateUpdatedEvent,
 } from "#/pubsub";
@@ -258,4 +260,4 @@ export type {
   VariantSyncField,
 } from "#/utils/constants";
 export type { ProductsModuleConfig } from "#/module";
-export type { GroupTreeNode } from "#/workflows/utils";
+export type { GroupTreeNode } from "#/services/group-hierarchy";

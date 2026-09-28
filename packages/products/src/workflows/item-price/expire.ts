@@ -2,7 +2,8 @@ import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemPriceStep } from "#/workflow-steps/fetch-item-price";
+import { fetchItemPriceStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -28,14 +29,16 @@ export const expireItemPrice = Workflow.name("products.item-price.expire")
     if (!updated) {
       throw new Error(`Item price with id "${id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.EXPIRED,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-      });
-      await ctx.pubsub.publish(ITEM_PRICE_EVENTS.EXPIRED, { itemPriceId: id });
-    });
+      },
+      ITEM_PRICE_EVENTS.EXPIRED,
+      { itemPriceId: id },
+    );
     return updated;
   });

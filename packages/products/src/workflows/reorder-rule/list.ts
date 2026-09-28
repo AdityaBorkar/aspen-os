@@ -1,5 +1,6 @@
 import { productsReorderRule } from "#/db-schemas";
 import { ListReorderRulesSchema } from "#/schemas";
+import { checkPage } from "#/workflows/utils";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -25,9 +26,14 @@ export const listReorderRules = Workflow.name("products.reorder-rule.list")
         );
       }
       const where = conditions.length > 0 ? and(...conditions) : undefined;
-      const rows = await ctx.db.select().from(productsReorderRule).where(where);
-      const offset = input.offset ?? 0;
-      const limit = input.limit ?? rows.length;
-      return rows.slice(offset, offset + limit);
+      checkPage(input);
+      let query = ctx.db.select().from(productsReorderRule).where(where).$dynamic();
+      if (input.limit !== undefined) {
+        query = query.limit(input.limit);
+      }
+      if (input.offset !== undefined) {
+        query = query.offset(input.offset);
+      }
+      return query;
     }),
   );

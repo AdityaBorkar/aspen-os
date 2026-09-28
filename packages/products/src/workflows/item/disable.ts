@@ -2,7 +2,8 @@ import { productsItem } from "#/db-schemas";
 import { ITEM_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -25,14 +26,16 @@ export const disableItem = Workflow.name("products.item.disable")
     if (!updated) {
       throw new Error(`Item with id "${id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.DISABLED,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.ITEM,
-      });
-      await ctx.pubsub.publish(ITEM_EVENTS.DISABLED, { itemId: id });
-    });
+      },
+      ITEM_EVENTS.DISABLED,
+      { itemId: id },
+    );
     return updated;
   });

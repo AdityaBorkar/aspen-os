@@ -1,7 +1,8 @@
 import { productsItemAlternative } from "#/db-schemas";
 import { AddAlternativeSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -57,14 +58,12 @@ export const addAlternative = Workflow.name("products.alternative.add")
         });
       }
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-        newState: { alternativeItemId: row.alternative_item_id, itemId: row.item_id },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM,
+      newState: { alternativeItemId: row.alternative_item_id, itemId: row.item_id },
     });
     return row;
   });

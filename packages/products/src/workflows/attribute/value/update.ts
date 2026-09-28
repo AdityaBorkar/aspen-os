@@ -2,6 +2,7 @@ import { productsAttributeValue } from "#/db-schemas";
 import { UpdateAttributeValueSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -27,14 +28,12 @@ export const updateAttributeValue = Workflow.name("products.attribute.value.upda
     if (!updated) {
       throw new Error(`Attribute value with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        changes: updates,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      changes: updates,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.ATTRIBUTE,
     });
     return updated;
   });

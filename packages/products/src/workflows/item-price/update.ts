@@ -1,18 +1,13 @@
 import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { UpdateItemPriceSchema } from "#/schemas";
-import {
-  dateKeyToDate,
-  fetchItemUoms,
-  isKnownUom,
-  resolveUomFactor,
-  toDateKey,
-  validateItemPriceValues,
-} from "#/services/price-fetch-service";
+import { fetchItemUoms, isKnownUom, resolveUomFactor } from "#/services/item-eligibility";
+import { dateKeyToDate, toDateKey } from "#/services/pricing-dates";
+import { normalizePackingUnit, validateItemPriceValues } from "#/services/pricing-validation";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
-import { fetchItemPriceStep } from "#/workflow-steps/fetch-item-price";
+import { fetchItemPriceStep, fetchItemStep } from "#/workflow-steps/fetch";
+import { eventChanges, runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -30,6 +25,9 @@ export const updateItemPrice = Workflow.name("products.item-price.update")
     const { patch } = input;
     if (patch.rate !== undefined && !(patch.rate >= 0)) {
       throw new Error("rate must be >= 0.");
+    }
+    if (patch.packingUnit !== undefined) {
+      normalizePackingUnit(patch.packingUnit);
     }
 
     const nextUom = patch.uom ?? current.uom;
@@ -83,7 +81,7 @@ export const updateItemPrice = Workflow.name("products.item-price.update")
       lead_time_days: patch.leadTimeDays,
       min_qty: patch.minQty,
       note: patch.note,
-      packing_unit: patch.packingUnit === 0 ? null : patch.packingUnit,
+      packing_unit: patch.packingUnit,
       rate: patch.rate,
       uom: patch.uom,
       valid_from: patch.validFrom === undefined ? undefined : toDateKey(patch.validFrom),
@@ -92,7 +90,7 @@ export const updateItemPrice = Workflow.name("products.item-price.update")
           ? undefined
           : patch.validUpto === null
             ? null
-            : (patch.validUpto.toISOString().split("T")[0] ?? null),
+            : toDateKey(patch.validUpto),
     });
     if (Object.keys(updates).length === 0) {
       return current;
@@ -105,18 +103,20 @@ export const updateItemPrice = Workflow.name("products.item-price.update")
     if (!updated) {
       throw new Error(`Item price with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.UPDATED,
         changes: updates,
         crudAction: "update",
         entityId: updated.id,
         entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-      });
-      await ctx.pubsub.publish(ITEM_PRICE_EVENTS.UPDATED, {
-        changes: updates,
+      },
+      ITEM_PRICE_EVENTS.UPDATED,
+      {
+        changes: eventChanges(updates),
         itemPrice: { id: updated.id, itemId: updated.item_id, priceListId: updated.price_list_id },
-      });
-    });
+      },
+    );
     return updated;
   });

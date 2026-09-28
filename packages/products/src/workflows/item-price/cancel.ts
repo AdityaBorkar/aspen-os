@@ -2,7 +2,8 @@ import { productsItemPrice } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemPriceStep } from "#/workflow-steps/fetch-item-price";
+import { fetchItemPriceStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -31,17 +32,19 @@ export const cancelItemPrice = Workflow.name("products.item-price.cancel")
     if (!updated) {
       throw new Error(`Item price with id "${id}" not found.`);
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CANCELLED,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-      });
-      await ctx.pubsub.publish(ITEM_PRICE_EVENTS.UPDATED, {
+      },
+      ITEM_PRICE_EVENTS.UPDATED,
+      {
         changes: { status: "cancelled" },
         itemPrice: { id: updated.id, itemId: updated.item_id, priceListId: updated.price_list_id },
-      });
-    });
+      },
+    );
     return updated;
   });

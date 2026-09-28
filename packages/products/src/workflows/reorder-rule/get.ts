@@ -1,5 +1,5 @@
 import { IdSchema } from "#/schemas";
-import { fetchReorderRuleStep } from "#/workflow-steps/fetch-reorder-rule";
+import { fetchReorderRuleStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

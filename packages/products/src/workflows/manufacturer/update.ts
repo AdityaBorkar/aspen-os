@@ -2,7 +2,8 @@ import { productsManufacturer } from "#/db-schemas";
 import { UpdateManufacturerSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchManufacturerStep } from "#/workflow-steps/fetch-manufacturer";
+import { fetchManufacturerStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, ne } from "drizzle-orm";
@@ -44,14 +45,12 @@ export const updateManufacturer = Workflow.name("products.manufacturer.update")
     if (!updated) {
       throw new Error(`Manufacturer with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        changes: updates,
-        crudAction: "update",
-        entityId: updated.id,
-        entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      changes: updates,
+      crudAction: "update",
+      entityId: updated.id,
+      entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
     });
     return updated;
   });

@@ -2,7 +2,8 @@ import { productsItem, productsItemUom } from "#/db-schemas";
 import { UpdateItemUomSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchItemUomStep } from "#/workflow-steps/fetch-item-uom";
+import { fetchItemUomStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -47,14 +48,12 @@ export const updateItemUom = Workflow.name("products.item-uom.update")
     if (!row) {
       throw new Error(`Item UOM with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: input.patch.recalculate ? AUDIT_ACTION.RECALCULATED : AUDIT_ACTION.UPDATED,
-        changes: updates,
-        crudAction: "update",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-      });
+    await runAuditStep(ctx, {
+      action: input.patch.recalculate ? AUDIT_ACTION.RECALCULATED : AUDIT_ACTION.UPDATED,
+      changes: updates,
+      crudAction: "update",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM_UOM,
     });
     return row;
   });

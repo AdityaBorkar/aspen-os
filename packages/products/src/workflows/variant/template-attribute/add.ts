@@ -1,7 +1,8 @@
 import { productsAttribute, productsTemplateAttribute } from "#/db-schemas";
 import { AddTemplateAttributeSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -48,14 +49,12 @@ export const addTemplateAttribute = Workflow.name("products.variant.template-att
     if (!row) {
       throw new Error("Failed to add template attribute.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.VARIANT,
-        newState: { attributeId: row.attribute_id, templateItemId: row.template_item_id },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.VARIANT,
+      newState: { attributeId: row.attribute_id, templateItemId: row.template_item_id },
     });
     return row;
   });

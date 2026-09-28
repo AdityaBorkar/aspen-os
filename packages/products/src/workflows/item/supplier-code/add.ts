@@ -1,7 +1,8 @@
 import { productsItemSupplierCode } from "#/db-schemas";
 import { AddSupplierCodeSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -35,14 +36,12 @@ export const addSupplierCode = Workflow.name("products.item.supplier-code.add")
     if (!row) {
       throw new Error("Failed to add supplier code.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-        newState: { itemId: row.item_id, supplierId: row.supplier_id },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM,
+      newState: { itemId: row.item_id, supplierId: row.supplier_id },
     });
     return row;
   });

@@ -1,16 +1,12 @@
-import { productsPriceList } from "#/db-schemas";
-import type { ProductsItemPrice } from "#/db-schemas/item-price";
+import { productsItemPrice, productsPriceList } from "#/db-schemas";
 import type { ProductsPriceList } from "#/db-schemas/price-list";
 import { GetActiveForItemSchema } from "#/schemas";
-import {
-  fetchEligibleItem,
-  isValidOn,
-  loadActiveRowsForItem,
-  toDateKey,
-  todayKey,
-} from "#/services/price-fetch-service";
+import { fetchEligibleItem } from "#/services/item-eligibility";
+import { toDateKey, todayKey } from "#/services/pricing-dates";
 
 import { Workflow } from "@aspen-os/platform/server";
+import { and, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
+import type { SQL } from "drizzle-orm";
 
 export const getActiveForItem = Workflow.name("products.price-fetch.get-active-for-item")
   .input(GetActiveForItemSchema)
@@ -21,53 +17,51 @@ export const getActiveForItem = Workflow.name("products.price-fetch.get-active-f
         input.txnDate === null || input.txnDate === undefined
           ? todayKey()
           : toDateKey(input.txnDate);
-      const [rows, lists] = await Promise.all([
-        loadActiveRowsForItem(ctx.db, input.itemId),
-        ctx.db.select().from(productsPriceList),
-      ]);
+      const lists = await ctx.db.select().from(productsPriceList);
       const listsById = new Map<string, ProductsPriceList>();
       for (const list of lists) {
         listsById.set(list.id, list);
       }
-      const out: ProductsItemPrice[] = [];
-      for (const row of rows) {
-        const list = listsById.get(row.price_list_id);
-        if (list === undefined || !list.is_enabled) {
-          continue;
-        }
-        if (!isValidOn(row, dateKey)) {
-          continue;
-        }
-        if (input.side === "selling") {
-          if (row.supplier_id !== null) {
-            continue;
+      const allowedListIds = lists
+        .filter((list) => {
+          if (!list.is_enabled) {
+            return false;
           }
-          if (list.applicability !== "selling" && list.applicability !== "both") {
-            continue;
+          if (input.side === "selling") {
+            return list.applicability === "selling" || list.applicability === "both";
           }
-        }
-        if (input.side === "buying") {
-          if (row.customer_id !== null) {
-            continue;
+          if (input.side === "buying") {
+            return list.applicability === "buying" || list.applicability === "both";
           }
-          if (list.applicability !== "buying" && list.applicability !== "both") {
-            continue;
-          }
-        }
-        out.push(row);
+          return true;
+        })
+        .map((list) => list.id);
+      if (allowedListIds.length === 0) {
+        return [];
       }
-      out.sort((first, second) => {
-        if (first.price_list_id !== second.price_list_id) {
-          return first.price_list_id < second.price_list_id ? -1 : 1;
-        }
-        if (first.uom !== second.uom) {
-          return first.uom < second.uom ? -1 : 1;
-        }
-        if (first.valid_from !== second.valid_from) {
-          return first.valid_from < second.valid_from ? -1 : 1;
-        }
-        return 0;
-      });
-      return out;
+      const conditions: SQL[] = [
+        eq(productsItemPrice.item_id, input.itemId),
+        eq(productsItemPrice.status, "active"),
+        inArray(productsItemPrice.price_list_id, allowedListIds),
+        lte(productsItemPrice.valid_from, dateKey),
+        // SAFETY: or() with two defined branches always yields SQL; no undefined input by construction.
+        or(isNull(productsItemPrice.valid_upto), gte(productsItemPrice.valid_upto, dateKey)) as SQL,
+      ];
+      // A selling lookup never matches supplier-specific rows and vice versa.
+      if (input.side === "selling") {
+        conditions.push(isNull(productsItemPrice.supplier_id));
+      }
+      if (input.side === "buying") {
+        conditions.push(isNull(productsItemPrice.customer_id));
+      }
+      return ctx.db
+        .select()
+        .from(productsItemPrice)
+        .where(and(...conditions))
+        .orderBy(
+          productsItemPrice.price_list_id,
+          productsItemPrice.uom,
+          productsItemPrice.valid_from,
+        );
     }),
   );

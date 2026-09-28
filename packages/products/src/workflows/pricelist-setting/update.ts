@@ -3,7 +3,8 @@ import { UpdatePricelistSettingsSchema } from "#/schemas";
 import { getPricelistSettings } from "#/services/price-fetch-service";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 import { stripUndefined } from "#/utils/strip-undefined";
-import { fetchPriceListStep } from "#/workflow-steps/fetch-price-list";
+import { fetchPriceListStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -39,14 +40,12 @@ export const updatePricelistSettings = Workflow.name("products.pricelist-setting
     if (!row) {
       throw new Error("Failed to update pricelist settings.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.UPDATED,
-        changes: updates,
-        crudAction: "update",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.PRICELIST_SETTING,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.UPDATED,
+      changes: updates,
+      crudAction: "update",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.PRICELIST_SETTING,
     });
     return row;
   });

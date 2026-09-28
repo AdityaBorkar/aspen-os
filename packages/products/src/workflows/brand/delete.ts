@@ -1,6 +1,7 @@
 import { productsBrand, productsItem } from "#/db-schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchBrandStep } from "#/workflow-steps/fetch-brand";
+import { fetchBrandStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -31,13 +32,11 @@ export const deleteBrand = Workflow.name("products.brand.delete")
       throw new Error(`Brand with id "${id}" not found.`);
     }
 
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.DELETED,
-        crudAction: "delete",
-        entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.BRAND,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.DELETED,
+      crudAction: "delete",
+      entityId: id,
+      entityType: AUDIT_ENTITY_TYPE.BRAND,
     });
 
     return { deleted: true };

@@ -1,7 +1,8 @@
 import { productsItemPrice } from "#/db-schemas";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemPriceStep } from "#/workflow-steps/fetch-item-price";
+import { fetchItemPriceStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -26,13 +27,11 @@ export const deleteItemPrice = Workflow.name("products.item-price.delete")
     if (!deleted) {
       throw new Error(`Item price with id "${id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.DELETED,
-        crudAction: "delete",
-        entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.DELETED,
+      crudAction: "delete",
+      entityId: id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
     });
     return { deleted: true };
   });

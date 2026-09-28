@@ -1,5 +1,5 @@
 import { IdSchema } from "#/schemas";
-import { fetchManufacturerStep } from "#/workflow-steps/fetch-manufacturer";
+import { fetchManufacturerStep } from "#/workflow-steps/fetch";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { object } from "valibot";

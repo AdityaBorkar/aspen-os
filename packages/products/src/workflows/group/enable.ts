@@ -1,7 +1,9 @@
 import { productsItemGroup } from "#/db-schemas";
+import { ITEM_GROUP_EVENTS } from "#/pubsub";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchGroupStep } from "#/workflow-steps/fetch-group";
+import { fetchGroupStep } from "#/workflow-steps/fetch";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -21,13 +23,19 @@ export const enableGroup = Workflow.name("products.group.enable")
     if (!updated) {
       throw new Error(`Item group with id "${id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.ENABLED,
         crudAction: "update",
         entityId: id,
         entityType: AUDIT_ENTITY_TYPE.GROUP,
-      });
-    });
+      },
+      ITEM_GROUP_EVENTS.UPDATED,
+      {
+        changes: { isDisabled: false },
+        itemGroup: { id: updated.id, name: updated.name },
+      },
+    );
     return updated;
   });

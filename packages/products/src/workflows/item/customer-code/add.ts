@@ -1,7 +1,8 @@
 import { productsItemCustomerCode } from "#/db-schemas";
 import { AddCustomerCodeSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemStep } from "#/workflow-steps/fetch-item";
+import { fetchItemStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
@@ -35,14 +36,12 @@ export const addCustomerCode = Workflow.name("products.item.customer-code.add")
     if (!row) {
       throw new Error("Failed to add customer code.");
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.CREATED,
-        crudAction: "create",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-        newState: { customerId: row.customer_id, itemId: row.item_id },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.CREATED,
+      crudAction: "create",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM,
+      newState: { customerId: row.customer_id, itemId: row.item_id },
     });
     return row;
   });

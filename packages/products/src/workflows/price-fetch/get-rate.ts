@@ -1,30 +1,30 @@
-import { productsItemPrice, productsPriceList } from "#/db-schemas";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { GetRateSchema } from "#/schemas";
 import {
   fetchEligibleItem,
   fetchItemUoms,
-  findPriceListByName,
   findUomRow,
-  getPricelistSettings,
-  getProductsSettings,
   isKnownUom,
-  loadActiveRowsForItemList,
-  markItemTransacted,
-  rankConvertibleCandidates,
-  rankItemPriceCandidates,
-  resolveFetchSide,
-  resolvePriceListLabel,
   resolveUomFactor,
-  toDateKey,
-  todayKey,
+} from "#/services/item-eligibility";
+import { toDateKey, todayKey } from "#/services/pricing-dates";
+import {
+  loadActiveRowsForItemList,
+  resolveFetchSide,
+  resolvePriceList,
+} from "#/services/pricing-lists";
+import {
+  insertItemPriceRow,
+  markItemTransacted,
+  touchFetchedRow,
   updateLastPurchaseRate,
-  validateItemPriceValues,
-} from "#/services/price-fetch-service";
+} from "#/services/pricing-mutations";
+import { rankConvertibleCandidates, rankItemPriceCandidates } from "#/services/pricing-rank";
+import { getProductsSettings } from "#/services/pricing-settings";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
-import { eq } from "drizzle-orm";
 
 export const getRate = Workflow.name("products.price-fetch.get-rate")
   .input(GetRateSchema)
@@ -45,54 +45,14 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
       fetchItemUoms(ctx.db, input.itemId),
     );
 
-    const list = await ctx.step.run("resolve-list", async () => {
-      if (input.priceListId !== null && input.priceListId !== undefined) {
-        const [byId] = await ctx.db
-          .select()
-          .from(productsPriceList)
-          .where(eq(productsPriceList.id, input.priceListId))
-          .limit(1);
-        if (!byId) {
-          throw new Error(`Price list with id "${input.priceListId}" not found.`);
-        }
-        return byId.is_enabled ? byId : null;
-      }
-      if (input.priceListName !== null && input.priceListName !== undefined) {
-        const named = await findPriceListByName(ctx.db, input.priceListName);
-        return named !== null && named.is_enabled ? named : null;
-      }
-      const label = await resolvePriceListLabel(ctx.db, item);
-      if (label !== null) {
-        const labeled = await findPriceListByName(ctx.db, label.label);
-        if (labeled !== null && labeled.is_enabled) {
-          return labeled;
-        }
-        return null;
-      }
-      const settings = await getPricelistSettings(ctx.db);
-      const fallbackIds =
-        input.side === "buying"
-          ? [settings.default_buying_list_id]
-          : input.side === "selling"
-            ? [settings.default_selling_list_id]
-            : [settings.default_selling_list_id, settings.default_buying_list_id];
-      // oxlint-disable eslint/no-await-in-loop
-      for (const fallbackId of fallbackIds) {
-        if (fallbackId === null) {
-          continue;
-        }
-        const [fallback] = await ctx.db
-          .select()
-          .from(productsPriceList)
-          .where(eq(productsPriceList.id, fallbackId))
-          .limit(1);
-        if (fallback !== undefined && fallback.is_enabled) {
-          return fallback;
-        }
-      }
-      // oxlint-enable eslint/no-await-in-loop
-      return null;
-    });
+    const list = await ctx.step.run("resolve-list", async () =>
+      resolvePriceList(ctx.db, {
+        item,
+        priceListId: input.priceListId,
+        priceListName: input.priceListName,
+        side: input.side ?? null,
+      }),
+    );
     if (list === null) {
       return null;
     }
@@ -127,18 +87,7 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
     };
     const [winner] = rankItemPriceCandidates(rows, request);
     if (winner !== undefined) {
-      const [touched] = await ctx.db
-        .update(productsItemPrice)
-        .set({
-          fetch_count: winner.fetch_count + 1,
-          last_fetched_at: new Date(),
-          updated_at: new Date(),
-        })
-        .where(eq(productsItemPrice.id, winner.id))
-        .returning();
-      if (!touched) {
-        throw new Error(`Item price with id "${winner.id}" not found.`);
-      }
+      const touched = await touchFetchedRow(ctx.db, winner.id);
       return {
         converted: false,
         itemPriceId: touched.id,
@@ -153,18 +102,7 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
         resolveUomFactor(item, itemUoms, uom),
       );
       if (convertible !== undefined) {
-        const [touched] = await ctx.db
-          .update(productsItemPrice)
-          .set({
-            fetch_count: convertible.row.fetch_count + 1,
-            last_fetched_at: new Date(),
-            updated_at: new Date(),
-          })
-          .where(eq(productsItemPrice.id, convertible.row.id))
-          .returning();
-        if (!touched) {
-          throw new Error(`Item price with id "${convertible.row.id}" not found.`);
-        }
+        const touched = await touchFetchedRow(ctx.db, convertible.row.id);
         return {
           converted: true,
           itemPriceId: touched.id,
@@ -186,7 +124,7 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
         if (autoSide === null) {
           throw new Error("side is required to auto-insert into a both-applicability list.");
         }
-        const values = await validateItemPriceValues(ctx.db, {
+        const created = await insertItemPriceRow(ctx.db, {
           batchNo: null,
           customerId: null,
           itemId: input.itemId,
@@ -202,16 +140,13 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
           validFrom: input.txnDate ?? null,
           validUpto: null,
         });
-        const [created] = await ctx.db.insert(productsItemPrice).values(values).returning();
-        if (!created) {
-          throw new Error("Failed to auto-insert item price.");
-        }
         await markItemTransacted(ctx.db, input.itemId);
         if (autoSide === "buying") {
           await updateLastPurchaseRate(ctx.db, input.itemId, input.recordUse.rate);
         }
-        await ctx.step.run("audit-and-notify", async () => {
-          await ctx.audit.write({
+        await runAuditNotifyStep(
+          ctx,
+          {
             action: AUDIT_ACTION.CREATED,
             crudAction: "create",
             entityId: created.id,
@@ -222,15 +157,16 @@ export const getRate = Workflow.name("products.price-fetch.get-rate")
               priceListId: created.price_list_id,
               rate: created.rate,
             },
-          });
-          await ctx.pubsub.publish(ITEM_PRICE_EVENTS.CREATED, {
+          },
+          ITEM_PRICE_EVENTS.CREATED,
+          {
             itemPrice: {
               id: created.id,
               itemId: created.item_id,
               priceListId: created.price_list_id,
             },
-          });
-        });
+          },
+        );
         return {
           autoInserted: true,
           converted: false,

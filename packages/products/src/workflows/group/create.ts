@@ -1,8 +1,9 @@
 import { productsItemGroup } from "#/db-schemas";
 import { ITEM_GROUP_EVENTS } from "#/pubsub";
 import { CreateGroupSchema } from "#/schemas";
+import { validateParentGroup } from "#/services/group-hierarchy";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { validateParentGroup } from "#/workflows/utils";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { and, eq, isNull } from "drizzle-orm";
@@ -57,18 +58,20 @@ export const createGroup = Workflow.name("products.group.create")
       throw new Error("Failed to create item group.");
     }
 
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: group.id,
         entityType: AUDIT_ENTITY_TYPE.GROUP,
         newState: { name: group.name, parentId: group.parent_id },
-      });
-      await ctx.pubsub.publish(ITEM_GROUP_EVENTS.CREATED, {
+      },
+      ITEM_GROUP_EVENTS.CREATED,
+      {
         itemGroup: { id: group.id, name: group.name },
-      });
-    });
+      },
+    );
 
     return group;
   });

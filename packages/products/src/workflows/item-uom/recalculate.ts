@@ -1,7 +1,8 @@
 import { productsItemUom } from "#/db-schemas";
 import { IdSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchItemUomStep } from "#/workflow-steps/fetch-item-uom";
+import { fetchItemUomStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -28,14 +29,12 @@ export const recalculateItemUom = Workflow.name("products.item-uom.recalculate")
     if (!row) {
       throw new Error(`Item UOM with id "${input.id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.RECALCULATED,
-        crudAction: "update",
-        entityId: row.id,
-        entityType: AUDIT_ENTITY_TYPE.ITEM,
-        newState: { conversionFactor: row.conversion_factor },
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.RECALCULATED,
+      crudAction: "update",
+      entityId: row.id,
+      entityType: AUDIT_ENTITY_TYPE.ITEM_UOM,
+      newState: { conversionFactor: row.conversion_factor },
     });
     return row;
   });

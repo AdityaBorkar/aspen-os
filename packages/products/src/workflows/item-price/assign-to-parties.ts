@@ -1,7 +1,8 @@
 import { productsItemPrice } from "#/db-schemas";
+import type { NewProductsItemPrice } from "#/db-schemas/item-price";
 import { ITEM_PRICE_EVENTS } from "#/pubsub";
 import { AssignItemPriceToPartiesSchema } from "#/schemas";
-import { validateItemPriceValues } from "#/services/price-fetch-service";
+import { validateItemPriceValues } from "#/services/pricing-validation";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
 
 import { Workflow } from "@aspen-os/platform/server";
@@ -21,77 +22,67 @@ export const assignItemPriceToParties = Workflow.name("products.item-price.assig
     if (customers.length > 0 && suppliers.length > 0) {
       throw new Error("Assign to customers or suppliers in one call, never both.");
     }
-    const createdIds: string[] = [];
-    // oxlint-disable eslint/no-await-in-loop
-    if (customers.length > 0) {
-      for (const customerId of customers) {
-        const values = await validateItemPriceValues(ctx.db, {
-          batchNo: null,
-          customerId,
-          itemId: parsed.itemId,
-          leadTimeDays: parsed.leadTimeDays ?? null,
-          minQty: parsed.minQty ?? null,
-          note: parsed.note ?? null,
-          packingUnit: parsed.packingUnit ?? null,
-          priceListId: parsed.priceListId,
-          rate: parsed.rate,
-          status: "active",
-          supplierId: null,
-          uom: parsed.uom ?? null,
-          validFrom: parsed.validFrom ?? null,
-          validUpto: parsed.validUpto ?? null,
-        });
-        const [row] = await ctx.db.insert(productsItemPrice).values(values).returning();
-        if (!row) {
-          throw new Error("Failed to assign item price.");
-        }
-        await ctx.audit.write({
-          action: AUDIT_ACTION.CREATED,
-          crudAction: "create",
-          entityId: row.id,
-          entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-          newState: { customerId, itemId: row.item_id, priceListId: row.price_list_id },
-        });
-        await ctx.pubsub.publish(ITEM_PRICE_EVENTS.CREATED, {
-          itemPrice: { id: row.id, itemId: row.item_id, priceListId: row.price_list_id },
-        });
-        createdIds.push(row.id);
-      }
-    } else {
-      for (const supplierId of suppliers) {
-        const values = await validateItemPriceValues(ctx.db, {
-          batchNo: null,
-          customerId: null,
-          itemId: parsed.itemId,
-          leadTimeDays: parsed.leadTimeDays ?? null,
-          minQty: parsed.minQty ?? null,
-          note: parsed.note ?? null,
-          packingUnit: parsed.packingUnit ?? null,
-          priceListId: parsed.priceListId,
-          rate: parsed.rate,
-          status: "active",
-          supplierId,
-          uom: parsed.uom ?? null,
-          validFrom: parsed.validFrom ?? null,
-          validUpto: parsed.validUpto ?? null,
-        });
-        const [row] = await ctx.db.insert(productsItemPrice).values(values).returning();
-        if (!row) {
-          throw new Error("Failed to assign item price.");
-        }
-        await ctx.audit.write({
-          action: AUDIT_ACTION.CREATED,
-          crudAction: "create",
-          entityId: row.id,
-          entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
-          newState: { itemId: row.item_id, priceListId: row.price_list_id, supplierId },
-        });
-        await ctx.pubsub.publish(ITEM_PRICE_EVENTS.CREATED, {
-          itemPrice: { id: row.id, itemId: row.item_id, priceListId: row.price_list_id },
-        });
-        createdIds.push(row.id);
-      }
+    const parties = [
+      ...customers.map((customerId) => ({ customerId, supplierId: null })),
+      ...suppliers.map((supplierId) => ({ customerId: null, supplierId })),
+    ];
+
+    const common = {
+      batchNo: null,
+      itemId: parsed.itemId,
+      leadTimeDays: parsed.leadTimeDays ?? null,
+      minQty: parsed.minQty ?? null,
+      note: parsed.note ?? null,
+      packingUnit: parsed.packingUnit ?? null,
+      priceListId: parsed.priceListId,
+      rate: parsed.rate,
+      status: "active",
+      uom: parsed.uom ?? null,
+      validFrom: parsed.validFrom ?? null,
+      validUpto: parsed.validUpto ?? null,
+    } as const;
+    const drafts = [];
+    for (const party of parties) {
+      drafts.push({ ...common, ...party });
     }
-    // oxlint-enable eslint/no-await-in-loop
-    return { count: createdIds.length, createdIds };
+
+    // Validate everything before writing anything; the insert below is atomic.
+    const validated: NewProductsItemPrice[] = await Promise.all(
+      drafts.map(async (draft) => validateItemPriceValues(ctx.db, draft)),
+    );
+    const created = await ctx.db.transaction(async (tx) => {
+      const rows = [];
+      // oxlint-disable eslint/no-await-in-loop
+      for (const values of validated) {
+        const [row] = await tx.insert(productsItemPrice).values(values).returning();
+        if (!row) {
+          throw new Error("Failed to assign item price.");
+        }
+        rows.push(row);
+      }
+      // oxlint-enable eslint/no-await-in-loop
+      return rows;
+    });
+    // One durable step for the whole batch: per-row step names would collide on replay.
+    await ctx.step.run("audit-and-notify", async () => {
+      await Promise.all(
+        created.map(async (row) => {
+          const party =
+            row.customer_id !== null
+              ? { customerId: row.customer_id }
+              : { supplierId: row.supplier_id };
+          await ctx.audit.write({
+            action: AUDIT_ACTION.CREATED,
+            crudAction: "create",
+            entityId: row.id,
+            entityType: AUDIT_ENTITY_TYPE.ITEM_PRICE,
+            newState: { ...party, itemId: row.item_id, priceListId: row.price_list_id },
+          });
+          await ctx.pubsub.publish(ITEM_PRICE_EVENTS.CREATED, {
+            itemPrice: { id: row.id, itemId: row.item_id, priceListId: row.price_list_id },
+          });
+        }),
+      );
+    });
+    return { count: created.length, createdIds: created.map((row) => row.id) };
   });

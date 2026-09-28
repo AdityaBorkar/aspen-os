@@ -1,6 +1,7 @@
 import { productsItem, productsManufacturer, productsManufacturerPart } from "#/db-schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
-import { fetchManufacturerStep } from "#/workflow-steps/fetch-manufacturer";
+import { fetchManufacturerStep } from "#/workflow-steps/fetch";
+import { runAuditStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -35,13 +36,11 @@ export const deleteManufacturer = Workflow.name("products.manufacturer.delete")
     if (!deleted) {
       throw new Error(`Manufacturer with id "${id}" not found.`);
     }
-    await ctx.step.run("audit", async () => {
-      await ctx.audit.write({
-        action: AUDIT_ACTION.DELETED,
-        crudAction: "delete",
-        entityId: id,
-        entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
-      });
+    await runAuditStep(ctx, {
+      action: AUDIT_ACTION.DELETED,
+      crudAction: "delete",
+      entityId: id,
+      entityType: AUDIT_ENTITY_TYPE.MANUFACTURER,
     });
     return { deleted: true };
   });

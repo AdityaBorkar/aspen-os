@@ -2,6 +2,7 @@ import { productsPriceList } from "#/db-schemas";
 import { PRICE_LIST_EVENTS } from "#/pubsub";
 import { CreatePriceListSchema } from "#/schemas";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE } from "#/utils/constants";
+import { runAuditNotifyStep } from "#/workflows/audit";
 
 import { Workflow } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -49,17 +50,19 @@ export const createPriceList = Workflow.name("products.price-list.create")
     if (!row) {
       throw new Error("Failed to create price list.");
     }
-    await ctx.step.run("audit-and-notify", async () => {
-      await ctx.audit.write({
+    await runAuditNotifyStep(
+      ctx,
+      {
         action: AUDIT_ACTION.CREATED,
         crudAction: "create",
         entityId: row.id,
         entityType: AUDIT_ENTITY_TYPE.PRICE_LIST,
         newState: { applicability: row.applicability, name: row.name },
-      });
-      await ctx.pubsub.publish(PRICE_LIST_EVENTS.CREATED, {
+      },
+      PRICE_LIST_EVENTS.CREATED,
+      {
         priceList: { id: row.id, name: row.name },
-      });
-    });
+      },
+    );
     return row;
   });
