@@ -3,6 +3,10 @@ export type { CommsMessage, NewCommsMessage } from "#/db-schemas/message";
 export type { CommsNotification, NewCommsNotification } from "#/db-schemas/notification";
 export type { CommsPreference, NewCommsPreference } from "#/db-schemas/preference";
 export type { CommsProvider, NewCommsProvider } from "#/db-schemas/provider";
+export type {
+  CommsPushSubscription,
+  NewCommsPushSubscription,
+} from "#/db-schemas/push-subscription";
 export type { CommsSetting, NewCommsSetting } from "#/db-schemas/setting";
 export type { CommsTemplate, NewCommsTemplate } from "#/db-schemas/template";
 
@@ -113,6 +117,8 @@ export {
   PreferenceFiltersSchema,
   SetPreferenceSchema,
 } from "#/schemas/preference";
+export type { ListPushSubscriptionsInput, SubscribeInput, UnsubscribeInput } from "#/schemas/push";
+export { ListPushSubscriptionsSchema, SubscribeSchema, UnsubscribeSchema } from "#/schemas/push";
 export type {
   GetSettingInput,
   ListSettingsInput,
@@ -183,4 +189,5 @@ export type { ResolvedRecipient } from "#/workflow-steps/recipient-resolver";
 export type { ProviderReceiptInput, ReceiptDeps } from "#/workflow-steps/receipts";
 export { handleProviderReceipt } from "#/workflow-steps/receipts";
 export { renderTemplate } from "#/workflow-steps/template-renderer";
+export type { CommsPushConfig, PushDispatchOutcome, PushPayload } from "#/services/push";
 export type { DispatchSkipped, NotifyResult } from "#/workflows/notification/notify";

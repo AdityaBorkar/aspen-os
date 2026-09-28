@@ -8,6 +8,7 @@ import {
 } from "#/services/delivery-worker";
 import { registerEventBridgeSubscriptions, unregisterEventBridge } from "#/services/event-bridge";
 import { registerHealthcareBridge, unregisterHealthcareBridge } from "#/services/healthcare-bridge";
+import type { CommsPushConfig } from "#/services/push";
 import * as wf from "#/workflows";
 import { createChannel } from "#/workflows/channel/create";
 import { deleteChannel } from "#/workflows/channel/delete";
@@ -27,7 +28,16 @@ import type {
 } from "@aspen-os/platform/server";
 import { getContext } from "@aspen-os/platform/server";
 
-export type CommsModuleConfig = undefined;
+export type CommsModuleConfig =
+  | {
+      /**
+       * Self-hosted Web Push VAPID identity. Omit to leave push disabled —
+       * notify() then skips the `push` channel type with a `push_not_configured`
+       * reason instead of failing.
+       */
+      push?: CommsPushConfig;
+    }
+  | undefined;
 
 export class Comms implements Module {
   static create(config?: CommsModuleConfig): Comms {
@@ -172,7 +182,7 @@ export class Comms implements Module {
     }
     return {
       ...wf.notifications,
-      notify: createNotify(this.#db),
+      notify: createNotify(this.#db, this.$config?.push),
     };
   }
 
@@ -198,6 +208,7 @@ export class Comms implements Module {
   }
 
   readonly preferences = wf.preferences;
+  readonly push = wf.push;
   readonly templates = wf.templates;
   readonly settings = wf.settings;
   readonly messages = wf.messages;

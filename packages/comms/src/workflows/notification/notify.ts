@@ -4,6 +4,8 @@ import { MESSAGE_EVENTS, NOTIFICATION_EVENTS } from "#/pubsub";
 import { JsonValueSchema } from "#/schemas/json";
 import { NotifySchema } from "#/schemas/notification";
 import type { NotifyInput } from "#/schemas/notification";
+import type { CommsPushConfig, PushPayload } from "#/services/push";
+import { sendPushToSubscriptions } from "#/services/push";
 import { AUDIT_ACTION, AUDIT_ENTITY_TYPE, CHANNEL_ADDRESS_FIELD } from "#/utils/constants";
 import { auditAndPublish } from "#/workflow-steps/audit";
 import { routeNotification } from "#/workflow-steps/notification-router";
@@ -14,6 +16,7 @@ import { renderTemplate } from "#/workflow-steps/template-renderer";
 import { ensureDefaults } from "#/workflows/channel/ensure-defaults";
 
 import type { ChannelType } from "@aspen-os/constants";
+import { CHANNEL_TYPE } from "@aspen-os/constants";
 import { getContext, Workflow } from "@aspen-os/platform/server";
 import type { DatabaseUnit, JsonValue, PubSubUnit } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
@@ -40,10 +43,11 @@ export interface NotifyResult {
 
 /**
  * Factory because notify needs the DatabaseUnit for ensure-defaults
- * (provider lookup on the control plane). The module wires this with its
- * own DatabaseUnit.
+ * (provider lookup on the control plane) and for push fan-out (subscriptions
+ * are host-global). The module wires this with its own DatabaseUnit and the
+ * VAPID config.
  */
-export function createNotify(dbUnit: DatabaseUnit) {
+export function createNotify(dbUnit: DatabaseUnit, pushConfig?: CommsPushConfig) {
   return Workflow.name("comms.notification.notify")
     .input(NotifyInputSchema)
     .handler(async ({ input }, ctx): Promise<NotifyResult> => {
@@ -87,9 +91,11 @@ export function createNotify(dbUnit: DatabaseUnit) {
       const template = await fetchTemplate(ctx.db, input.templateId ?? null);
       const { dispatched, skipped } = await enqueueOutOfBandMessages({
         db: ctx.db,
+        dbUnit,
         notificationId: row.id,
         parsed: input,
         pubsub: ctx.pubsub,
+        pushConfig,
         resolved,
         routed: routed.outOfBand,
         template,
@@ -130,9 +136,11 @@ export function createNotify(dbUnit: DatabaseUnit) {
 
 interface EnqueueContext {
   db: PostgresJsDatabase;
+  dbUnit: DatabaseUnit;
   notificationId: string;
   parsed: NotifyInput;
   pubsub: PubSubUnit;
+  pushConfig?: CommsPushConfig;
   resolved: ResolvedRecipient;
   routed: RoutedOutOfBand[];
   template: CommsTemplate | null;
@@ -179,8 +187,11 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
   const { tenantId } = getContext();
   const now = new Date();
 
-  const outcomes = await Promise.all(
-    routed.map(async (decision): Promise<EnqueueOutcome> => {
+  const pushOutcomes = await dispatchPush(ctx);
+  const channelDecisions = routed.filter((decision) => decision.channelType !== CHANNEL_TYPE.PUSH);
+
+  const channelOutcomes = await Promise.all(
+    channelDecisions.map(async (decision): Promise<EnqueueOutcome> => {
       const skip = (reason: string): EnqueueOutcome => ({
         dispatched: null,
         skipped: { channelType: decision.channelType, reason },
@@ -235,7 +246,7 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
 
   const dispatched: DispatchedMessage[] = [];
   const skipped: DispatchSkipped[] = [];
-  for (const outcome of outcomes) {
+  for (const outcome of [...channelOutcomes, ...pushOutcomes]) {
     if (outcome.dispatched) {
       dispatched.push(outcome.dispatched);
     }
@@ -244,6 +255,112 @@ async function enqueueOutOfBandMessages(ctx: EnqueueContext): Promise<EnqueueRes
     }
   }
   return { dispatched, skipped };
+}
+
+function pushSkip(reason: string): EnqueueOutcome {
+  return {
+    dispatched: null,
+    skipped: { channelType: CHANNEL_TYPE.PUSH, reason },
+  };
+}
+
+/**
+ * Sends the notification to every stored Web Push subscription for the
+ * recipient and records one outbox row per device. Push never queues: the
+ * tenant message sweeper is a background process that this app does not run,
+ * so a pushed notification would otherwise sit `queued` forever. Failures are
+ * reported per endpoint and never fail the whole notify.
+ */
+async function dispatchPush(ctx: EnqueueContext): Promise<EnqueueOutcome[]> {
+  const { db, dbUnit, notificationId, parsed, pushConfig, resolved, routed, template } = ctx;
+  if (!routed.some((decision) => decision.channelType === CHANNEL_TYPE.PUSH)) {
+    return [];
+  }
+
+  if (resolved.recipientType !== "user") {
+    return [pushSkip("push_requires_user_recipient")];
+  }
+  if (!pushConfig) {
+    return [pushSkip("push_not_configured")];
+  }
+
+  const params = templateParams(parsed);
+  const payload: PushPayload = {
+    body: template ? renderTemplate(template.body, params) : (parsed.body ?? parsed.title),
+    data: { notificationId, type: parsed.type },
+    tag: `notification-${notificationId}`,
+    title: template?.subject != null ? renderTemplate(template.subject, params) : parsed.title,
+    url: "/",
+  };
+
+  const sendResult = await (async () => {
+    try {
+      return {
+        ok: true as const,
+        value: await sendPushToSubscriptions({
+          config: pushConfig,
+          db: dbUnit.controlPlaneDb,
+          log: getContext().log,
+          payload,
+          userId: resolved.recipientId,
+        }),
+      };
+    } catch (error) {
+      return { error, ok: false as const };
+    }
+  })();
+
+  if (!sendResult.ok) {
+    return [pushSkip(sendResult.error instanceof Error ? sendResult.error.message : "push_failed")];
+  }
+  const outcomes = sendResult.value;
+
+  if (outcomes.length === 0) {
+    return [pushSkip("push_no_subscriptions")];
+  }
+
+  const { tenantId } = getContext();
+  const now = new Date();
+  return Promise.all(
+    outcomes.map(async (outcome): Promise<EnqueueOutcome> => {
+      const [row] = await db
+        .insert(commsMessage)
+        .values({
+          body: payload.body ?? parsed.title,
+          channel_type: CHANNEL_TYPE.PUSH,
+          delivered_at: outcome.ok ? now : null,
+          last_error: outcome.ok ? null : (outcome.error ?? "push_failed"),
+          metadata: { pushSubscriptionId: outcome.subscriptionId },
+          notification_id: notificationId,
+          sent_at: outcome.ok ? now : null,
+          status: outcome.ok ? "delivered" : "failed",
+          subject: payload.title,
+          template_id: parsed.templateId ?? null,
+          tenant_id: tenantId ?? null,
+          to: outcome.endpoint,
+        })
+        .returning();
+
+      if (outcome.ok) {
+        return {
+          dispatched: {
+            channelType: CHANNEL_TYPE.PUSH,
+            messageId: row?.id ?? outcome.subscriptionId,
+          },
+          skipped: null,
+        };
+      }
+      return {
+        dispatched: null,
+        skipped: {
+          channelType: CHANNEL_TYPE.PUSH,
+          reason: outcome.statusCode
+            ? `push_delivery_failed_${outcome.statusCode}`
+            : "push_delivery_failed",
+        },
+      };
+    }),
+  );
 }
 
 function addressFor(

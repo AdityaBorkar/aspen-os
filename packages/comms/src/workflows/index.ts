@@ -22,6 +22,9 @@ import { deactivateProvider } from "./provider/deactivate";
 import { getProvider } from "./provider/get";
 import { listProviders } from "./provider/list";
 import { updateProvider } from "./provider/update";
+import { list as listPushSubscriptions } from "./push/list";
+import { subscribe as subscribePush } from "./push/subscribe";
+import { unsubscribe as unsubscribePush } from "./push/unsubscribe";
 import { getSettingWorkflow } from "./setting/get";
 import { setSettingWorkflow } from "./setting/set";
 import { activateTemplate } from "./template/activate";
@@ -54,6 +57,12 @@ export const providerActions = {
   get: getProvider,
   list: listProviders,
   update: updateProvider,
+} as const;
+
+export const push = {
+  list: listPushSubscriptions,
+  subscribe: subscribePush,
+  unsubscribe: unsubscribePush,
 } as const;
 
 export const notifications = {

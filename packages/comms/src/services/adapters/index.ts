@@ -24,9 +24,9 @@ export type {
 
 /**
  * Single capability table for channel-type routing. Adding a type means
- * adding one row here — not hunting three parallel switches. PUSH/OTHER have
- * no sender implementation and fail fast instead of queuing 5 doomed
- * retries.
+ * adding one row here — not hunting three parallel switches. PUSH has no
+ * channel adapter: it is delivered by `notify()` fan-out to the recipient's
+ * browser subscriptions (see services/push.ts). OTHER has no sender at all.
  */
 const ADAPTER_FACTORIES = {
   [CHANNEL_TYPE.EMAIL]: createEmailAdapter,
@@ -35,9 +35,14 @@ const ADAPTER_FACTORIES = {
 } as const;
 
 export function createAdapter(type: ChannelType): DeliveryAdapter {
-  if (type === CHANNEL_TYPE.PUSH || type === CHANNEL_TYPE.OTHER) {
+  if (type === CHANNEL_TYPE.PUSH) {
     throw new Error(
-      `Channel type "${type}" has no delivery adapter yet; push/other delivery is not supported.`,
+      `Channel type "${type}" has no delivery adapter; push is delivered by notify() fan-out to browser subscriptions.`,
+    );
+  }
+  if (type === CHANNEL_TYPE.OTHER) {
+    throw new Error(
+      `Channel type "${type}" has no delivery adapter; other delivery is not supported.`,
     );
   }
   if (!Object.hasOwn(ADAPTER_FACTORIES, type)) {

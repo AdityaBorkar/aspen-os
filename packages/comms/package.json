@@ -27,10 +27,12 @@
     "@aspen-os/platform": "workspace:*",
     "@aws-sdk/client-ses": "catalog:",
     "drizzle-orm": "catalog:",
-    "valibot": "catalog:"
+    "valibot": "catalog:",
+    "web-push": "catalog:"
   },
   "devDependencies": {
     "@types/bun": "catalog:",
+    "@types/web-push": "catalog:",
     "typescript": "catalog:"
   },
   "build": {

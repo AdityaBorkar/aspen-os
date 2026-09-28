@@ -10,7 +10,7 @@ import type { ResolvedRecipient } from "#/workflow-steps/recipient-resolver";
 import { getSetting } from "#/workflow-steps/settings-service";
 
 import type { ChannelType } from "@aspen-os/constants";
-import { MASTER_ENTITY_TYPE } from "@aspen-os/constants";
+import { CHANNEL_TYPE, MASTER_ENTITY_TYPE } from "@aspen-os/constants";
 import { getContext } from "@aspen-os/platform/server";
 import { and, asc, eq, isNull, or } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
@@ -44,11 +44,22 @@ export async function routeNotification(
   const preferenceRules = await loadPreferenceRules(resolved, input.type, deps.db);
   const scope = tenantScope();
 
+  // Push has no per-tenant channel: fan-out targets the recipient's stored
+  // browser subscriptions, so it joins `outOfBand` with a null channel instead
+  // of going through channel resolution.
+  const pushRequested =
+    requested.includes(CHANNEL_TYPE.PUSH) &&
+    !suppressOutOfBand &&
+    isEnabled(preferenceRules, CHANNEL_TYPE.PUSH);
+
   const channelTypesToResolve = requested.filter(
     (channelType): channelType is ChannelType =>
-      channelType !== "inapp" && !suppressOutOfBand && isEnabled(preferenceRules, channelType),
+      channelType !== "inapp" &&
+      channelType !== CHANNEL_TYPE.PUSH &&
+      !suppressOutOfBand &&
+      isEnabled(preferenceRules, channelType),
   );
-  const outOfBand: RoutedOutOfBand[] = await Promise.all(
+  const channelOutOfBand: RoutedOutOfBand[] = await Promise.all(
     channelTypesToResolve.map(async (channelType) => {
       const channel = await resolveDefaultChannel(channelType, scope, {
         db: deps.db,
@@ -57,6 +68,9 @@ export async function routeNotification(
       return { channel, channelType };
     }),
   );
+  const outOfBand: RoutedOutOfBand[] = pushRequested
+    ? [...channelOutOfBand, { channel: null, channelType: CHANNEL_TYPE.PUSH }]
+    : channelOutOfBand;
 
   const channelTypes = requested.filter((channelType) =>
     channelType === "inapp"
