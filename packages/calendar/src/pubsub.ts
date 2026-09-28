@@ -116,6 +116,8 @@ export interface ReminderDeletedEvent {
 export interface ReminderDueEvent {
   remindAt: string;
   reminder: ReminderPayload;
+  /** Isolated-tenancy routing: database name at dispatch time. */
+  tenantId?: string;
 }
 
 export interface EventEventMap {

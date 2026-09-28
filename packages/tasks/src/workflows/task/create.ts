@@ -3,7 +3,7 @@ import { TASK_EVENTS } from "#/pubsub";
 import { CreateTaskSchema } from "#/types";
 import { addActivity, generateTaskNumber, validateParentTask } from "#/workflows/utils";
 
-import { Workflow } from "@aspen-os/platform/server";
+import { Workflow, getContext } from "@aspen-os/platform/server";
 import { object } from "valibot";
 
 const CreateInputSchema = object({
@@ -62,6 +62,9 @@ export const createTask = Workflow.name("task.create")
     });
 
     await ctx.step.run("notify", async () => {
+      // Tenant routing for isolated deployments: the calendar task bridge
+      // re-enters this database to materialize due-date reminders.
+      const { tenantId } = getContext();
       const notifications: Promise<string | null>[] = [
         ctx.pubsub.publish(TASK_EVENTS.CREATED, {
           due_date: result.due_date ? result.due_date.toISOString() : null,
@@ -79,6 +82,7 @@ export const createTask = Workflow.name("task.create")
           ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
             dueDate: result.due_date.toISOString(),
             taskId: result.id,
+            tenantId,
             // Assignees cannot exist yet at creation time (assignment is a
             // separate workflow), so only the reporter is notified here.
             userIds: [result.reporter_id],

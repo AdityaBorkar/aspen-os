@@ -6,13 +6,20 @@ import {
   REMINDER_TYPE,
 } from "#/utils/constants";
 
-import type { InferSchemaOutput, PubSubUnit, StandardSchema } from "@aspen-os/platform/server";
+import type {
+  DatabaseUnit,
+  InferSchemaOutput,
+  PubSubUnit,
+  StandardSchema,
+} from "@aspen-os/platform/server";
 import { and, eq } from "drizzle-orm";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { array, boolean, nullable, object, optional, string } from "valibot";
 
 export interface TaskBridgeDeps {
   db: PostgresJsDatabase;
+  /** Isolated-tenancy routing: resolves the event's tenant database. */
+  dbUnit?: DatabaseUnit;
   pubsub: PubSubUnit;
 }
 
@@ -23,11 +30,13 @@ export interface TaskBridgeOptions {
 const TaskDueDateChangedEventSchema = object({
   dueDate: nullable(string()),
   taskId: string(),
+  tenantId: optional(string()),
   userIds: array(string()),
 });
 
 const TaskDeletedEventSchema = object({
   taskId: string(),
+  tenantId: optional(string()),
 });
 
 const TaskStatusChangedEventSchema = object({
@@ -37,6 +46,7 @@ const TaskStatusChangedEventSchema = object({
     id: string(),
     title: string(),
   }),
+  tenantId: optional(string()),
   toStatus: string(),
   toStatusCategory: optional(string()),
 });
@@ -60,10 +70,25 @@ async function deletePendingTaskReminders(db: PostgresJsDatabase, taskId: string
     );
 }
 
+async function resolveTenantDb(
+  deps: TaskBridgeDeps,
+  tenantId: string | undefined,
+): Promise<PostgresJsDatabase> {
+  if (tenantId && deps.dbUnit) {
+    try {
+      return await deps.dbUnit.getTenantDb(tenantId);
+    } catch {
+      // Fall through to the ambient handle when resolution fails.
+    }
+  }
+  return deps.db;
+}
+
 async function handleDueDateChanged(
-  event: { dueDate: string | null; taskId: string; userIds: string[] },
-  { db }: TaskBridgeDeps,
+  event: { dueDate: string | null; taskId: string; tenantId?: string; userIds: string[] },
+  deps: TaskBridgeDeps,
 ): Promise<void> {
+  const db = await resolveTenantDb(deps, event.tenantId);
   const userIds = [...new Set(event.userIds)];
   const dueDate = event.dueDate ? new Date(event.dueDate) : null;
 
@@ -91,7 +116,11 @@ async function handleDueDateChanged(
   });
 }
 
-async function handleTaskDeleted(event: { taskId: string }, { db }: TaskBridgeDeps): Promise<void> {
+async function handleTaskDeleted(
+  event: { taskId: string; tenantId?: string },
+  deps: TaskBridgeDeps,
+): Promise<void> {
+  const db = await resolveTenantDb(deps, event.tenantId);
   await db
     .delete(calendarReminder)
     .where(
@@ -106,11 +135,13 @@ async function handleTaskStatusChanged(
   event: {
     isTerminal?: boolean;
     task: { id: string };
+    tenantId?: string;
     toStatus: string;
     toStatusCategory?: string;
   },
-  { db }: TaskBridgeDeps,
+  deps: TaskBridgeDeps,
 ): Promise<void> {
+  const db = await resolveTenantDb(deps, event.tenantId);
   // Event-driven seam: terminality travels in the `task.status_changed`
   // event (`isTerminal` / `toStatusCategory`, published by tasks).
   // Calendar never reads the tasks-owned `task_status` table directly.

@@ -80,7 +80,27 @@ async function fetchQueuedMessages(
 
 async function sweepIsolatedTenants(deps: DeliveryWorkerDeps): Promise<number> {
   const tenantIds = (await deps.db.resolver?.list().catch((): string[] => [])) ?? [];
-  const scopes = ["$global", ...tenantIds];
+  const databases = new Set<string>();
+  // oxlint-disable eslint(no-await-in-loop)
+  for (const id of tenantIds) {
+    try {
+      databases.add(await deps.db.resolveDatabaseName(id));
+    } catch {
+      // Ignore unresolvable ids.
+    }
+  }
+  // oxlint-enable eslint(no-await-in-loop)
+  // The default resolver lists nothing, so fall back to pg_database discovery
+  // to avoid silently skipping every tenant database.
+  try {
+    const rows = await deps.db.controlPlaneDb.execute<{ datname: string }>(
+      sql`SELECT datname FROM pg_database WHERE datname LIKE 'tenant\\_%' ESCAPE '\\' AND datistemplate = false`,
+    );
+    for (const row of rows) databases.add(row.datname);
+  } catch {
+    // Best-effort discovery.
+  }
+  const scopes = ["$global", ...databases];
   let processed = 0;
   // oxlint-disable eslint/no-await-in-loop
   for (const tenantId of scopes) {

@@ -63,7 +63,7 @@ export const publishAnnouncement = Workflow.name("announcement.publish")
     // The comms event bridge consumes this in the `$global` scope, so the
     // tenant database name must travel in the event (workflows only see the
     // already-scoped `ctx.db`).
-    const tenantId = getContext().tenantId;
+    const { tenantId } = getContext();
     if (!tenantId) {
       throw new Error("Announcement publish requires a tenant scope.");
     }

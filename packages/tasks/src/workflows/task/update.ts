@@ -8,7 +8,7 @@ import { fetchTaskStep } from "#/workflow-steps/fetch-task";
 import { validateTransition } from "#/workflows/status/transition/validate";
 import { addActivity, validateParentTask } from "#/workflows/utils";
 
-import { Workflow } from "@aspen-os/platform/server";
+import { Workflow, getContext } from "@aspen-os/platform/server";
 import type { JsonValue } from "@aspen-os/platform/server";
 import { eq } from "drizzle-orm";
 import { boolean, nullable, object, optional, string } from "valibot";
@@ -118,6 +118,9 @@ export const updateTask = Workflow.name("task.update")
     });
 
     await ctx.step.run("notify", async () => {
+      // Tenant routing for isolated deployments: calendar + comms bridges
+      // re-enter this database from the event.
+      const { tenantId } = getContext();
       const notifications: Promise<string | null>[] = [
         ctx.pubsub.publish(TASK_EVENTS.UPDATED, {
           changes,
@@ -143,6 +146,7 @@ export const updateTask = Workflow.name("task.update")
               toStatusCategory === STATUS_CATEGORY.COMPLETED ||
               toStatusCategory === STATUS_CATEGORY.CANCELLED,
             task: { id: updated.id, title: updated.title },
+            tenantId,
             toStatus: input.patch.statusId,
             toStatusCategory,
           }),
@@ -164,6 +168,7 @@ export const updateTask = Workflow.name("task.update")
             return ctx.pubsub.publish(TASK_EVENTS.DUE_DATE_CHANGED, {
               dueDate: input.patch.dueDate ? input.patch.dueDate.toISOString() : null,
               taskId: updated.id,
+              tenantId,
               userIds,
             });
           })(),

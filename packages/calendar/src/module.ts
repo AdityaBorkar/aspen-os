@@ -108,10 +108,14 @@ export class Calendar implements Module {
     this.#reminderScanTopic = await registerReminderDispatcher({
       ...deps,
       cron: this.$config.reminderScanCron,
+      dbUnit: this.#db,
     });
-    this.#taskBridgeTopics = await registerTaskBridge(deps, {
-      enabled: this.$config.tasksEnabled,
-    });
+    this.#taskBridgeTopics = await registerTaskBridge(
+      { ...deps, dbUnit: this.#db },
+      {
+        enabled: this.$config.tasksEnabled,
+      },
+    );
     this.#complianceBridgeTopics = await registerComplianceBridge(deps, {
       enabled: this.$config.complianceEnabled,
     });

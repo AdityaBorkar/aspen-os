@@ -30,12 +30,16 @@ export interface TaskUpdatedEvent {
 
 export interface TaskDeletedEvent {
   taskId: string;
+  /** Isolated-tenancy routing: database name at publish time. */
+  tenantId?: string;
 }
 
 export interface TaskStatusChangedEvent {
   fromStatus: string;
   isTerminal: boolean;
   task: { id: string; title: string };
+  /** Isolated-tenancy routing: database name at publish time. */
+  tenantId?: string;
   toStatus: string;
   toStatusCategory: string | null;
 }
@@ -75,6 +79,8 @@ export interface TaskTimeLoggedEvent {
 export interface TaskDueDateChangedEvent {
   dueDate: string | null;
   taskId: string;
+  /** Isolated-tenancy routing: database name at publish time. */
+  tenantId?: string;
   userIds: string[];
 }
 

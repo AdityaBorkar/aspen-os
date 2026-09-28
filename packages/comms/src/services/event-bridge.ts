@@ -39,6 +39,7 @@ const ReminderDueEventSchema = object({
     type: optional(string()),
     userId: string(),
   }),
+  tenantId: optional(string()),
 });
 
 const FileExpiredEventSchema = object({
@@ -197,18 +198,28 @@ async function handleReminderDue(
   // via calendar.reminder_due and become one comms notification + outbox messages.
   const targetType = event.reminder.targetType ?? "reminder";
   const sourceType = targetType === "compliance_document" ? "compliance_document" : targetType;
-  await notify.run(
-    {
-      input: {
-        recipient: { id: event.reminder.userId, type: "user" },
-        sourceEntity: { id: event.reminder.targetId ?? event.reminder.id, type: sourceType },
-        sourceModule: "calendar",
-        title: event.reminder.message ?? "Reminder",
-        type: "reminder_fired",
-      },
+  const input = {
+    input: {
+      recipient: { id: event.reminder.userId, type: "user" },
+      sourceEntity: { id: event.reminder.targetId ?? event.reminder.id, type: sourceType },
+      sourceModule: "calendar",
+      title: event.reminder.message ?? "Reminder",
+      type: "reminder_fired",
     },
-    runOptions(deps),
-  );
+  } as const;
+  // Isolated deployments: reminders live in tenant DBs but this subscription
+  // runs in $global. Re-enter the event's tenant so the notification lands in
+  // the same database the user reads from (same pattern as announcements).
+  if (event.tenantId && !isGlobalTenantId(event.tenantId)) {
+    const tenantDb = await deps.dbUnit.getTenantDb(event.tenantId);
+    const scope = { ...getContext(), db: tenantDb, tenantId: event.tenantId };
+    const notifyOptions = { ...runOptions(deps), db: tenantDb };
+    await context.run(scope, async () => {
+      await notify.run(input, notifyOptions);
+    });
+    return;
+  }
+  await notify.run(input, runOptions(deps));
 }
 
 async function handleDeliveryDue(

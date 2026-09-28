@@ -5,7 +5,7 @@ import { audienceRecipientUserIds } from "#/workflow-steps/access-scope";
 import { toReminderPayload } from "#/workflow-steps/payloads";
 import { computeNextOccurrence } from "#/workflow-steps/recurrence";
 
-import { Workflow } from "@aspen-os/platform/server";
+import { Workflow, getContext } from "@aspen-os/platform/server";
 import { and, asc, eq, lte } from "drizzle-orm";
 import { safeParse } from "valibot";
 
@@ -49,11 +49,15 @@ export const processPendingReminders = Workflow.name("calendar.reminder.process-
         );
 
         try {
+          // Tenant routing for isolated deployments: the comms bridge
+          // re-enters this database to create the notification.
+          const { tenantId } = getContext();
           await Promise.all(
             recipients.map((userId) =>
               ctx.pubsub.publish(REMINDER_EVENTS.DUE, {
                 remindAt: claimed.remind_at?.toISOString() ?? now.toISOString(),
                 reminder: toReminderPayload(claimed, userId),
+                tenantId,
               }),
             ),
           );
