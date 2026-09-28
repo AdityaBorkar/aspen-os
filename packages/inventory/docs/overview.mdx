@@ -1,0 +1,49 @@
+---
+title: Overview
+description: Architecture, tenancy model, valuation, and module structure of the Inventory module.
+icon: IconInfoCircle
+---
+
+`@aspen-os/inventory` is the multi-warehouse stock-control module: a perpetual
+append-only stock ledger with FIFO / moving-average valuation, stock entries
+for every movement, reservations, putaway/pick execution, serial/batch
+traceability, and physical-vs-book reconciliation.
+
+All tables are tenant-scoped with the `inventory_` prefix. Product definitions,
+prices, UOMs, and parties live in `@aspen-os/products`, pricelist data,
+`masters`, and accounting — inventory keeps soft foreign keys plus rate
+snapshots, never local masters.
+
+## Concepts
+
+- **Warehouse** — a storage node in a tree (`parent_id` + `is_group`). Only
+  leaves hold stock; groups organize. Warehouses are disabled, never deleted,
+  once they have history.
+- **Stock ledger** — the immutable per-movement projection
+  (`item × warehouse × qty × valuation_rate`). Every submitted movement appends
+  rows; cancellations append counter-rows. Nothing is ever edited in place.
+- **Valuation** — per-item method (`fifo | moving_average`, default from
+  settings). Receipt rows carry the transaction rate; the moving average is
+  derived (`value / qty`), never stored. Repack/manufacture rolls input cost
+  into new items; transfers carry cost unchanged.
+- **Available vs on-hand** — reservations hold `available = on_hand − reserved`
+  without moving physical stock.
+- **Freeze window** — `freeze_upto_date` / `freeze_older_than_days` block
+  backdated postings except for `freeze_allowed_role`.
+
+## Module shape
+
+`Inventory.create(config?)` with `$name = "inventory"`,
+`$dependencies = ["masters", "products"]`, and `$consumes` covering
+`products.*`, `masters.unit_of_measure_updated`, and `accounting.*` fulfilment
+topics (introspection-only). `$prepareRuntime` registers the nightly
+`inventory.reorder-scan` cron; `$cleanup` unregisters it.
+
+Config: `reorderScanCron` (default `30 2 * * *`).
+
+## Explicit non-goals
+
+Stock Reports/aging analytics, item/pricing masters, accounting fulfilment
+documents, manufacturing execution, QC inspection, and landed-cost allocation
+are out of scope — see the spec. The ledger exists for valuation and audit;
+analytics belong to `workspace` dashboards.

@@ -1,0 +1,25 @@
+---
+title: Access Control
+description: Inventory ACL resources and their actions.
+icon: IconShield
+---
+
+Defined in `src/auth.ts` via `defineAcl` and merged by the platform at
+`$prepareInfra`.
+
+| Resource         | Actions                                                 |
+| ---------------- | ------------------------------------------------------- |
+| `warehouse`      | `create`, `read`, `update`, `disable`                   |
+| `warehouseType`  | `create`, `read`, `update`, `disable`                   |
+| `stockEntry`     | `create`, `read`, `update`, `submit`, `cancel`, `amend` |
+| `stockLedger`    | `read`                                                  |
+| `reconciliation` | `create`, `read`, `update`, `submit`, `cancel`          |
+| `reservation`    | `create`, `read`, `consume`, `release`, `cancel`        |
+| `pickList`       | `create`, `read`, `update`, `submit`, `cancel`          |
+| `putawayRule`    | `create`, `read`, `update`, `disable`                   |
+| `serial`         | `create`, `read`, `deliver`, `expire`, `cancel`         |
+| `batch`          | `create`, `read`, `update`, `split`, `move`, `expire`   |
+| `setting`        | `read`, `update`                                        |
+
+There are no hard deletes anywhere: warehouses, types, and rules use
+`disable`; documents use `cancel` (counter-ledger, never row deletion).

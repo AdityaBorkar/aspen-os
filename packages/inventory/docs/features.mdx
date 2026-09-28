@@ -1,22 +1,31 @@
 ---
 title: Features
-description: Planned stock and store capabilities — the Inventory module is not built yet.
+description: What the Inventory module can do — feature overview in plain language.
 icon: IconSparkles
 ---
 
-> The Inventory module is not built yet. The list below describes what a future Inventory module would cover — none of this is available today.
+## Warehouses
 
-## Planned: catalogue
+- **Warehouse tree** — Organize rooms, shelves, and bins under group nodes; only leaves hold stock.
+- **Warehouse types** — Stock, WIP, transit, supplier, customer, room, shelf, bin, plus custom types.
+- **Transit moves** — Two-leg transfers stage through a transit warehouse.
 
-- **Item catalogue (planned)** — Keep one record per product or material with units and details.
+## Stock movements
 
-## Planned: stock
+- **Stock entries** — One surface for receipts, issues, transfers, repack, manufacture pointers, and subcontract/customer flows, with additional inbound costs folded into valuation.
+- **Opening stock** — Seed quantities and rates directly or via reconciliation.
+- **Cancel/amend** — Submitted entries reverse through counter-entries; amendments create a linked new draft.
 
-- **Stock by store (planned)** — See how much of each item sits in each warehouse or store.
-- **Low-stock alerts (planned)** — Get warned when stock runs below a threshold.
+## Control
 
-## Planned: movements
+- **Reorder signals** — Nightly scan raises product replenishment triggers when projected stock breaches reorder levels.
+- **Reservations** — Soft-hold order quantities against available stock, consume on delivery, release in bulk.
+- **Putaway rules** — Priority- and capacity-driven bin assignment on inbound, with hard errors at full capacity.
+- **Pick lists** — Location suggestions (oldest stock, nearest-expiry batches), stock refresh, submit-freeze, bulk reserve, and downstream gating.
+- **Freeze window** — Backdated postings blocked except for the allowed role.
 
-- **Stock in and out (planned)** — Record purchases, issues, and consumption.
-- **Transfers (planned)** — Move stock between stores.
-- **Stock counts (planned)** — Reconcile physical counts with system stock.
+## Traceability
+
+- **Serial numbers** — One row per unit from receipt to delivery, with warranty/AMC dates; never negative.
+- **Batches** — Shelf-life masters with expiry blocking, splits, moves, and an expiring-batch feed for reminders.
+- **Reconciliation** — Align book to physical counts (quantity, rate, or both), with serial/bundle awareness and CSV-ready bulk row import.

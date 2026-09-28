@@ -126,8 +126,8 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 
 ┌─────────────────────────────────────────────────────────────────┐
 │                     STUB MODULES                                 │
-│  crm, fleet, inventory, reports                                  │
-│  (package.json only — no source)                                 │
+│  crm, fleet, reports                                             │
+│  (package.json only — no source; inventory graduated)            │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐

@@ -1,0 +1,86 @@
+---
+title: Workflows
+description: Every inventory workflow group, its actions, and the rules each action enforces.
+icon: IconListCheck
+---
+
+One action per file under `workflows/<entity>/<verb>.ts`, composed in
+`workflows/index.ts` and exposed as `readonly` groups on the module.
+
+## `warehouses` / `warehouseTypes`
+
+- `warehouse.create/get/list/update/disable` — creation requires a group
+  parent; group↔leaf flips and parent moves are rejected with children or
+  ledger history; disable (never delete) once historical.
+- `warehouseType.create/get/list/update/disable/seed` — `seed` installs the
+  eight built-in types (`stock|wip|transit|supplier|customer|room|shelf|bin`).
+
+## `stockEntries` — the single movement surface
+
+Purposes: `material_issue|material_receipt|material_transfer|
+transfer_for_manufacture|consumption_for_manufacture|manufacture|repack|
+send_to_subcontractor|customer_provided_receipt`.
+
+- `create/update` (drafts only) — header warehouses are captured as row
+  defaults at creation: omitted row warehouses inherit, explicit `null` opts
+  the row out. Changing header warehouses requires re-supplying items.
+- `submit` — validates the freeze window, per-row purpose legs, leaf-group
+  rules, serial/batch mandates, negative-stock guards (serial/batch items can
+  never go negative), distributes additional costs pro-rata, applies putaway
+  splits, splits retain samples, posts ledger rows with computed valuation,
+  auto-reserves linked sales orders when enabled, and publishes
+  `stock_entry_submitted` (with additional-cost total) plus one
+  `stock_changed` per leg (flagged when a transit leg).
+- `cancel` — appends counter-ledger rows and restores serials; never deletes.
+- `amend` — cancel plus a new draft copy (`amend_from`).
+- `get/list`.
+
+## `reconciliations`
+
+- `create/update/addItems/get/list` (drafts only), `submit`, `cancel`.
+- Submit appends adjusting rows to the counted qty at the counted (or current)
+  rate; rate-only rows rewrite value via an issue-all/receipt-all pair;
+  serial rows use reconcile-selected semantics; cancellation reverses.
+
+## `reservations`
+
+- `create` (requires `enable_stock_reservation`; checks available),
+  `consume` (FIFO by delivery; `reserved → partially_delivered → delivered`),
+  `release`, `releaseMany`, `get/list`.
+
+## `pickLists`
+
+- `create/update/get/list`, `suggest` (oldest-stock-first locations,
+  nearest-expiry batches, optional parent scoping with shortfall lines),
+  `refreshStock`, `submit` (freezes locations), `updatePicked` (picked-qty
+  tracking back on source lines), `reserve` (bulk reservation from a submitted
+  list), `markConsumed` (gates `cancel`), `cancel`.
+
+## `putawayRules`
+
+- `create/get/list/update/disable/preview` — unique per
+  (`item`, `warehouse`); `get`/`preview` report live free space from the
+  ledger. Applied on submit when `apply_putaway_rule` is set: priority first,
+  then most free space; hard error at full capacity.
+
+## `serials` / `batches`
+
+- `serial.create/get/list/expire/cancel` — one row per unit, `unique`
+  serial numbers, purchase/delivery provenance, warranty/AMC expiry.
+- `batch.create/get/list/update/split/move/expire/expiring` — per
+  (`item`, `batch`) masters with shelf-life dates; `move` posts paired ledger
+  rows at the batch average rate; `expiring` feeds calendar reminders.
+  Expired batches never issue.
+
+## `ledger`
+
+- `list` — audit/valuation reads over ledger rows (no balance-as-of-date or
+  aging reports in v1).
+
+## `settings` / `reorder`
+
+- `setting.get/update` — singleton row; all seventeen spec settings including
+  freeze window, valuation default, auto-reserve, retention warehouse.
+- `reorder.scan` (manual trigger, `dryRun` supported) and `reorder.breaches`
+  (calendar bridge) — evaluate `products_reorder_rule` rows against projected
+  (`on_hand − reserved`) quantities and publish `reorder_triggered`.

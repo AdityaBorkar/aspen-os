@@ -1,6 +1,9 @@
 # Stub Modules
 
-> Packages: `@aspen-os/crm`, `@aspen-os/fleet`, `@aspen-os/inventory`, `@aspen-os/reports`.
+> Packages: `@aspen-os/crm`, `@aspen-os/fleet`, `@aspen-os/reports`.
+> `@aspen-os/inventory` graduated from stub status with its full
+> `INVENTORY_SPEC.md` implementation (warehouses, stock entries, ledger,
+> reservations, putaway/pick, serial/batch, reconciliation, reorder scan).
 
 ## Relationship Type
 

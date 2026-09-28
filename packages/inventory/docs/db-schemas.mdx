@@ -1,0 +1,35 @@
+---
+title: DB Schemas
+description: Inventory tenant tables, enums, and indexes.
+icon: IconDatabase
+---
+
+All tables are tenant-scoped, `snake_case`, `id: uuidv7().primaryKey()`,
+`numeric()` money/rates, no Drizzle foreign keys (soft-FK `text` ids), columns
+sorted alphabetically. Enums are `inventory_*` pgEnums with lowercase values
+(the warehouse-kind enum is `inventory_warehouse_kind` to avoid colliding with
+the `inventory_warehouse_type` table). `tenant_schemas` merges tables **and**
+enums because `pushSchema` only emits `CREATE TYPE` for enums present in the
+schema map.
+
+| Table                           | Purpose                                                       |
+| ------------------------------- | ------------------------------------------------------------- |
+| `inventory_warehouse`           | Tree node (`parent_id`, `is_group`, kind, disable flag)       |
+| `inventory_warehouse_type`      | Lookup seeded with the eight built-in kinds                   |
+| `inventory_stock_entry`         | Movement header (purpose, dates, warehouses, flags, status)   |
+| `inventory_stock_entry_item`    | Rows with qty/uom/rates, serial/batch refs, product snapshots |
+| `inventory_additional_cost`     | Header inbound costs distributed pro-rata                     |
+| `inventory_stock_ledger`        | Append-only projection; cancellations are counter-rows        |
+| `inventory_reconciliation`      | Count header (purpose, difference account, status)            |
+| `inventory_reconciliation_item` | Counted qty/rate per item×warehouse (+ bundle refs)           |
+| `inventory_reservation_entry`   | Soft holds (`reserved/delivered` qtys, source refs, status)   |
+| `inventory_pick_list`           | Execution plan (purpose, scan flags, consumed gate)           |
+| `inventory_pick_list_item`      | Pick lines with picked qty and source refs                    |
+| `inventory_putaway_rule`        | Unique per (item, warehouse): capacity, priority              |
+| `inventory_serial`              | One row per unit with provenance and warranty/AMC dates       |
+| `inventory_batch`               | Per (item, batch) master with shelf-life dates                |
+| `inventory_setting`             | Singleton row (valuation, freeze, reservation, retention…)    |
+
+Indexes follow `idx_<table>_<column>` on `item_id`, `warehouse_id`,
+`sales_order_id`, `pick_list_id`, `batch_no`, `serial_no`, `posting_date`,
+`status`, and the putaway/batch uniqueness pairs.

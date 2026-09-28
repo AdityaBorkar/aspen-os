@@ -1,0 +1,36 @@
+---
+title: Events
+description: Events produced and consumed by the Inventory module.
+icon: IconBell
+---
+
+Type-level contract passed through `ModuleInfra.events`; publishing goes
+through `ctx.pubsub.publish` with camelCase payloads.
+
+## Produced (`inventory.*`)
+
+- `warehouse_created | _updated | _disabled`
+- `stock_changed` — per ledger commit (`itemId`, `warehouseId`, `qtyDelta`,
+  `valuationRate`, `voucherType/Id`, `isTransitLeg` so accounting can skip GL
+  on transit legs); consumed by accounting for GL posting.
+- `stock_entry_submitted | _cancelled` — the submitted event carries the
+  additional-cost total for landed-cost booking.
+- `reconciliation_submitted`
+- `reorder_triggered` — breach details for accounting's Material Request flow.
+- `reservation_created | _consumed | _released`
+- `pick_list_created | _submitted | _cancelled`
+- `putaway_applied` — split plan applied on submit.
+- `serial_created | _delivered`
+- `batch_created | _expired | _split | _moved`
+
+## Consumed (`$consumes`, introspection-only)
+
+- `products.item_created | _updated | _disabled` — movement validation and
+  reorder defaults (snapshotted onto rows, never read directly).
+- `products.item_price_created | _updated` — basic-rate snapshots.
+- `masters.unit_of_measure_updated` — conversion-factor guard.
+- `accounting.material_request_created | _cancelled`,
+  `accounting.purchase_order_created`, `accounting.sales_order_created |
+_updated | _closed | _cancelled`, `accounting.receipt_created`,
+  `accounting.delivery_created` — fulfilment pointers that trigger or consume
+  movements. Accounting owns `% supplied` updates off `stock_changed`.
