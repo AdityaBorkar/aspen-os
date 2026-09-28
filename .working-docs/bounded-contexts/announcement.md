@@ -10,7 +10,7 @@ Downstream of Platform (Customer–Supplier) and of `@aspen-os/hr-core` (audienc
 
 - `Announcement.create(config)` — factory returning Module instance; `$config: AnnouncementModuleConfig = { country: "INDIA" }`
 - `$name = "announcement"`, `$dependencies = ["hrCore"]`
-- 1 workflow group exposed as `readonly` property: `announcement` — 14 methods across per-action workflow files composed into `workflows/index.ts` router (shared helpers in `workflows/trees.ts` + `workflows/utils.ts`)
+- 1 workflow group exposed as `readonly` property: `announcement` — 14 methods across per-action workflow files composed into `workflows/index.ts` router (shared helpers in `workflows/utils.ts`)
 - 2 database tables, all tenant (`announcement`, `announcement_recipient`); `control_plane_schemas` is empty
 - 6 domain events in 1 group (`AnnouncementEventMap`) → `announcement.*`
 - 1 ACL resource: `announcement`

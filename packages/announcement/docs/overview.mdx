@@ -4,7 +4,7 @@ description: Architecture and concepts for the Announcement domain module.
 icon: IconInfoCircle
 ---
 
-The announcement module owns company announcements — creation, audience targeting, scheduling, publishing, and delivery snapshots — tenant-scoped and dependent on hr-core for employee and org resolution.
+The announcement module owns company announcements — creation, audience targeting, scheduling, publishing, and delivery snapshots — tenant-scoped and dependent on hr-core for employee, HR-user, and employee-group resolution.
 
 ## Module
 
@@ -48,7 +48,6 @@ flowchart TB
 
   subgraph hrCore[HrCore]
     EMP[employee]
-    DEPT[department]
     GRP[employee_group]
     HRU[hr_user]
   end
@@ -64,7 +63,6 @@ flowchart TB
   WF[workflows\nannouncement] --> DB
   WF --> PS
   WF -. resolve .-> EMP
-  WF -. resolve .-> DEPT
   WF -. resolve .-> GRP
   WF -. resolve .-> HRU
   DB --- TS
@@ -84,7 +82,7 @@ Announcement scheduling owns no cron — `announcement.scheduled_for` is materia
 flowchart LR
   subgraph hrCore[hr-core]
     EMP[employee]
-    DEPT[department]
+    GRP[employee_group]
     HRU[hr_user]
   end
 
@@ -100,7 +98,7 @@ flowchart LR
 
   ANNR -->|announcement_id| ANN
   ANN -. audience resolve .-> EMP
-  ANN -. audience resolve .-> DEPT
+  ANN -. audience resolve .-> GRP
   ANN -. audience resolve .-> HRU
   ANN -->|calendar_reminder targetType=announcement| CAL
   ANN -->|announcement.published → notification| COMMS
