@@ -18,3 +18,7 @@ icon: IconWorkflow
 - `reorderRules`: create, get, list, update, disable, enable, delete
 - `settings`: get, update
 - `lookups`: getByCode, getByBarcode, listByGroup, resolveDefaults, getReorderRules
+- `priceLists`: create, get, list, update, disable, enable, delete, seed (idempotent `Standard Selling`/`Standard Buying` seeding)
+- `itemPrices`: create, get, list, update, expire, cancel, delete (draft + unused only), assignToParties, hasReferences (item-delete coordination guard)
+- `priceFetch`: getRate (deterministic specificity → validity → min-qty → lead-time fetch with UOM conversion and auto-insert), getRatesForList, getActiveForItem, getExpiring
+- `pricelistSettings`: get, update

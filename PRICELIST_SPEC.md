@@ -133,3 +133,16 @@ Consumed (`$consumes`, introspection-only — exact implemented topics only): `p
 5. Expiry job: on-read derivation + explicit `expireDuePrices` (recommendation: yes, no dedicated cron in v1 — matches products' stateless/no-cron posture) vs `pricelist.expiry-scan` cron?
 6. Price List rename: backfill `products_item.default_price_list` + `products_item_group.default_price_list` text labels on rename (they store labels, not ids), or freeze list `name` as immutable and add a separate display label?
 7. Item delete coordination: `products.item.delete` cannot see pricelist rows (no FKs) — host must call pricelist `hasPriceReferences` before delete, or accept orphan rows keyed by deleted `item_id`?
+
+## 11. Implementation (in `@aspen-os/products`, not a separate package)
+
+Implemented inside `packages/products` (`$name = "products"`) per host decision — a module cannot depend on itself, so the §7 `$dependencies = ["products"]` is vacuous here and same-module reads replace the cross-module calls. Deliberate deviations from §§3–7:
+
+1. Table names are `products_`-prefixed (`products_price_list`, `products_item_price`, `products_pricelist_setting`), not `pricelist_`-prefixed.
+2. Event topics are `products.price_list_created|_updated|_disabled` and `products.item_price_created|_updated|_expired` (constants `PRICE_LIST_EVENTS`, `ITEM_PRICE_EVENTS`), not `pricelist.*`. No `$consumes` change was needed (same module).
+3. No `inventory.batch_*` consumption (topics do not exist); `batch_no` is a label gated on `products_item.has_batch_no`.
+4. `valid_from`/`valid_upto` use `date()` columns (repo date-only convention), not `timestamptz`.
+5. `getRate` increments `fetch_count`/`last_fetched_at` on the winning row — the single fetch-path write besides auto-insert — required to enforce "cancelled only before first fetch-use" and "never hard-delete used rows".
+6. Same-module direct writes replace cross-module calls: auto-insert sets `products_item.has_transactions` and buying-side `last_purchase_rate` via direct updates (same transaction as the price insert), and group-default fallback re-implements the `resolve-defaults` ancestor walk in `services/price-fetch-service.ts` (`resolvePriceListLabel`) instead of invoking the `products.lookup.resolve-defaults` workflow.
+7. `assign_to_parties` is all-or-nothing sequential (throws on first conflict); `min_qty` below item `minimum_order_qty` is permitted (the spec's "warn" has no channel — callers surface `minimum_order_qty` alongside the rate).
+8. Workflow groups: `priceLists`, `itemPrices`, `priceFetch`, `pricelistSettings`; ACL resources `price_list`, `item_price`, `price_fetch` (read-only), `pricelist_setting`; audit entities `products:price-list`, `products:item-price`, `products:pricelist-setting` with added `cancelled`/`expired` audit actions.

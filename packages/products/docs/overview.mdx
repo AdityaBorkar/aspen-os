@@ -8,6 +8,8 @@ icon: IconOverview
 
 `@aspen-os/products` (`$name = "products"`, `$dependencies = ["masters"]`) is the centralized item master. All tables are tenant-scope with `products_` prefix.
 
-Groups: `items`, `groups`, `brands`, `manufacturers`, `attributes`, `variants`, `barcodes`, `alternatives`, `itemUoms`, `reorderRules`, `settings`, `lookups`.
+Groups: `items`, `groups`, `brands`, `manufacturers`, `attributes`, `variants`, `barcodes`, `alternatives`, `itemUoms`, `reorderRules`, `settings`, `lookups`, `priceLists`, `itemPrices`, `priceFetch`, `pricelistSettings`.
+
+Price lists (`products_price_list`) and item prices (`products_item_price`) live in this module rather than a separate pricelist package: rates are soft-FK'd to items, UOM validation/conversion reuses `products_item_uom`, defaults resolve through `products.lookup.resolve-defaults`, auto-insert reads `products_setting.auto_insert_price_if_missing`, and fetch-use drives `has_transactions`/`last_purchase_rate` on the item row. See `PRICELIST_SPEC.md` (repo root) for the full pricing contract.
 
 Stateless: no cron. Reorder scan lives in inventory; this module exposes reorder rows via `reorderRules` and `lookups.getReorderRules`.

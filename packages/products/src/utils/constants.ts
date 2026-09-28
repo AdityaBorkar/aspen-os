@@ -50,7 +50,10 @@ export const AUDIT_ENTITY_TYPE = {
   BRAND: "products:brand",
   GROUP: "products:group",
   ITEM: "products:item",
+  ITEM_PRICE: "products:item-price",
   MANUFACTURER: "products:manufacturer",
+  PRICELIST_SETTING: "products:pricelist-setting",
+  PRICE_LIST: "products:price-list",
   REORDER_RULE: "products:reorder_rule",
   SETTING: "products:setting",
   VARIANT: "products:variant",
@@ -60,10 +63,12 @@ export type AuditEntityType = (typeof AUDIT_ENTITY_TYPE)[keyof typeof AUDIT_ENTI
 
 export const AUDIT_ACTION = {
   ARCHIVED: "archived",
+  CANCELLED: "cancelled",
   CREATED: "created",
   DELETED: "deleted",
   DISABLED: "disabled",
   ENABLED: "enabled",
+  EXPIRED: "expired",
   RECALCULATED: "recalculated",
   SYNCED: "synced",
   UPDATED: "updated",
@@ -95,3 +100,25 @@ export const VARIANT_SYNC_ALLOWLIST = [
 ] as const;
 
 export type VariantSyncField = (typeof VARIANT_SYNC_ALLOWLIST)[number];
+
+export const PRICE_LIST_APPLICABILITY = {
+  BOTH: "both",
+  BUYING: "buying",
+  SELLING: "selling",
+} as const;
+
+export type PriceListApplicability =
+  (typeof PRICE_LIST_APPLICABILITY)[keyof typeof PRICE_LIST_APPLICABILITY];
+
+export const ITEM_PRICE_STATUS = {
+  ACTIVE: "active",
+  CANCELLED: "cancelled",
+  DRAFT: "draft",
+  EXPIRED: "expired",
+} as const;
+
+export type ItemPriceStatus = (typeof ITEM_PRICE_STATUS)[keyof typeof ITEM_PRICE_STATUS];
+
+export const STANDARD_SELLING_PRICE_LIST = "Standard Selling";
+
+export const STANDARD_BUYING_PRICE_LIST = "Standard Buying";

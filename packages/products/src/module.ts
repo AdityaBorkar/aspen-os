@@ -56,4 +56,8 @@ export class Products implements Module {
   readonly reorderRules = wf.reorderRules;
   readonly settings = wf.settings;
   readonly lookups = wf.lookups;
+  readonly priceLists = wf.priceLists;
+  readonly itemPrices = wf.itemPrices;
+  readonly priceFetch = wf.priceFetch;
+  readonly pricelistSettings = wf.pricelistSettings;
 }

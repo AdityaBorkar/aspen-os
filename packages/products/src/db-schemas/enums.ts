@@ -1,8 +1,10 @@
 import {
   BARCODE_TYPE,
+  ITEM_PRICE_STATUS,
   ITEM_STATUS,
   MATERIAL_REQUEST_TYPE,
   NAMING_MODE,
+  PRICE_LIST_APPLICABILITY,
   VALUATION_METHOD,
   VARIANT_BASED_ON,
 } from "#/utils/constants";
@@ -40,4 +42,17 @@ export const productsBarcodeTypeEnum = pgEnum("products_barcode_type", [
 export const productsVariantBasedOnEnum = pgEnum("products_variant_based_on", [
   VARIANT_BASED_ON.ATTRIBUTE,
   VARIANT_BASED_ON.MANUFACTURER,
+]);
+
+export const productsPriceListApplicabilityEnum = pgEnum("products_price_list_applicability", [
+  PRICE_LIST_APPLICABILITY.BOTH,
+  PRICE_LIST_APPLICABILITY.BUYING,
+  PRICE_LIST_APPLICABILITY.SELLING,
+]);
+
+export const productsItemPriceStatusEnum = pgEnum("products_item_price_status", [
+  ITEM_PRICE_STATUS.ACTIVE,
+  ITEM_PRICE_STATUS.CANCELLED,
+  ITEM_PRICE_STATUS.DRAFT,
+  ITEM_PRICE_STATUS.EXPIRED,
 ]);

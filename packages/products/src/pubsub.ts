@@ -34,11 +34,25 @@ export const BARCODE_EVENTS = {
   REMOVED: "products.barcode_removed",
 } as const;
 
+export const PRICE_LIST_EVENTS = {
+  CREATED: "products.price_list_created",
+  DISABLED: "products.price_list_disabled",
+  UPDATED: "products.price_list_updated",
+} as const;
+
+export const ITEM_PRICE_EVENTS = {
+  CREATED: "products.item_price_created",
+  EXPIRED: "products.item_price_expired",
+  UPDATED: "products.item_price_updated",
+} as const;
+
 export const events = {
   BARCODE_EVENTS,
   BRAND_EVENTS,
   ITEM_EVENTS,
   ITEM_GROUP_EVENTS,
+  ITEM_PRICE_EVENTS,
+  PRICE_LIST_EVENTS,
   REORDER_RULE_EVENTS,
   VARIANT_EVENTS,
 };
@@ -148,9 +162,49 @@ export interface BarcodeEventMap {
   [BARCODE_EVENTS.REMOVED]: BarcodeRemovedEvent;
 }
 
+export interface PriceListCreatedEvent {
+  priceList: { id: string; name: string };
+}
+
+export interface PriceListUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  priceList: { id: string; name: string };
+}
+
+export interface PriceListDisabledEvent {
+  priceListId: string;
+}
+
+export interface PriceListEventMap {
+  [PRICE_LIST_EVENTS.CREATED]: PriceListCreatedEvent;
+  [PRICE_LIST_EVENTS.DISABLED]: PriceListDisabledEvent;
+  [PRICE_LIST_EVENTS.UPDATED]: PriceListUpdatedEvent;
+}
+
+export interface ItemPriceCreatedEvent {
+  itemPrice: { id: string; itemId: string; priceListId: string };
+}
+
+export interface ItemPriceUpdatedEvent {
+  changes: Record<string, JsonValue>;
+  itemPrice: { id: string; itemId: string; priceListId: string };
+}
+
+export interface ItemPriceExpiredEvent {
+  itemPriceId: string;
+}
+
+export interface ItemPriceEventMap {
+  [ITEM_PRICE_EVENTS.CREATED]: ItemPriceCreatedEvent;
+  [ITEM_PRICE_EVENTS.EXPIRED]: ItemPriceExpiredEvent;
+  [ITEM_PRICE_EVENTS.UPDATED]: ItemPriceUpdatedEvent;
+}
+
 export type ProductsEventMap = BarcodeEventMap &
   BrandEventMap &
   ItemEventMap &
   ItemGroupEventMap &
+  ItemPriceEventMap &
+  PriceListEventMap &
   ReorderRuleEventMap &
   VariantEventMap;
