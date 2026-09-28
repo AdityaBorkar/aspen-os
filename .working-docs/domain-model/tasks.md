@@ -126,7 +126,7 @@
 | `task.time_logged`      | `{ taskId, timeEntry: { id, duration, userId } }`                             | Time logged on task               |
 | `task.due_date_changed` | `{ taskId, dueDate, userIds }`                                                | Task due date set/changed/cleared |
 
-`task.due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder.fired` event was removed with the reminder surface — reminders now fire `calendar.reminder_due` from the calendar dispatcher.
+`task.due_date_changed` (`userIds` = assignees ∪ reporter) is consumed by the `@aspen-os/calendar` task bridge to materialize/cancel task reminders. The former `reminder.fired` event was removed with the reminder surface — reminders now fire `calendar.reminder_due` from the calendar dispatcher. `$consumes` = `inpatient.nursing_created` + `healthcare.encounter_updated` (healthcare bridge creates tasks idempotently).
 
 ## Command-Query Separation
 

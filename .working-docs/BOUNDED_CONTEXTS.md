@@ -8,7 +8,6 @@
 | ------------------------- | ---------------------------------------------------------------------- |
 | `@aspen-os/platform`      | [`bounded-contexts/platform.md`](bounded-contexts/platform.md)         |
 | `@aspen-os/constants`     | [`bounded-contexts/constants.md`](bounded-contexts/constants.md)       |
-| `@aspen-os/organization`  | [`bounded-contexts/organization.md`](bounded-contexts/organization.md) |
 | `@aspen-os/masters`       | [`bounded-contexts/masters.md`](bounded-contexts/masters.md)           |
 | `@aspen-os/notes`         | [`bounded-contexts/notes.md`](bounded-contexts/notes.md)               |
 | `@aspen-os/compliance`    | [`bounded-contexts/compliance.md`](bounded-contexts/compliance.md)     |
@@ -23,6 +22,10 @@
 | `@aspen-os/management`    | [`bounded-contexts/management.md`](bounded-contexts/management.md)     |
 | `@aspen-os/workspace`     | [`bounded-contexts/workspace.md`](bounded-contexts/workspace.md)       |
 | `@aspen-os/healthcare`    | [`bounded-contexts/healthcare.md`](bounded-contexts/healthcare.md)     |
+| `@aspen-os/diagnostics`   | [`bounded-contexts/diagnostics.md`](bounded-contexts/diagnostics.md)   |
+| `@aspen-os/emr`           | [`bounded-contexts/emr.md`](bounded-contexts/emr.md)                   |
+| `@aspen-os/inpatient`     | [`bounded-contexts/inpatient.md`](bounded-contexts/inpatient.md)       |
+| `@aspen-os/pharmacy`      | [`bounded-contexts/pharmacy.md`](bounded-contexts/pharmacy.md)         |
 | Stubs                     | [`bounded-contexts/stubs.md`](bounded-contexts/stubs.md)               |
 
 Domain detail per context in [`domain-model/`](domain-model/) (also split per package).
@@ -98,26 +101,26 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  ┌───────────────┐  ┌───────────────┐  ┌───────────────────┐   │
 │  │ Notes Module  │  │ Calendar      │  │ Workspace         │   │
 │  │ 1 wf group    │  │ Module        │  │ Module            │   │
-│  │ 1 table       │  │ 4 wf groups   │  │ 8 wf groups       │   │
-│  │ 3 events      │  │ 4 tables      │  │ 8 tables          │   │
-│  │ 1 ACL res.    │  │ 14 events     │  │ 30 events         │   │
-│  │ units: none   │  │ 4 ACL res.    │  │ 9 ACL res.        │   │
+│  │ 1 table       │  │ 3 wf groups   │  │ 8 wf groups       │   │
+│  │ 3 events      │  │ 3 tables      │  │ 8 tables          │   │
+│  │ 1 ACL res.    │  │ 11 events     │  │ 30 events         │   │
+│  │ units: none   │  │ 3 ACL res.    │  │ 9 ACL res.        │   │
 │  └───────────────┘  │ units:        │  │ units:            │   │
 │                     │ db, pubsub    │  │ db, pubsub        │   │
 │                     └───────────────┘  └───────────────────┘   │
 │  ┌───────────────────────────┐  ┌───────────────────────────┐   │
 │  │ Management Plane          │  │ Comms Module              │   │
-│  │ Module                    │  │ 7 workflow groups         │   │
-│  │ 5 workflow groups         │  │ 1 control-plane + 6       │   │
-│  │ 3 owned + 2 shadow tables │  │ tenant tables (7 total)   │   │
+│  │ Module                    │  │ 8 workflow groups         │   │
+│  │ 5 workflow groups         │  │ 2 control-plane + 6       │   │
+│  │ 3 owned + 2 shadow tables │  │ tenant tables (8 total)   │   │
 │  │ 21 events                 │  │ 21 events, 7 ACL res.     │   │
 │  │ deps: none                │  │ deps: none                │   │
-│  │ units: db, auth, pubsub   │  │ units: db, kvStore,       │   │
+│  │ units: db, storage        │  │ units: db, kvStore,       │   │
 │  └───────────────────────────┘  │ pubsub, auth              │   │
 │                                 └───────────────────────────┘   │
 │  ┌───────────────────────────────────────────────────────────┐   │
-│  │ Healthcare Module: 21 wf groups, 140 tables (+13 pgEnums), │   │
-│  │ 47 events, 19 ACL res., deps: none, units: none (stateless)│   │
+│  │ Healthcare kernel: 11 groups, 137 tables (+13 pgEnums),   │   │
+│  │ 26 events, 10 ACL, deps: masters + 4 satellite shims      │   │
 │  └───────────────────────────────────────────────────────────┘   │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -180,13 +183,14 @@ Domain events published via PubSub as plain string topics. Event counts by modul
 - Notes: 3 events
 - Compliance: 23 events
 - Tasks: 11 events (incl. `task.due_date_changed`)
-- Calendar: 14 events (3 calendar + 4 event + 3 attendee + 4 reminder, incl. `calendar.reminder_due`)
+- Calendar: 11 events (4 event + 3 attendee + 4 reminder, incl. `calendar.reminder_due`)
 - Workspace: 30 events (13 draft + 6 dashboard + 4 widget + 4 filter_view + 2 pin + 1 schedule)
 - DMS: 27 events (13 file + 6 folder + 3 class + 2 share + 3 public_link + 3 file_view)
 - Comms: 21 events (6 channel + 2 provider + 3 notification + 4 message + 1 preference + 4 template + 1 setting)
-- Management Plane: 22 events (8 tenant + 4 service_provider + 5 platform_user + 2 organization + 3 tenant_member)
-- Healthcare: 47 events (single `HealthcareEntityEvent` payload across 19 groups — patient 3, practitioner 2, facility 2, service 3, appointment 2, encounter 3, allopathy/dental/ayush/rehab/psych/resident 2 each, pharmacy/diagnostics/billing/nursing 3 each, records 4, operations 2, branch 2)
-- HR: 52 events (hr-core 33 across employee 4, lifecycle 9, position 7, setup 5, access 8; hr-attendance 12 across attendance 5, overtime 3, shift 4; hr-leave 7 across leave)
+- Management Plane: 21 events (8 tenant + 4 service_provider + 5 platform_user + 1 organization + 3 tenant_member)
+- Healthcare kernel: 26 events (patient 3, practitioner 2, facility 2, service 3, appointment 2, encounter 3, billing 3, records 4, operations 2, branch 2)
+- Diagnostics: 3 events; EMR: 10 events (2 each × 5 specialties); Inpatient: 5 events (nursing 3 + resident 2); Pharmacy: 3 events
+- HR: 41 events (hr-core 22 across employee 4, transition 6, setup 4, access 8; hr-attendance 12 across attendance 5, overtime 3, shift 4; hr-leave 7 across leave)
 - Announcement: 6 events (single `AnnouncementEventMap`)
 
 Per-context event tables in `domain-model/<package>.md`.
@@ -207,6 +211,10 @@ Compliance module's `EventBridge` service actively subscribes to other modules' 
 | `task.due_date_changed`                         | Tasks                                 | Calendar task bridge — materializes/cancels the task due-date reminder bundle                                             |
 | `task.deleted`                                  | Tasks                                 | Calendar task bridge — deletes all task reminders for the task                                                            |
 | `task.status_changed`                           | Tasks                                 | Calendar task bridge — suppresses pending task reminders on completion/cancellation                                       |
+| `inpatient.nursing_created`                     | Inpatient                             | Tasks healthcare bridge — creates tasks idempotently                                                                      |
+| `healthcare.encounter_updated`                  | Healthcare                            | Tasks healthcare bridge — creates tasks idempotently                                                                      |
+| `healthcare.records_created`                    | Healthcare                            | Comms healthcare bridge — out-of-band notification                                                                        |
+| `inpatient.resident_updated`                    | Inpatient                             | Comms healthcare bridge — out-of-band notification                                                                        |
 | `compliance.document_expiring` / `document_due` | Compliance                            | Comms event bridge — in-app + out-of-band notification to the document's assigned user                                    |
 | `calendar.reminder_due`                         | Calendar                              | Comms event bridge — notify the reminder's `userId`                                                                       |
 | `dms.file_expired`                              | DMS                                   | Comms event bridge — notify the file `ownerId`                                                                            |
@@ -235,20 +243,16 @@ Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSc
 
 ### Scheduled Jobs
 
-Five modules register scheduled cron jobs via PubSub:
+Five modules register scheduled cron jobs via PubSub (compliance defines `compliance.obligation-generate` topic + `0 6 * * *` constant but never schedules — call `generatePendingDocuments` externally):
 
-| Module     | Topic                                | Cron         | Action                                                                                |
-| ---------- | ------------------------------------ | ------------ | ------------------------------------------------------------------------------------- |
-| Compliance | `compliance.daily-expiry-scan`       | `0 8 * * *`  | Scan expiring documents                                                               |
-| Compliance | `compliance.daily-status-transition` | `0 0 * * *`  | Transition expired/overdue statuses                                                   |
-| Compliance | `compliance.daily-escalation`        | `0 9 * * *`  | Escalate past threshold                                                               |
-| Compliance | `compliance.weekly-summary`          | `0 9 * * 1`  | Generate weekly summary                                                               |
-| DMS        | `dms.expiry-scan`                    | `5 0 * * *`  | Promote past-due files to expired                                                     |
-| DMS        | `dms.auto-purge`                     | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
-| HR         | `hr.daily-attendance-sync`           | `0 1 * * *`  | Sync daily attendance records                                                         |
-| HR         | `hr.daily-leave-accrual`             | `0 0 * * *`  | Accrue leave balances                                                                 |
-| Calendar   | `calendar.reminder-scan`             | `* * * * *`  | Process pending reminders (publish `calendar.reminder_due`, mark sent, schedule next) |
-| Comms      | `comms.message-sweeper`              | `* * * * *`  | Scan `queued` messages; per-message tenant context, adapter dispatch, retries         |
+| Module   | Topic                      | Cron         | Action                                                                                |
+| -------- | -------------------------- | ------------ | ------------------------------------------------------------------------------------- |
+| DMS      | `dms.expiry-scan`          | `5 0 * * *`  | Promote past-due files to expired                                                     |
+| DMS      | `dms.auto-purge`           | `30 3 * * *` | Purge trashed/expired files + folders past retention                                  |
+| HR       | `hr.daily-attendance-sync` | `0 1 * * *`  | Sync daily attendance records                                                         |
+| HR       | `hr.daily-leave-accrual`   | `0 0 * * *`  | Accrue leave balances                                                                 |
+| Calendar | `calendar.reminder-scan`   | `* * * * *`  | Process pending reminders (publish `calendar.reminder_due`, mark sent, schedule next) |
+| Comms    | `comms.message-sweeper`    | `* * * * *`  | Scan `queued` messages; per-message tenant context, adapter dispatch, retries         |
 
 ### Health Check
 
@@ -273,35 +277,39 @@ There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedur
 
 ## Context Map Table
 
-| Context          | Type          | Upstream                                    | Downstream                           | Relationship                                                                                                    |
-| ---------------- | ------------- | ------------------------------------------- | ------------------------------------ | --------------------------------------------------------------------------------------------------------------- |
-| Shared Kernel    | Shared        | —                                           | All units/modules                    | Unit & Module interfaces                                                                                        |
-| Database         | Shared Kernel | —                                           | All units                            | Foundation                                                                                                      |
-| Platform         | Customer      | —                                           | Units, Modules                       | Creates & wires via `create()` — three server classes + one client class                                        |
-| Auth             | Conformist    | better-auth                                 | Modules                              | Adapts API                                                                                                      |
-| Logs             | Conformist    | pino, OTel                                  | —                                    | Adapts API                                                                                                      |
-| PubSub           | Conformist    | pg-boss                                     | —                                    | Adapts API                                                                                                      |
-| Storage          | Partner       | S3 (AWS SDK)                                | DMS module                           | Defines interface                                                                                               |
-| RPC              | Conformist    | oRPC                                        | —                                    | Adapts API                                                                                                      |
-| KV Store         | Conformist    | Postgres                                    | Compliance, Masters modules          | Redis-like API (core)                                                                                           |
-| Audit            | Core          | —                                           | All modules                          | Native platform unit — `audit_log` table, DB-record replayability                                               |
-| Workflow         | Core          | —                                           | All modules                          | Durable step runner (`workflow_runs`/`workflow_steps`)                                                          |
-| Client Platform  | —             | —                                           | —                                    | Browser-side (3 units)                                                                                          |
-| Recruiter        | Downstream    | Platform                                    | —                                    | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                   |
-| Organization     | Removed       | —                                           | —                                    | No package on disk; org surface = `masters.orgBranches` + `management.organizations` read model                 |
-| Masters          | Downstream    | Platform, KV Store                          | Compliance                           | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                        |
-| Notes            | Downstream    | Platform                                    | —                                    | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                             |
-| Compliance       | Downstream    | Platform, HR, Masters, Fleet (stub)         | —                                    | 5 workflow groups, 3 tables, subscribes to external events                                                      |
-| Tasks            | Downstream    | Platform, Masters                           | Calendar                             | 9 workflow groups, 14 tables (5 control + 9 tenant), 11 events, empty ACL                                       |
-| Calendar         | Downstream    | Platform                                    | —                                    | 4 workflow groups, 4 tables, 14 events, 4 ACL resources, 1 cron + task bridge                                   |
-| Comms            | Downstream    | Platform, KV Store                          | —                                    | 7 workflow groups, 7 tables (1 control + 6 tenant), 21 events, 7 ACL resources, 1 cron + 9 bridge subscriptions |
-| Workspace        | Downstream    | Platform                                    | —                                    | 8 workflow groups, 8 tables, 30 events, 9 ACL resources, per-schedule crons                                     |
-| DMS              | Downstream    | Platform, Storage                           | —                                    | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                              |
-| Management Plane | Downstream    | Platform                                    | —                                    | 5 workflow groups, 3 owned + 2 shadow tables, 21 events, 4 ACL resources, has build step                        |
-| HR               | Downstream    | Platform                                    | Compliance, Announcement             | 10 workflow groups, 51 tables (12 control + 39 tenant), 52 events, 12 ACL resources, 2 crons                    |
-| Announcement     | Downstream    | Platform, HR (reads `employee` + `hr_user`) | Comms (via `announcement.published`) | 1 workflow group (14 methods), 2 tenant tables, 6 events, 1 ACL resource, stateless, no cron                    |
-| Healthcare       | Downstream    | Platform                                    | —                                    | 21 workflow groups, 140 tables (all tenant), 47 events, 19 ACL resources, stateless, has build step             |
-| CRM              | Stub          | —                                           | —                                    | Package.json only                                                                                               |
-| Fleet            | Stub          | —                                           | —                                    | Package.json only                                                                                               |
-| Inventory        | Stub          | —                                           | —                                    | Package.json only                                                                                               |
-| Reports          | Stub          | —                                           | —                                    | Package.json only                                                                                               |
+| Context          | Type          | Upstream                                    | Downstream                           | Relationship                                                                                                                          |
+| ---------------- | ------------- | ------------------------------------------- | ------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Shared Kernel    | Shared        | —                                           | All units/modules                    | Unit & Module interfaces                                                                                                              |
+| Database         | Shared Kernel | —                                           | All units                            | Foundation                                                                                                                            |
+| Platform         | Customer      | —                                           | Units, Modules                       | Creates & wires via `create()` — three server classes + one client class                                                              |
+| Auth             | Conformist    | better-auth                                 | Modules                              | Adapts API                                                                                                                            |
+| Logs             | Conformist    | pino, OTel                                  | —                                    | Adapts API                                                                                                                            |
+| PubSub           | Conformist    | pg-boss                                     | —                                    | Adapts API                                                                                                                            |
+| Storage          | Partner       | S3 (AWS SDK)                                | DMS module                           | Defines interface                                                                                                                     |
+| RPC              | Conformist    | oRPC                                        | —                                    | Adapts API                                                                                                                            |
+| KV Store         | Conformist    | Postgres                                    | Compliance, Masters modules          | Redis-like API (core)                                                                                                                 |
+| Audit            | Core          | —                                           | All modules                          | Native platform unit — `audit_log` table, DB-record replayability                                                                     |
+| Workflow         | Core          | —                                           | All modules                          | Durable step runner (`workflow_runs`/`workflow_steps`)                                                                                |
+| Client Platform  | —             | —                                           | —                                    | Browser-side (3 units)                                                                                                                |
+| Recruiter        | Downstream    | Platform                                    | —                                    | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                                         |
+| Organization     | Removed       | —                                           | —                                    | No package on disk; org surface = `masters.orgBranches` + `management.organizations` read model                                       |
+| Masters          | Downstream    | Platform, KV Store                          | Compliance                           | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                                              |
+| Notes            | Downstream    | Platform                                    | —                                    | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                                                   |
+| Compliance       | Downstream    | Platform, HR, Masters, Fleet (stub)         | —                                    | 5 workflow groups, 3 tables, 7 pgEnums, 23 events, 3 ACL, 0 crons (obligation-generate topic unscheduled)                             |
+| Tasks            | Downstream    | Platform, Masters                           | Calendar                             | 9 workflow groups, 14 tables (5 control + 9 tenant), 11 events, empty ACL; `$consumes` inpatient/healthcare                           |
+| Calendar         | Downstream    | Platform                                    | —                                    | 3 workflow groups, 3 tables, 7 pgEnums, 11 events, 3 ACL resources, 1 cron + task/compliance/healthcare bridges                       |
+| Comms            | Downstream    | Platform, KV Store                          | —                                    | 8 workflow groups, 8 tables (2 control + 6 tenant), 9 pgEnums, 21 events, 7 ACL resources, 1 cron + 9 bridge subs                     |
+| Workspace        | Downstream    | Platform                                    | —                                    | 8 workflow groups, 8 tables, 30 events, 9 ACL resources, per-schedule crons                                                           |
+| DMS              | Downstream    | Platform, Storage                           | —                                    | 16 workflow groups, 12 tables, 27 events, 9 ACL resources, 2 crons                                                                    |
+| Management Plane | Downstream    | Platform                                    | —                                    | 5 workflow groups (tenants 20 / SPs 13 / orgs 8 / members 5 / users 7), 3 owned + 2 shadow tables, 21 events, 4 ACL, units db+storage |
+| HR               | Downstream    | Platform                                    | Compliance, Announcement             | 10 workflow groups, 42 tables (all tenant), 41 events, 12 ACL resources, 2 crons                                                      |
+| Announcement     | Downstream    | Platform, HR (reads `employee` + `hr_user`) | Comms (via `announcement.published`) | 1 workflow group (14 methods), 2 tenant tables, 6 events, 1 ACL resource, stateless, no cron                                          |
+| Healthcare       | Downstream    | Platform, Masters                           | Diagnostics/EMR/Inpatient/Pharmacy   | 11 workflow groups, 137 tables (all tenant), 26 events, 10 ACL resources, stateless kernel                                            |
+| Diagnostics      | Downstream    | Platform, Healthcare                        | —                                    | 1 workflow group (22 actions), 0 owned / 16 table refs, 3 events, 1 ACL, stateless shim                                               |
+| EMR              | Downstream    | Platform, Healthcare                        | —                                    | 5 workflow groups (63 actions), 0 owned / 56 table refs, 10 events, 5 ACL, stateless shim                                             |
+| Inpatient        | Downstream    | Platform, Healthcare                        | Tasks, Comms                         | 2 workflow groups (29 actions), 0 owned / 35 table refs, 5 events, 2 ACL, stateless shim                                              |
+| Pharmacy         | Downstream    | Platform, Healthcare                        | —                                    | 1 workflow group (16 actions), 0 owned / 9 table refs, 3 events, 1 ACL, stateless shim                                                |
+| CRM              | Stub          | —                                           | —                                    | Package.json only                                                                                                                     |
+| Fleet            | Stub          | —                                           | —                                    | Package.json only                                                                                                                     |
+| Inventory        | Stub          | —                                           | —                                    | Package.json only                                                                                                                     |
+| Reports          | Stub          | —                                           | —                                    | Package.json only                                                                                                                     |

@@ -35,7 +35,7 @@ p.hrCore.payroll     monthly payroll export over employees + attendance/leave/ov
 p.hrCore.config      departments (+ tree ops), settings (nested groups: departments, hr, payroll)
 p.hrAttendance.attendance records, check-ins, attendance requests (17 methods)
 p.hrAttendance.overtime   overtime types + slips (13 methods)
-p.hrAttendance.shift      shift types, locations, assignments, requests, schedules (34 methods)
+p.hrAttendance.shift      shift types, locations, assignments, requests, schedules (33 methods)
 p.hrLeave.leave     leave types/periods/policies/allocations/applications/compensatory leave/
                     encashment/block lists/adjustments/ledger (60 methods)
 p.hrLeave.config    holidays + holiday lists

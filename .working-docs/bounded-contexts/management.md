@@ -10,8 +10,8 @@ Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#d
 
 - `ManagementPlane.create(config)` — factory returning a Module instance; `$config: ManagementPlaneConfig = undefined` (known WIP gap — the provisioning workflow expects a richer config with `tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`)
 - `$name = "management"` (matches the `@aspen-os/management` package name, renamed from `management-plane`; proxy accessor `p.management`)
-- `$initialize({ db, auth, pubsub })` — stores `db` only; `auth` and `pubsub` accepted but unused
-- 5 workflow groups: `tenants` (getter — throws if `#db` is null), `tenantMembers`, `serviceProviders`, `organizations`, `users` (readonly)
+- `$initialize({ db, storage })` — stores `db`; passes `storage` to `setManagementStorage` for logo surfaces (no `auth`/`pubsub` units; workflows publish via `ctx.pubsub`)
+- 5 workflow groups: `tenants` (20-action getter — throws if `#db` is null), `tenantMembers` (5), `serviceProviders` (13), `organizations` (8), `users` (7, readonly)
 - 3 workflow-step files: `fetch-tenant`, `fetch-sp`, `fetch-user`
 - 3 owned database tables (pushed via `$prepareInfra()` `control_plane_schemas`): `managed_organization` (the tenant companion), `service_provider`, `service_provider_user`
 - 2 shadow re-exports (imported from platform, not pushed): `organization`, `user` — `tenant_schemas` is empty
@@ -23,14 +23,17 @@ Downstream of the Platform (Customer–Supplier). Hybrid pattern — private `#d
 ## Exposed on the platform instance
 
 ```
-p.management.tenants           { activate, assignServiceProvider, churn, get, getBySlug,
-                                 getFullBySlug, list, listBranding, listByUser, onboard,
-                                 reactivate, resolveDatabase, suspend,
-                                 unassignServiceProvider, update }
+p.management.tenants           { activate, assignServiceProvider, attachLogo, churn, get,
+                                 getBySlug, getFullBySlug, getLogoUrl,
+                                 issueLogoUploadUrl, list, listBranding, listByUser,
+                                 onboard, reactivate, removeLogo, resolveDatabase,
+                                 suspend, unassignServiceProvider, update, uploadLogo }
 p.management.tenantMembers     { create, get, list, remove, update }
-p.management.serviceProviders  { activate, create, deactivate, get, listAssignedTenants,
-                                 listUsers, list, update }
-p.management.organizations     { get, list, update, logo surface }
+p.management.serviceProviders  { activate, attachLogo, create, deactivate, get, getLogoUrl,
+                                 issueLogoUploadUrl, list, listAssignedTenants,
+                                 listUsers, removeLogo, update, uploadLogo }
+p.management.organizations     { attachLogo, get, getLogoUrl, issueLogoUploadUrl, list,
+                                 removeLogo, update, uploadLogo }
 p.management.users             { assignRole, assignToServiceProvider, create, delete, get,
                                  list, update }
 ```

@@ -2,7 +2,7 @@
 
 Aspen OS = business application framework on Bun/TypeScript. Platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain modules build on top without reinventing plumbing.
 
-> **Ubiquitous-language harmonization (2026-09-09, re-verified 2026-09-16 against code):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement.published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept; `dashboard` remains deprecated alias). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt). `Tenant` = SaaS customer (Management); Masters `Entity` + `OrgBranch`; `organization` package does not exist on disk — org surface is `masters.orgBranches` + `management.organizations`. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite. Masters has no `bank_account` table — bank details are inline fields on `payment_method`.
+> **Ubiquitous-language harmonization (2026-09-09, re-verified 2026-09-28 against code):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement.published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept; `dashboard` remains deprecated alias). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt). `Tenant` = SaaS customer (Management); Masters `Entity` + `OrgBranch`; `organization` package does not exist on disk — org surface is `masters.orgBranches` + `management.organizations`. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite. Masters has no `bank_account` table — bank details are inline fields on `payment_method`. Calendar has no `Calendar` collection table — single shared calendar, scope is per-item `(audience_type, audience_id)` on events + reminders. Healthcare is kernel + 4 satellite shim packages (`diagnostics`, `emr`, `inpatient`, `pharmacy` re-export kernel tables). Comms has `push` group + `comms_push_subscription` control table.
 
 ## Language
 
@@ -330,21 +330,21 @@ Append-only record of task actions: `task_created`, `task_updated`, `status_chan
 _Avoid_: Audit Trail, Change History (use `ActivityFeed` for projection)
 
 **Tasks Workflow**:
-Domain operations within Tasks module, built on platform `Workflow` builder. Nine groups: `p.tasks.tasks` (14 actions), `p.tasks.projects` (11), `p.tasks.comments` (6), `p.tasks.links` (6), `p.tasks.timeEntries` (6), `p.tasks.statuses` (10), `p.tasks.taskTypes` (8), `p.tasks.automations` (7), `p.tasks.collaboration` (8). 14 tables (5 control-plane: project/member/status/transition/taskType; 9 tenant: task/assignee/comment/link/timeEntry/watcher/attachment/automationRule/activityLog), 11 events, empty ACL (`defineAcl({})`). `$dependencies = ["masters"]`; `$consumes` = `healthcare.nursing_created`, `healthcare.encounter_updated` (healthcare bridge creates tasks idempotently). Units `db`, `pubsub`.
+Domain operations within Tasks module, built on platform `Workflow` builder. Nine groups: `p.tasks.tasks` (14 actions), `p.tasks.projects` (12), `p.tasks.comments` (6), `p.tasks.links` (6), `p.tasks.timeEntries` (6), `p.tasks.statuses` (10), `p.tasks.taskTypes` (8), `p.tasks.automations` (7), `p.tasks.collaboration` (8). 14 tables (5 control-plane: project/member/status/transition/taskType; 9 tenant: task/assignee/comment/link/timeEntry/watcher/attachment/automationRule/activityLog), 11 events, empty ACL (`defineAcl({})`). `$dependencies = ["masters"]`; `$consumes` = `inpatient.nursing_created`, `healthcare.encounter_updated` (healthcare bridge creates tasks idempotently). Units `db`, `pubsub`.
 _Avoid_: Service, Handler
 
 ### Calendar Domain
 
-**Calendar**:
-Named, colored collection of events w/ `access` (`personal`/`global`, workspace vocabulary), `ownerId`, `timezone`, per-owner `isDefault` flag. First calendar user creates auto-defaults; `setDefault` clears owner's other defaults. Events, attendees, reminders inherit their calendar's access.
-_Avoid_: "Calendar" as render mode (tasks' `savedViewTypeEnum` value `calendar` = view type, unrelated); Agenda
+**Audience**:
+Who a calendar item is for — single shared calendar, scope expressed per event/reminder row via `(audience_type, audience_id)`: `organization` (default, org-wide), `group` (group id), `user` (user id). Replaces the removed `calendar_calendar` collection table; there is no `p.calendar.calendars` group, no `isDefault`/`setDefault`.
+_Avoid_: Calendar collection, Agenda
 
 **Event**:
-Time-boxed calendar entry — `title`, `startsAt`/`endsAt` (timestamptz; `startsAt < endsAt` unless `allDay`), `status` (`confirmed`/`tentative`/`cancelled`), optional `location`/`description`/`color`/`timezone`, optional `recurrence` config, optional polymorphic `(sourceType, sourceEntityId)` link (`<module>:<entity>` registry, workspace `domain` convention). Recurrence = structured jsonb expanded on read by `services/recurrence.ts` — occurrences never materialized, no per-occurrence exceptions in v1.
+Time-boxed calendar entry — `title`, `startsAt`/`endsAt` (timestamptz; `startsAt < endsAt` unless `allDay`), `status` (`confirmed`/`tentative`/`cancelled`), optional `location`/`description`/`color`/`timezone`, optional `recurrence` config, optional polymorphic `(sourceType, sourceEntityId)` link (`<module>:<entity>` registry, workspace `domain` convention), audience-scoped via `(audience_type, audience_id)` (default `organization`). Recurrence = structured jsonb expanded on read by `services/recurrence.ts` — occurrences never materialized, no per-occurrence exceptions in v1.
 _Avoid_: Appointment, Meeting (implementation terms)
 
 **Occurrence**:
-Computed-on-read expansion of event's recurrence within `[from, to]` range: `{ id, eventId, startsAt, endsAt, title, location, status, calendarId }`. Non-recurring events yield their single occurrence. `count`/`until` bound series; unbounded series capped by query `limit`.
+Computed-on-read expansion of event's recurrence within `[from, to]` range: `{ id, eventId, startsAt, endsAt, title, location, status, audienceType, audienceId }`. Non-recurring events yield their single occurrence. `count`/`until` bound series; unbounded series capped by query `limit`.
 _Avoid_: Instance, Exception (v1 has no per-occurrence divergence)
 
 **Attendee**:
@@ -352,7 +352,7 @@ Invitee on event — `email` + optional `name`/`attendeeId`/`attendeeType` (`use
 _Avoid_: Participant, Guest (implementation terms)
 
 **Reminder**:
-Platform's single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` (`event`/`task`/`note`/`file`/`custom`/`compliance_document`) + `targetId`. `type` = `offset` (resolved against target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). Recipient-scoped via `userId`; delivered by `calendar.reminder-scan` dispatcher cron, which publishes `calendar.reminder_due` (full payload) + marks `isSent`. Task reminders = `targetType = task` rows created by task bridge.
+Platform's single polymorphic reminder surface — `calendar_reminder` rows w/ `targetType` (`event`/`task`/`note`/`file`/`custom`/`compliance_document`) + `targetId`, audience-scoped via `(audience_type, audience_id)` (default `organization`). `type` = `offset` (resolved against target's start/due anchor), `custom`/`due_date`/`overdue` (absolute `remindAt`). `channel` is `pubsub`-only in v1; dispatcher cron publishes `calendar.reminder_due` (full payload, per-recipient `userId` fan-out) + marks `isSent`. Task reminders = `targetType = task` rows created by task bridge.
 _Avoid_: Alert, Notification, "Reminder Engine" (compliance's document-expiry scanner = separate, out-of-scope surface)
 
 **Task Bridge**:
@@ -360,7 +360,7 @@ Calendar-side service (`services/task-bridge.ts`) that subscribes to `task.due_d
 _Avoid_: Event Listener (compliance's EventBridge = general pattern; Task Bridge = calendar-specific consumer)
 
 **Calendar Workflow**:
-Four groups: `p.calendar.calendars` (6), `p.calendar.events` (8), `p.calendar.attendees` (5), `p.calendar.reminders` (7). 4 tenant tables, 14 events, 4 ACL resources. `$dependencies = []`; `$consumes` = 3 task + 4 compliance + 3 healthcare topics. Units `db`, `pubsub`. Services: reminder dispatcher (`calendar.reminder-scan`), task bridge, compliance bridge (`compliance_document` reminders), healthcare bridge (appointments → events + `custom` reminders).
+Three groups: `p.calendar.events` (8), `p.calendar.attendees` (5), `p.calendar.reminders` (7). 3 tenant tables (`calendar_event`, `calendar_attendee`, `calendar_reminder`), 7 pgEnums, 11 events (4 event + 3 attendee + 4 reminder), 3 ACL resources (`event`, `attendee`, `reminder`). `$dependencies = []`; `$consumes` = 3 task + 4 compliance + 3 healthcare topics. Units `db`, `pubsub`. Services: reminder dispatcher (`calendar.reminder-scan` `* * * * *`), task bridge, compliance bridge (`compliance_document` reminders), healthcare bridge (appointments → events + `custom` reminders).
 _Avoid_: Service, Handler
 
 ### Comms Domain
@@ -394,12 +394,12 @@ Per-user routing + consent row: `(userId, type, channelType)` opt-outs plus `(us
 _Avoid_: Setting (that is workspace/host config), Subscription
 
 **Comms Workflow**:
-Domain operation within Comms module, built on platform `Workflow` builder. Seven groups exposed on module instance: `p.comms.channels`, `p.comms.providers`, `p.comms.notifications` (getter-bound to `db`/`kvStore` via `createNotify`), `p.comms.preferences`, `p.comms.templates`, `p.comms.settings`, `p.comms.messages`. Runtime-wired (`auth, db, kvStore, pubsub`): `$prepareRuntime()` registers message sweeper + 7 event-bridge subscriptions + 2 healthcare-bridge subscriptions (`$consumes` = 9 total); `$cleanup()` unregisters both. 1 control-plane table (`provider`) + 6 tenant tables, 21 events, 7 ACL resources. `$dependencies = []`.
+Domain operation within Comms module, built on platform `Workflow` builder. Eight groups exposed on module instance: `p.comms.channels`, `p.comms.providers`, `p.comms.notifications` (getter-bound to `db`/`kvStore` via `createNotify`), `p.comms.preferences`, `p.comms.push`, `p.comms.templates`, `p.comms.settings`, `p.comms.messages`. Runtime-wired (`auth, db, kvStore, pubsub`): `$prepareRuntime()` registers message sweeper + 7 event-bridge subscriptions + 2 healthcare-bridge subscriptions (`$consumes` = 9 total: `calendar.reminder_due`, `dms.file_expired`, `announcement.published`, `workspace.delivery_due`, `tenant.provisioned`/`tenant.activated`, `auth.email_otp_requested`, `healthcare.records_created`, `inpatient.resident_updated`); `$cleanup()` unregisters both. 2 control-plane tables (`provider`, `push_subscription`) + 6 tenant tables, 9 pgEnums, 21 events, 7 ACL resources. `$dependencies = []`.
 _Avoid_: Service, Handler
 
 ### HR Domain (3 packages)
 
-> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 9 workflow groups, 42 tables, 41 events, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`.
+> HR is three packages, not one module: `@aspen-os/hr-core` (`$name = "hrCore"`), `@aspen-os/hr-attendance` (`$name = "hrAttendance"`), `@aspen-os/hr-leave` (`$name = "hrLeave"`), plus `@aspen-os/announcement` (`$name = "announcement"`, `$dependencies = ["hrCore"]`) for broadcasts. HR three totals: 10 workflow groups, 42 tables (all tenant), 41 events, 12 ACL resources, 2 crons; announcement adds 1 group, 2 tenant tables, 6 events, 1 ACL, 0 crons. HR three have `$dependencies = []`; announcement depends on `hrCore`.
 
 **Employee** (hr-core):
 Person record w/ `employeeId`, `firstName`, `lastName`, `email`, `phone`, `dateOfBirth`, `dateOfJoining`, `dateOfLeaving`, `department`, `branch`, `reportsTo`, `status`. Org structure = `department` + `reportsTo` only (designations and positions were removed). Supports health insurance, skill maps, employee groups.
@@ -442,7 +442,7 @@ Leave management sub-domain covering leave types, periods, policies, allocations
 _Avoid_: PTO, Time Off
 
 **HR package map**:
-hr-core = 5 groups (`access` 33, `employee` 23, `transition` 27, `payroll` 1, `config` 13), 17 tables, 22 events (4 namespaces), 7 ACL resources, no runtime resources (reconciliation subscriptions removed with position/assignment). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 34), 11 tenant tables, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 2 groups (`leave`, 60 actions, plus `config` holidays), 14 tenant tables, 7 events, 2 ACL resources, 1 cron.
+hr-core = 5 groups (`access` 33, `employee` 23, `transition` 27, `payroll` 1, `config` 13), 17 tenant tables, 9 pgEnums, 22 events (4 namespaces), 7 ACL resources, no runtime resources (reconciliation subscriptions removed with position/assignment). announcement = 1 group (`announcement` 14), 2 tenant tables (`announcement`, `announcement_recipient`), 2 pgEnums, 6 events, 1 ACL resource, `$dependencies = ["hrCore"]`, no cron. hr-attendance = 3 groups (`attendance` 17, `overtime` 13, `shift` 33), 11 tenant tables, 6 pgEnums, 12 events (3 namespaces), 3 ACL resources, 1 cron. hr-leave = 2 groups (`leave` 60, `config` 10 holidays), 14 tenant tables, 7 pgEnums, 7 events, 2 ACL resources, 1 cron.
 _Avoid_: Single `Hr` module (use `hrCore` / `hrAttendance` / `hrLeave` / `announcement`)
 
 ### DMS Domain
@@ -565,7 +565,7 @@ _Avoid_: Service, Handler
 
 ### Healthcare Domain
 
-> Full subdomain detail (21 workflow groups, 140 tables + 13 pgEnums, 47 events) lives in `.working-docs/domain-model/healthcare.md`. Terms below are cross-module vocabulary; per-group method lists stay out of glossary.
+> Full subdomain detail (11 kernel groups + 4 satellite packages, 137 kernel tables + 13 pgEnums, 26 kernel events) lives in `.working-docs/domain-model/healthcare.md`. Terms below are cross-module vocabulary; per-group method lists stay out of glossary.
 
 **Patient**:
 Registered person receiving care — `healthcare_patient` + family links, allergies, consents, flags, recalls, merge requests. Dedupe on phone/ABHA; duplicates merge two-party (`requestMerge` → `approveMerge`).
@@ -600,7 +600,7 @@ Visit record — diagnoses, prescriptions, vitals, clinic orders, follow-ups, ad
 _Avoid_: Appointment (booking), SOAP Note (one allopathy artifact inside it)
 
 **Healthcare Workflow**:
-Stateless OPD clinic backend (`$initialize`/`$prepareRuntime`/`$cleanup` empty, no schedules, no subscriptions): 21 workflow groups (admin, allopathy, appointments, ayush, billing, dental, diagnostics, encounters, facilities, nursing, operations, patients, pharmacy, practitioners, pricelists, psych, records, rehab, residents, services, staff). 140 `healthcare_*` tables (all tenant) + 13 pgEnums, 47 events sharing one `HealthcareEntityEvent` payload, 19 ACL resources (elevated only `billing:discount-approve`, `diagnostics:authorize`, `psych:override`). `$dependencies = []`. OPD only — no ADT/IPD, no OT, no insurance/TPA.
+Stateless OPD clinic kernel (`$initialize`/`$prepareRuntime`/`$cleanup` empty, no schedules, no subscriptions): 11 workflow groups (admin, appointments, billing, encounters, facilities, operations, patients, practitioners, pricelists, records, services). 137 `healthcare_*` tables (all tenant) + 13 pgEnums, 26 events sharing one `HealthcareEntityEvent` payload, 10 ACL resources (elevated only `billing:discount-approve`). `$dependencies = ["masters"]`. Four satellite shim packages re-export kernel storage (single-writer kernel): `diagnostics` (1 group, 16 table refs, 3 events, 1 ACL), `emr` (5 groups, 56 table refs, 10 events, 5 ACL incl. `psych:override`), `inpatient` (2 groups, 35 table refs, 5 events, 2 ACL), `pharmacy` (1 group, 9 table refs, 3 events, 1 ACL) — each `$dependencies = ["healthcare"]`, all stateless. OPD only — no ADT/IPD, no OT, no insurance/TPA.
 _Avoid_: Service, Handler
 
 ### Management Plane Domain
@@ -674,7 +674,7 @@ Workflow that creates new Tenant end-to-end, run by Management Plane module via 
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 **Management Workflow**:
-Five groups: `p.management.tenants` (15: onboard/get/list/update/activate/suspend/churn/assignServiceProvider/…), `p.management.tenantMembers` (5), `p.management.serviceProviders` (8), `p.management.organizations` (8: get/list/update + logo surface), `p.management.users` (7). 3 owned control-plane tables (`managed_organization`, `service_provider`, `service_provider_user`) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`. 21 events across 5 namespaces, 4 ACL resources. `$name = "management"`; `$dependencies = []`; `$initialize` accepts `{ db, auth, pubsub }` but only stores `db`.
+Five groups: `p.management.tenants` (20: onboard/get/list/update/activate/suspend/reactivate/churn/assignServiceProvider/… + logo + branding + by-slug/by-user), `p.management.tenantMembers` (5), `p.management.serviceProviders` (13:CRUD + activate/deactivate + logos + listAssignedTenants/listUsers), `p.management.organizations` (8: get/list/update + logo surface), `p.management.users` (7). 3 owned control-plane tables (`managed_organization`, `service_provider`, `service_provider_user`) + 2 shadow re-exports (`organization`, `user` from platform); `tenant_schemas = {}`. 21 events across 5 namespaces, 4 ACL resources. `$name = "management"`; `$dependencies = []`; `$initialize` accepts `{ db, storage }` (logo surfaces via `setManagementStorage`), stores only `db`.
 _Avoid_: Service, Handler
 
 ## Context Relationships
@@ -713,18 +713,23 @@ _Avoid_: Service, Handler
 │Masters   │ │   Compliance     │ │    Tasks     │ │     DMS      │ │  HR (3 pkgs)   │ │    Notes     │ │ Management   │ │  Calendar   │ │  Workspace   │
 │  Module  │ │    Module        │ │   Module     │ │   Module     │ │  hrCore/hrAtt/ │ │    Module    │ │   Module     │ │   Module    │ │   Module     │
 │          │ │                  │ │              │ │              │ │  hrLeave       │ │  (no units)  │ │              │ │             │ │              │
-│9 wf grps │ │ 5 wf groups      │ │ 9 wf groups  │ │ 16 wf exports│ │ 10 wf groups   │ │ 1 wf group   │ │ 5 wf groups  │ │ 4 wf groups │ │ 8 wf groups  │
-│12 tables │ │ (+dashboard alias)│ │ 14 tables    │ │ 12 tables    │ │ 51 tables      │ │ 1 table      │ │ 4 owned +    │ │ 4 tables    │ │ 8 tables     │
-│32 events │ │ 3 tables         │ │ 5 ctl + 9 ten│ │ 27 events    │ │ 12 ctl + 39 ten│ │ 3 events     │ │ 2 shadow     │ │ 14 events   │ │ 30 events    │
-│9 ACL res.│ │ 23 events        │ │ 11 events    │ │ 9 ACL res.   │ │ 52 events      │ │ 1 ACL res.   │ │ 22 events    │ │ 4 ACL res.  │ │ 9 ACL res.   │
+│9 wf grps │ │ 5 wf groups      │ │ 9 wf groups  │ │ 16 wf exports│ │ 10 wf groups   │ │ 1 wf group   │ │ 5 wf groups  │ │ 3 wf groups │ │ 8 wf groups  │
+│12 tables │ │ (+dashboard alias)│ │ 14 tables    │ │ 12 tables    │ │ 42 tables      │ │ 1 table      │ │ 3 owned +    │ │ 3 tables    │ │ 8 tables     │
+│32 events │ │ 3 tables         │ │ 5 ctl + 9 ten│ │ 27 events    │ │ all tenant     │ │ 3 events     │ │ 2 shadow     │ │ 11 events   │ │ 30 events    │
+│9 ACL res.│ │ 23 events        │ │ 11 events    │ │ 9 ACL res.   │ │ 41 events      │ │ 1 ACL res.   │ │ 21 events    │ │ 3 ACL res.  │ │ 9 ACL res.   │
 │deps: none│ │ 3 ACL res.       │ │ empty ACL    │ │ deps: masters│ │ 12 ACL res.    │ │ deps: none   │ │ 4 ACL res.   │ │ deps: none  │ │ deps: none   │
 │units:    │ │ units:           │ │ deps: masters│ │ $cons: 4     │ │ deps: none     │ │              │ │ deps: none   │ │ $cons: 10   │ │ $cons: none  │
 │db,kvStore│ │ db, kvStore,     │ │ units:       │ │ units:       │ │ units:         │ │              │ │ units: db    │ │ units:      │ │ units:       │
-│          │ │ pubsub           │ │ db, pubsub   │ │ db, pubsub,  │ │ db, pubsub     │ │              │ │ (auth/pubsub │ │ db, pubsub  │ │ db, pubsub   │
+│          │ │ pubsub           │ │ db, pubsub   │ │ db, pubsub,  │ │ db, pubsub     │ │              │ │ (db, storage)  │ │ db, pubsub  │ │ db, pubsub   │
 │          │ │                  │ │              │ │ storage      │ │                │ │              │ │ accepted,    │ │             │ │              │
 │          │ │                  │ │              │ │ 2 crons      │ │ 2 crons        │ │              │ │ unused)      │ │ 1 cron +    │ │ per-schedule │
 │          │ │                  │ │              │ │              │ │                │ │              │ │              │ │ 3 bridges   │ │ crons        │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
+Omitted from boxes for width — code truth (2026-09-28):
+  Comms = 8 groups (channels/providers/notifications/preferences/push/templates/settings/messages), 2 control + 6 tenant tables, 9 pgEnums, 21 events, 7 ACL, 1 cron + 9 bridge subscriptions.
+  Calendar = 3 groups (no calendars), 3 tables, 7 pgEnums, 11 events, 3 ACL, 1 cron + 3 bridges; single shared calendar, per-item audience scope.
+  Healthcare kernel = 11 groups, 137 tables, 13 pgEnums, 26 events, 10 ACL, $dependencies=["masters"]; satellites diagnostics (1/16 refs/3/1), emr (5/56/10/5), inpatient (2/35/5/2), pharmacy (1/9/3/1).
+
 
 Implemented: DMS module — unified document/files management on a single `file`
   entity: Triage → Classify → active (uploads into folders active immediately);
@@ -759,48 +764,51 @@ Implemented: Comms module — notification/inbox + out-of-band delivery on a
   three-layer model: channel (sender `from` endpoint, tenant BYOC or host
   provider ref, credentials only in kvStore), notification (persisted intent
   + in-app inbox row), message (delivery outbox, `queued → sending → sent →
-  delivered/failed`, swept by `comms.message-sweeper` cron `* * * * *`).
-  Runtime-wired (`auth, db, kvStore, pubsub`); `$prepareRuntime()` registers
-  sweeper + 7 event-bridge subscriptions (`calendar.reminder_due`,
+  delivered/failed`, swept by `comms.message-sweeper` cron `* * * * *`),
+  plus `push` (Web Push subscriptions, 8th group). Runtime-wired
+  (`auth, db, kvStore, pubsub`); `$prepareRuntime()` registers sweeper
+  + 7 event-bridge subscriptions (`calendar.reminder_due`,
   `dms.file_expired`, `announcement.published`, `workspace.delivery_due`,
   `tenant.provisioned`/`tenant.activated`, `auth.email_otp_requested` — OTP
   never persisted, delivered inline) + 2 healthcare-bridge subscriptions
-  (`$consumes` = 9 total). 1 control-plane table (`provider`) + 6 tenant
-  tables, 21 events, 7 ACL resources. No module deps.
+  (`healthcare.records_created`, `inpatient.resident_updated`)
+  (`$consumes` = 9 total). 2 control-plane tables (`provider`,
+  `push_subscription`) + 6 tenant tables, 9 pgEnums, 21 events, 7 ACL
+  resources. No module deps.
 
-Implemented: Healthcare module — stateless OPD clinic backend (`$initialize`/
-  `$prepareRuntime`/`$cleanup` empty, no schedules, no subscriptions): patients
-  (phone/ABHA dedupe, two-party merge), practitioners (schedules, fee versions,
-  `conflict`/`nextFreeSlot`), facilities (occupy/release, sterilization),
-  services + pricelists (branch resolution, publish/bulk-revision), appointments
-  (slots, queue, video), encounters (dx/rx/vitals, `sign`), five-specialty EMR
-  (allopathy/dental/ayush/rehab/psych), residents (long-stay, not IPD),
-  pharmacy (batch stock, ledger), diagnostics (order→sample→result→deliver +
-  radio track, `authorize`-gated), billing (raise→finalize→collect/settle,
-  `discount-approve`-gated), nursing (board, handover, escalation), records
-  (merge, retention, share logging), operations (explorer, reports, seed),
-  staff, admin. 140 `healthcare_*` tables (all tenant) + 13 pgEnums (153
-  `healthcareTables` entries), 47 events sharing one `HealthcareEntityEvent`
-  payload, 19 ACL resources (elevated only `billing:discount-approve`,
-  `diagnostics:authorize`, `psych:override`). No module deps. OPD only — no
-  ADT/IPD, no OT, no insurance/TPA.
+Implemented: Healthcare kernel + 4 satellites — stateless OPD clinic kernel
+  (`$initialize`/`$prepareRuntime`/`$cleanup` empty, no schedules, no
+  subscriptions; `$dependencies = ["masters"]`): 11 groups (admin,
+  appointments, billing, encounters, facilities, operations, patients,
+  practitioners, pricelists, records, services). 137 `healthcare_*` tables
+  (all tenant) + 13 pgEnums, 26 events sharing one `HealthcareEntityEvent`
+  payload, 10 ACL resources (elevated only `billing:discount-approve`).
+  Satellites are stateless shim re-exporters (single-writer kernel, each
+  `$dependencies = ["healthcare"]`): `diagnostics` (1 group, 16 table refs,
+  3 events, 1 ACL), `emr` (5 groups, 56 refs, 10 events, 5 ACL incl.
+  `psych:override`), `inpatient` (2 groups, 35 refs, 5 events, 2 ACL),
+  `pharmacy` (1 group, 9 refs, 3 events, 1 ACL). OPD only — no ADT/IPD,
+  no OT, no insurance/TPA.
 
-Implemented: HR as three packages — hr-core (5 groups, 26 tables 12
-  control + 14 tenant, 33 events, 7 ACL, reconciliation subscriptions),
-  hr-attendance (3 groups, 11 tenant tables, 12 events, 3 ACL,
-  `hr.daily-attendance-sync` cron), hr-leave (2 groups [`leave` + `config`
-  holidays], 14 tenant tables, 7 events, 2 ACL,
+Implemented: HR as three packages — hr-core (5 groups, 17 tenant tables,
+  9 pgEnums, 22 events, 7 ACL, no runtime resources),
+  hr-attendance (3 groups, 11 tenant tables, 6 pgEnums, 12 events, 3 ACL,
+  `hr.daily-attendance-sync` cron), hr-leave (2 groups [`leave` 60 +
+  `config` 10 holidays], 14 tenant tables, 7 pgEnums, 7 events, 2 ACL,
   `hr.daily-leave-accrual` cron), plus
-  announcement (1 group of 14 actions, 2 tenant tables, 6 events, 1 ACL,
-  no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`). Announcements
+  announcement (1 group of 14 actions, 2 tenant tables, 2 pgEnums, 6 events,
+  1 ACL, no cron; `$name = "announcement"`, `$dependencies = ["hrCore"]`). Announcements
   (`announcement.*`, incl. `announcement.published` consumed by comms)
   live in `@aspen-os/announcement`. Totals: 11
-  groups, 53 tables, 58 events, 13 ACL resources. HR three `$dependencies = []`,
-  announcement `$dependencies = ["hrCore"]`; hr three units `db`, `pubsub`,
-  announcement stateless.
+  groups, 44 tables (42 HR + 2 announcement), 47 events (41 + 6), 13 ACL
+  resources. HR three `$dependencies = []`,
+  announcement `$dependencies = ["hrCore"]`; hr-attendance/hr-leave units
+  `db`, `pubsub` (hr-core + announcement stateless).
 
-Stubs (empty `src/index.ts` + `docs/` shell + `package.json` name only — no
-  source): crm, fleet, inventory, reports
+Stubs (package.json name only — no source): crm, fleet, inventory, reports.
+Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
+  compliance, comms, country-codes). Leftover `packages/pricelist/` has no
+  package.json/src (untracked, never a workspace package — ignore).
 ```
 
 ## Known Gaps

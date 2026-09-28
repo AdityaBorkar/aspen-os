@@ -1,71 +1,66 @@
 # Calendar Domain Model
 
-> Package: `@aspen-os/calendar`. Calendars, events, + reminders — three time-domain surfaces. **Calendars** (named, colored collections), **events** (time-boxed, recurrence, attendees, timezone, polymorphic source link), **reminders** (platform single polymorphic reminder surface). 4 tables — all tenant schemas, `calendar_` prefix. Task reminders live here as `targetType = task` rows, driven by event-driven task bridge.
+> Package: `@aspen-os/calendar`. Events + attendees + reminders — single shared calendar, scope expressed per item via `(audience_type, audience_id)`. **No `calendar` collection table** (removed); events and reminders carry `audience_type` (`organization`/`group`/`user`, default `organization`) + nullable `audience_id`. 3 tables — all tenant schemas, `calendar_` prefix. Task reminders live here as `targetType = task` rows, driven by event-driven task bridge.
 
 ## Entity-Relationship Diagram
 
 ```
 ┌──────────────────────────────────────────────────────────────────────┐
 │                       CALENDAR DOMAIN                                │
+│  Single shared calendar — scope per item, no calendar table          │
 │                                                                      │
-│  ┌──────────────────┐   1:N    ┌──────────────────────┐              │
-│  │     Calendar     │─────────→│        Event         │              │
-│  │ id               │          │ id                   │              │
-│  │ name / color     │          │ calendarId (FK)      │              │
-│  │ description      │          │ title / location     │              │
-│  │ access (enum:    │          │ startsAt / endsAt    │              │
-│  │  personal/global)│          │ allDay / timezone    │              │
-│  │ ownerId          │          │ status (enum:        │              │
-│  │ timezone         │          │  confirmed/tentative/│              │
-│  │ isDefault        │          │  cancelled)          │              │
-│  └────────┬─────────┘          │ recurrence (jsonb)   │              │
-│           │                    │ sourceType/sourceId  │              │
-│           │                    └──────────┬───────────┘              │
-│           │                               │ 1:N                      │
-│           │                               ▼                          │
-│           │                    ┌──────────────────┐  ┌──────────────┐ │
-│           │                    │    Attendee      │  │   Reminder   │ │
-│           │                    │ id               │  │ id           │ │
-│           │                    │ eventId (FK)     │  │ targetType   │ │
-│           │                    │ email / name     │  │  (event/task/│ │
-│           │                    │ attendeeId/Type  │  │  note/file/  │ │
-│           │                    │ status (enum:    │  │  custom)     │ │
-│           │                    │  invited/accepted│  │ targetId     │ │
-│           │                    │  declined/       │  │ type (enum:  │ │
-│           │                    │  tentative)      │  │  offset/     │ │
-│           │                    └──────────────────┘  │  custom/     │ │
-│           │                                          │  due_date/   │ │
-│           │                                          │  overdue)    │ │
-│           │                                          │ remindAt     │ │
-│           │                                          │ userId       │ │
-│           │                                          │ channel      │ │
-│           │                                          │ isSent/      │ │
-│           │                                          │ isRecurring  │ │
-│           │                                          └──────────────┘ │
-│           │                                                          │
-│           │   Reminder.targetType ──▶ any module entity:            │
-│           │     "task" → tasks task rows (task bridge)               │
-│           │     "note" → notes note rows                             │
-│           │     "file" → dms file rows                               │
-│           │     "custom" → free-form                                 │
-│           └──────────────────────────────────────────────────────────┘
+│  ┌──────────────────────┐                                            │
+│  │        Event         │                                            │
+│  │ id                   │                                            │
+│  │ audience_type/id     │                                            │
+│  │ title / location     │                                            │
+│  │ startsAt / endsAt    │                                            │
+│  │ allDay / timezone    │                                            │
+│  │ status (enum:        │                                            │
+│  │  confirmed/tentative/│                                            │
+│  │  cancelled)          │                                            │
+│  │ recurrence (jsonb)   │                                            │
+│  │ sourceType/sourceId  │                                            │
+│  └──────────┬───────────┘                                            │
+│             │ 1:N                                                    │
+│             ▼                                                        │
+│  ┌──────────────────┐  ┌──────────────┐                              │
+│  │    Attendee      │  │   Reminder   │                              │
+│  │ id               │  │ id           │                              │
+│  │ eventId (FK)     │  │ audience     │                              │
+│  │ email / name     │  │ targetType   │                              │
+│  │ attendeeId/Type  │  │  (event/task/│                              │
+│  │ status (enum:    │  │  note/file/  │                              │
+│  │  invited/accepted│  │  custom/     │                              │
+│  │  declined/       │  │  compliance_ │                              │
+│  │  tentative)      │  │  document)   │                              │
+│  └──────────────────┘  │ targetId     │                              │
+│                        │ type (enum:  │                              │
+│                        │  offset/     │                              │
+│                        │  custom/     │                              │
+│                        │  due_date/   │                              │
+│                        │  overdue)    │                              │
+│                        │ remindAt     │                              │
+│                        │ channel      │                              │
+│                        │ (pubsub)     │                              │
+│                        │ isSent/      │                              │
+│                        │ isRecurring  │                              │
+│                        └──────────────┘                              │
+│                                                                      │
+│   Reminder.targetType ──▶ any module entity:                         │
+│     "task" → tasks task rows (task bridge)                           │
+│     "note" → notes note rows                                         │
+│     "file" → dms file rows                                           │
+│     "custom" → free-form                                              │
+│     "compliance_document" → compliance rows (compliance bridge)      │
 └──────────────────────────────────────────────────────────────────────┘
 ```
 
 ## Aggregates
 
-### Calendar (Aggregate Root)
+### Audience (per-item scope, not a table)
 
-**Identity**: `id` (text, UUID, generated by the `uuidv7` column type)
-
-**Invariants**:
-
-- `isDefault` unique per `ownerId` — `setDefault` clears owner's other defaults; first calendar auto-defaults
-- Access user-set enum `personal` (owner-only) / `global` (org-wide within tenant)
-
-**Lifecycle commands** (via `p.calendar.calendars`): `create(input)`, `update(id, patch)`, `delete(id)` (cascades events/attendees/reminders), `get(id)`, `list(filters?)`, `setDefault(id)`.
-
-**Relationships**: Has many `Event` (1:N). Deleting calendar deletes events, attendees, event-targeted reminders.
+`audience_type` (`organization`/`group`/`user`, default `organization`) + nullable `audience_id` (group id or user id) on `calendar_event` and `calendar_reminder`. Organization-wide by default. No `isDefault`, no `setDefault`, no `p.calendar.calendars`.
 
 ### Event (Aggregate Root)
 
@@ -74,17 +69,18 @@
 **Value objects**:
 
 - `EventRecurrence` — `{ frequency (daily/weekly/monthly/yearly), interval ≥ 1, count?, until?, byDay? }`; `count`/`until` mutually exclusive, `byDay` weekly-only
-- `Occurrence` — computed-on-read expansion (`id`, `eventId`, `startsAt`, `endsAt`, `title`, `location`, `status`, `calendarId`)
+- `Occurrence` — computed-on-read expansion (`id`, `eventId`, `startsAt`, `endsAt`, `title`, `location`, `status`, `audienceType`, `audienceId`)
 
 **Invariants**:
 
 - `startsAt < endsAt` unless `allDay` (all-day stores 00:00 in calendar tz; `endsAt` exclusive next-day)
 - `sourceType` is `<module>:<entity>` registry value; setting requires `sourceEntityId`
 - `status` → `cancelled` monotonic (soft cancel)
+- Audience defaults `organization` when `audience_id` null
 
 **Lifecycle commands** (via `p.calendar.events`): `create(input)`, `update(id, patch)`, `delete(id)`, `cancel(id)`, `get(id)`, `list(filters?)`, `getOccurrences(id, query?)`, `listOccurrences(filters?, query?)`.
 
-**Relationships**: Belongs to `Calendar` (N:1, access inherited); has many `Attendee` (1:N); reminders reference event via `targetType = 'event'`.
+**Relationships**: Has many `Attendee` (1:N); reminders reference event via `targetType = 'event'`.
 
 ### Attendee (Supporting entity)
 
@@ -92,31 +88,28 @@
 
 ### Reminder (Supporting entity, polymorphic)
 
-Platform single reminder surface. `{ targetType (event/task/note/file/custom), targetId, type (offset/custom/due_date/overdue), channel (pubsub), remindAt, offsetMinutes?, userId (recipient), message?, isRecurring, interval?, isSent, sentAt? }`.
+Platform single reminder surface. `{ audience_type/audience_id, targetType (event/task/note/file/custom/compliance_document), targetId, type (offset/custom/due_date/overdue), channel (pubsub only), remindAt, offsetMinutes?, message?, isRecurring, interval?, isSent, sentAt? }`.
 
 - `offset` reminders resolve `remindAt` from target anchor (event start) or caller-supplied value
 - `custom`/`due_date`/`overdue` require explicit `remindAt`
 - Task reminders (`targetType = task`) materialized by calendar-side **task bridge** from `task.due_date_changed`: three rows per recipient (due − 1d, due − 1h, due) in one transaction (deduplicated recipients); deleted on `task.deleted` and on terminal statuses via `task.status_changed` (`isTerminal`/`toStatusCategory` in the event, legacy fallback reads `task_status`)
 - **Reminder dispatcher** cron (`calendar.reminder-scan`) runs `processPending` — claims a bounded batch (100, oldest first) with a conditional `isSent` flip so concurrent scans never double-deliver (claim released on publish failure for retry), publishes `calendar.reminder_due` (full payload), inserts next occurrence for recurring reminders with a known interval
 
-## Domain Events — 14
+## Domain Events — 11
 
-| Event                       | Payload                                                                                             | Trigger                       |
-| --------------------------- | --------------------------------------------------------------------------------------------------- | ----------------------------- |
-| `calendar.calendar_created` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar created              |
-| `calendar.calendar_updated` | `{ calendar: { id, name, access, ownerId } }`                                                       | Calendar updated              |
-| `calendar.calendar_deleted` | `{ calendarId }`                                                                                    | Calendar deleted              |
-| `calendar.event_created`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event created                 |
-| `calendar.event_updated`    | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId }, sourceType?, sourceEntityId? }`  | Event updated                 |
-| `calendar.event_cancelled`  | `{ calendarId, event: { id, title, startsAt, endsAt, calendarId } }`                                | Event cancelled               |
-| `calendar.event_deleted`    | `{ calendarId, eventId }`                                                                           | Event deleted                 |
-| `calendar.attendee_invited` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee added                |
-| `calendar.attendee_updated` | `{ calendarId, eventId, attendee: { id, email, name, status } }`                                    | Attendee updated              |
-| `calendar.attendee_removed` | `{ calendarId, eventId, attendeeId }`                                                               | Attendee removed              |
-| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }`           | Reminder created              |
-| `calendar.reminder_updated` | `{ reminder: { ... }, changes }`                                                                    | Reminder updated              |
-| `calendar.reminder_deleted` | `{ reminderId }`                                                                                    | Reminder deleted              |
-| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, userId, isRecurring } }` | Dispatcher fired the reminder |
+| Event                       | Payload                                                                                                               | Trigger                       |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | ----------------------------- |
+| `calendar.event_created`    | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId }, sourceType?, sourceEntityId? }`                  | Event created                 |
+| `calendar.event_updated`    | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId }, sourceType?, sourceEntityId? }`                  | Event updated                 |
+| `calendar.event_cancelled`  | `{ event: { id, title, startsAt, endsAt, audienceType, audienceId } }`                                                | Event cancelled               |
+| `calendar.event_deleted`    | `{ eventId }`                                                                                                         | Event deleted                 |
+| `calendar.attendee_invited` | `{ eventId, attendee: { id, email, name, status } }`                                                                  | Attendee added                |
+| `calendar.attendee_updated` | `{ eventId, attendee: { id, email, name, status } }`                                                                  | Attendee updated              |
+| `calendar.attendee_removed` | `{ eventId, attendeeId }`                                                                                             | Attendee removed              |
+| `calendar.reminder_created` | `{ reminder: { id, type, targetType, targetId, message, channel, audienceType, audienceId, isRecurring } }`           | Reminder created              |
+| `calendar.reminder_updated` | `{ reminder: { ... }, changes }`                                                                                      | Reminder updated              |
+| `calendar.reminder_deleted` | `{ reminderId }`                                                                                                      | Reminder deleted              |
+| `calendar.reminder_due`     | `{ remindAt, reminder: { id, type, targetType, targetId, message, channel, audienceType, audienceId, isRecurring } }` | Dispatcher fired the reminder |
 
 ## Command-Query Separation
 
@@ -124,8 +117,6 @@ Platform single reminder surface. `{ targetType (event/task/note/file/custom), t
 
 | Context  | Command           | Method                                  |
 | -------- | ----------------- | --------------------------------------- |
-| Calendar | Create calendar   | `p.calendar.calendars.create()`         |
-| Calendar | Set default       | `p.calendar.calendars.setDefault()`     |
 | Calendar | Create event      | `p.calendar.events.create()`            |
 | Calendar | Cancel event      | `p.calendar.events.cancel()`            |
 | Calendar | Add attendee      | `p.calendar.attendees.add()`            |
@@ -144,8 +135,8 @@ Platform single reminder surface. `{ targetType (event/task/note/file/custom), t
 
 ## Invariants & Business Rules
 
-1. **Access inheritance** — events, attendees, reminders inherit calendar access; reminders additionally recipient-scoped via `userId`. Read = `global` OR owner; mutate = owner or tenant admin.
-2. **Default calendar** — `isDefault` unique per owner; first-created auto-defaults.
+1. **Audience scoping** — events + reminders carry `(audience_type, audience_id)`; `organization` default is org-wide. Reminder `userId` is populated only on the per-recipient `reminder_due` fan-out, not on stored rows.
+2. **No calendar collection** — `calendar_calendar` table and `p.calendar.calendars` group removed; do not reintroduce `isDefault`/`setDefault`.
 3. **Event window** — `startsAt < endsAt` unless `allDay`; `endsAt` required for timed events.
 4. **Recurrence config** — `count`/`until` mutually exclusive; `byDay` weekly-only; interval ≥ 1.
 5. **Offset re-anchoring** — event `update` re-anchors `type = offset` reminders (`remindAt = startsAt − offsetMinutes`).

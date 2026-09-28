@@ -1,6 +1,12 @@
 # Stub Modules
 
-> Packages: `@aspen-os/accounting`, `@aspen-os/crm`, `@aspen-os/fleet`, `@aspen-os/inventory`, `@aspen-os/pharmacy`, `@aspen-os/reports`.
+> Packages: `@aspen-os/crm`, `@aspen-os/fleet`, `@aspen-os/inventory`, `@aspen-os/reports`.
+
+## Relationship Type
+
+Placeholder contexts — `package.json` holds only `{ "name": "@aspen-os/<module>" }` (no exports/deps/scripts, no `src/`). No domain model, no bounded context, no events.
+
+`packages/pricelist/` is not a stub — it has no `package.json`/`src/` at all (untracked leftover, never a workspace package; ignore). `examples/` holds only the empty `examples/recruiter/seaweedfs-s3.json/` dir (no manifest, not a build participant).
 
 ## Relationship Type
 

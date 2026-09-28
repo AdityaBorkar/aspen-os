@@ -81,7 +81,7 @@
 - At most one active Service Provider assignment (`serviceProviderId`)
 - `onboarding` is an opaque single stage — internal install/training/handoff sub-steps are NOT tracked
 
-**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, inserts the `managed_organization` companion, writes an audit entry, publishes `tenant.provisioned`), `get(id)` (joins better-auth `organization` + `managed_organization`), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)`.
+**Lifecycle commands** (via `p.management.tenants`): `onboard(input)` (provisions a new tenant — creates the better-auth org, calls `dbUnit.provisionTenant()` which creates the DB + pushes schemas in isolated mode, seeds the profile via `dbUnit.seedTenantDb()`, inserts the `managed_organization` companion, writes an audit entry, publishes `tenant.provisioned`), `get(id)` (joins better-auth `organization` + `managed_organization`), `getBySlug`/`getFullBySlug`/`resolveDatabase`/`listByUser`/`listBranding`, logo surfaces (`uploadLogo`/`attachLogo`/`issueLogoUploadUrl`/`getLogoUrl`/`removeLogo`), `list(filters?)`, `update(id, { profile?, companion? })`, `activate(id)`, `suspend(id, reason)`, `reactivate(id)`, `churn(id, reason)`, `assignServiceProvider(tenantId, spId)`, `unassignServiceProvider(tenantId)` — 20 actions total.
 
 **Relationships**: 1:1 with better-auth Organization via `managed_organization.id` (hard FK, shares ID, cascade delete); N:1 with ServiceProvider (`serviceProviderId`, soft).
 
@@ -93,7 +93,7 @@
 
 **Invariants**: `slug` must be unique; status can be toggled active/inactive; at most one active SP per tenant; an SP may serve many Tenants.
 
-**Lifecycle commands** (via `p.management.serviceProviders`): `create(input)`, `get(id)`, `list(filters?)`, `update(id, patch)`, `activate(id)`, `deactivate(id)` (no-op when already in the target status), `listAssignedTenants(spId, limit?, offset?)`, `listUsers(spId, limit?, offset?)`.
+**Lifecycle commands** (via `p.management.serviceProviders`): `create(input)`, `get(id)`, `list(filters?)`, `update(id, patch)`, `activate(id)`, `deactivate(id)` (no-op when already in the target status), `listAssignedTenants(spId, limit?, offset?)`, `listUsers(spId, limit?, offset?)`, logo surfaces (`uploadLogo`/`attachLogo`/`issueLogoUploadUrl`/`getLogoUrl`/`removeLogo`) — 13 actions total.
 
 **Relationships**: Has many `ServiceProviderUser` (1:N); has many `Tenant` (1:N).
 

@@ -1,6 +1,6 @@
 # Comms Domain Model
 
-> Package: `@aspen-os/comms`. Notification + out-of-band delivery on a **three-layer model**: a channel is a _sender_ endpoint (`from`), a notification is the persisted intent + inbox row, a message is the delivery outbox (`to`). Recipient and channel are deliberately separate — comms reads no other module's tables. One control-plane table (`comms_provider`), six tenant tables (`comms_` prefix).
+> Package: `@aspen-os/comms`. Notification + out-of-band delivery on a **three-layer model**: a channel is a _sender_ endpoint (`from`), a notification is the persisted intent + inbox row, a message is the delivery outbox (`to`), plus `push` (Web Push subscriptions). Recipient and channel are deliberately separate — comms reads no other module's tables. Two control-plane tables (`comms_provider`, `comms_push_subscription`), six tenant tables (`comms_` prefix). 8 workflow groups, 9 pgEnums, 21 events, 7 ACL resources.
 
 ## Entity-Relationship Diagram
 
@@ -67,6 +67,7 @@
 | Default channel | At most one `isDefault` per `(type, entityType, entityId)`. Host defaults materialize lazily; a default must be `active` and verified.                                                                                                                                  |
 | Preference      | Per-user routing + consent rows: `(userId, type, channelType)` opt-outs, plus the `(userId, null, channelType)` default row.                                                                                                                                            |
 | `inapp`         | A notification-routing-only pseudo channel type. Never a real channel; preferences and notification `channelTypes` may reference it.                                                                                                                                    |
+| Push            | Web Push subscription surface (`p.comms.push`, 3 actions) over control-plane `comms_push_subscription` — host-global like providers.                                                                                                                                    |
 
 ## Enums
 

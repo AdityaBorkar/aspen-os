@@ -1,15 +1,17 @@
 # Constants Context
 
-> Package: `@aspen-os/constants`. Shared enums and value guards used across modules. Not a domain context — it is a **Shared Kernel** leaf (no units, no workflows, no lifecycle).
+> Package: `@aspen-os/constants`. Shared `as const` enum objects + types. No tables, no workflows, no events, no ACL. Build-step package.
 
-## Contents (`packages/constants/src/`)
+## Relationship Type
 
-- Shared constant objects as `as const` with `UPPER_SNAKE` keys and lowercase string values, split per domain and re-exported by `index.ts`: `organization.ts` (`ORGANIZATION_STATUS`, `BRANCH_TYPE`), `masters.ts` (`CONTACT_TYPE`, `MASTER_ENTITY_KIND`, …), `notes.ts` (`NOTE_TYPE`), `compliance.ts` (`COMPLIANCE_CATEGORY`, `RENEWAL_FREQUENCY`), `comms.ts` (`CHANNEL_TYPE`, …), `country-codes.ts` (`COUNTRY_CODES` + `isValidCountryCode`/`parseCountryCode`).
-- Zero dependencies (no platform, no ORM).
-- Emits declarations to `.output/` via the build step, but its `exports` stay at `./src/index.ts` (no `.output` rewrite).
+Shared kernel dependency — masters, notes, compliance, comms import enums from here instead of duplicating.
 
-## Usage rules
+## Structure
 
-- Module-specific constants live in the module's own `constants.ts` (or `utils/constants.ts`) — only genuinely shared enums belong here.
-- Valibot `picklist`/`enum_()` schemas in module `schemas/enums.ts` mirror these constants (masters uses `picklist`).
-- `pgEnum` values reference the constant objects.
+- `src/index.ts` re-exports: `organization`, `masters`, `notes`, `compliance`, `comms`, `country-codes`.
+- Pure constants; never import units or declare infra.
+
+## Language
+
+- Shared Enum (UPPER_SNAKE keys, lowercase values; `pgEnum` values reference these)
+- Avoid: domain logic in constants

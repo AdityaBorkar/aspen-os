@@ -15,19 +15,12 @@ Downstream of the Platform (Customer–Supplier). Runtime-wired — receives `{ 
 - 3 database tables (all `tenant_schemas`): `compliance_document`, `compliance_obligation`, `compliance_verification_rule`
 - 23 domain events published via PubSub (`ComplianceEventMap`)
 - 3 ACL resources: `complianceDocument`, `complianceObligation`, `complianceVerificationRule`
-- `$prepareRuntime()` — registers reminder cron schedules, the obligation generator handler, and event-bridge subscriptions
+- `$prepareRuntime()` — registers the obligation-generator handler (`compliance.obligation-generate` topic), event-bridge subscriptions (6 topics), and healthcare-bridge subscription (1 topic); `$cleanup()` unsubscribes all three. Registers **no cron schedules**.
 - Audit entries written via the platform's `ctx.audit.write(...)` (the `audit` workflow group queries the platform `audit_log` via `ctx.audit.query(...)`) — no module-local audit table
 
-## Scheduled jobs (registered in `$prepareRuntime()`)
+## Scheduled jobs
 
-| Topic                                | Cron        | Action                              |
-| ------------------------------------ | ----------- | ----------------------------------- |
-| `compliance.daily-expiry-scan`       | `0 8 * * *` | Scan expiring documents             |
-| `compliance.daily-status-transition` | `0 0 * * *` | Transition expired/overdue statuses |
-| `compliance.daily-escalation`        | `0 9 * * *` | Escalate past threshold             |
-| `compliance.weekly-summary`          | `0 9 * * 1` | Generate weekly summary             |
-
-`compliance.obligation-generate` (`0 6 * * *`) is subscribed by the obligation generator but never scheduled — no cron fires it.
+None scheduled. `compliance.obligation-generate` (`0 6 * * *` constant in `utils/constants.ts`, re-exported in `types.ts`) is subscribed by the obligation generator but never scheduled — call `generatePendingDocuments` externally. The four `compliance.daily-*`/`weekly-*` topics in older docs do not exist in code.
 
 ## Cross-context event subscriptions (EventBridge)
 

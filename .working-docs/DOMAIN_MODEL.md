@@ -7,7 +7,7 @@ This document is **overview** of domain model. Each package's domain has been sp
 | Package                   | File                                                           |
 | ------------------------- | -------------------------------------------------------------- |
 | `@aspen-os/platform`      | [`domain-model/platform.md`](domain-model/platform.md)         |
-| `@aspen-os/organization`  | [`domain-model/organization.md`](domain-model/organization.md) |
+| `@aspen-os/constants`     | [`domain-model/constants.md`](domain-model/constants.md)       |
 | `@aspen-os/masters`       | [`domain-model/masters.md`](domain-model/masters.md)           |
 | `@aspen-os/notes`         | [`domain-model/notes.md`](domain-model/notes.md)               |
 | `@aspen-os/compliance`    | [`domain-model/compliance.md`](domain-model/compliance.md)     |
@@ -22,27 +22,36 @@ This document is **overview** of domain model. Each package's domain has been sp
 | `@aspen-os/management`    | [`domain-model/management.md`](domain-model/management.md)     |
 | `@aspen-os/workspace`     | [`domain-model/workspace.md`](domain-model/workspace.md)       |
 | `@aspen-os/healthcare`    | [`domain-model/healthcare.md`](domain-model/healthcare.md)     |
+| `@aspen-os/diagnostics`   | [`domain-model/diagnostics.md`](domain-model/diagnostics.md)   |
+| `@aspen-os/emr`           | [`domain-model/emr.md`](domain-model/emr.md)                   |
+| `@aspen-os/inpatient`     | [`domain-model/inpatient.md`](domain-model/inpatient.md)       |
+| `@aspen-os/pharmacy`      | [`domain-model/pharmacy.md`](domain-model/pharmacy.md)         |
 
 Bounded-context detail (relationships, structure, language) for each package lives in [`bounded-contexts/`](bounded-contexts/).
 
 ## Table Inventory by Package
 
-| Package         | Tables | Split                                                                                             |
-| --------------- | ------ | ------------------------------------------------------------------------------------------------- |
-| Platform (core) | 16     | audit_log, auth (10 better-auth), kv_store, logs, file_metadata, workflow_runs, workflow_steps    |
-| Organization    | —      | no package on disk (removed); org surface = `masters.orgBranches` + `management.organizations`    |
-| Masters         | 12     | all tenant (`master_` prefix except `org_branch`; incl. `master_uom_alias`, `master_uom_version`) |
-| Notes           | 1      | all tenant                                                                                        |
-| Compliance      | 3      | all tenant                                                                                        |
-| Tasks           | 14     | 5 control-plane + 9 tenant                                                                        |
-| Calendar        | 4      | all tenant (`calendar_` prefix)                                                                   |
-| Comms           | 7      | 1 control-plane (`comms_provider`) + 6 tenant (`comms_` prefix)                                   |
-| DMS             | 12     | all tenant (`dms_` prefix)                                                                        |
-| HR (3 pkgs)     | 51     | 12 control-plane (hr-core setup/access) + 39 tenant (hr-core 14, hr-attendance 11, hr-leave 14)   |
-| Announcement    | 2      | all tenant (`announcement`, `announcement_recipient`)                                             |
-| Management      | 3      | all control-plane (3 owned + 2 shadow re-exports)                                                 |
-| Workspace       | 8      | all tenant (`workspace_` prefix)                                                                  |
-| Healthcare      | 140    | all tenant (`healthcare_` prefix) + 13 `healthcare_*` pgEnums                                     |
+| Package         | Tables            | Split                                                                                             |
+| --------------- | ----------------- | ------------------------------------------------------------------------------------------------- |
+| Platform (core) | 16                | audit_log, auth (10 better-auth), kv_store, logs, file_metadata, workflow_runs, workflow_steps    |
+| Organization    | —                 | no package on disk (removed); org surface = `masters.orgBranches` + `management.organizations`    |
+| Constants       | 0                 | shared enums only (organization, masters, notes, compliance, comms, country-codes) — no tables    |
+| Masters         | 12                | all tenant (`master_` prefix except `org_branch`; incl. `master_uom_alias`, `master_uom_version`) |
+| Notes           | 1                 | all tenant                                                                                        |
+| Compliance      | 3                 | all tenant                                                                                        |
+| Tasks           | 14                | 5 control-plane + 9 tenant                                                                        |
+| Calendar        | 3                 | all tenant (`calendar_event`, `calendar_attendee`, `calendar_reminder`; no `calendar` table)      |
+| Comms           | 8                 | 2 control-plane (`comms_provider`, `comms_push_subscription`) + 6 tenant (`comms_` prefix)        |
+| DMS             | 12                | all tenant (`dms_` prefix)                                                                        |
+| HR (3 pkgs)     | 42                | all tenant (hr-core 17, hr-attendance 11, hr-leave 14; `control_plane_schemas = {}`)              |
+| Announcement    | 2                 | all tenant (`announcement`, `announcement_recipient`)                                             |
+| Management      | 3                 | all control-plane (3 owned + 2 shadow re-exports)                                                 |
+| Workspace       | 8                 | all tenant (`workspace_` prefix)                                                                  |
+| Healthcare      | 137               | all tenant (`healthcare_` prefix) + 13 `healthcare_*` pgEnums (kernel; satellites re-export only) |
+| Diagnostics     | 0 owned / 16 refs | shim over healthcare kernel (`diagnosticsTables` re-exports)                                      |
+| EMR             | 0 owned / 56 refs | shim over healthcare kernel (`emrTables` re-exports)                                              |
+| Inpatient       | 0 owned / 35 refs | shim over healthcare kernel (`inpatientTables` re-exports)                                        |
+| Pharmacy        | 0 owned / 9 refs  | shim over healthcare kernel (`pharmacyTables` re-exports)                                         |
 
 ## Cross-Cutting Conventions
 

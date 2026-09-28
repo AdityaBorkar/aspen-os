@@ -4,7 +4,7 @@
 
 ## Relationship Type
 
-Downstream of the Platform (Customer–Supplier). Stateless — `$initialize()` / `$prepareRuntime()` / `$cleanup()` are empty; workflow groups are `readonly` properties.
+Downstream of the Platform (Customer–Supplier). Runtime-wired — `$initialize()` stores `db` + `pubsub`, `$prepareRuntime()` registers the healthcare bridge (`inpatient.nursing_created`, `healthcare.encounter_updated`), `$cleanup()` unregisters it. `$dependencies = ["masters"]`, `$consumes` = 2 (inpatient + healthcare).
 
 ## Structure (`packages/tasks/`)
 
@@ -26,7 +26,7 @@ p.tasks.tasks          { archive, assign, bulkUpdate, create, delete, get, getAs
                          getCompletionSummary, getLoggedHours, getSubTasks, list, restore,
                          unassign, update }
 p.tasks.projects       { addMember, archive, create, delete, get, list, listMembers,
-                         removeMember, restore, update, updateMember }
+                         removeMember, reserveTaskNumber, restore, update, updateMember }
 p.tasks.comments       { create, delete, get, listByTask, listReplies, update }
 p.tasks.links          { create, delete, getCriticalPath, getDependencyGraph, listByTask,
                          topologicalSort }

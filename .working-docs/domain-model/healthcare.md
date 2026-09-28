@@ -1,6 +1,6 @@
 # Healthcare Domain Model
 
-> Package: `@aspen-os/healthcare`. OPD clinic backend — registration, EMR across five specialties (allopathy, dental, ayush, rehab, psych), pharmacy, diagnostics, billing, nursing, records. No ADT/IPD bed management, no OT scheduling, no insurance/TPA. 135 tables, all tenant schemas (`healthcare_` prefix) + 13 `healthcare_*` pgEnums. Staff, roster, attendance, leave, and payroll live in HR (`hrCore`, `hr-attendance`, `hr-leave`). Stateless: `$initialize`/`$prepareRuntime`/`$cleanup` empty; no schedules, no subscriptions.
+> Package: `@aspen-os/healthcare` (kernel) + 4 satellite shims: `@aspen-os/diagnostics`, `@aspen-os/emr`, `@aspen-os/inpatient`, `@aspen-os/pharmacy`. OPD clinic backend — registration, encounters, billing, nursing, records. Kernel owns all storage (137 tables, all tenant schemas, `healthcare_` prefix + 13 `healthcare_*` pgEnums); satellites own zero tables and re-export kernel refs (`diagnosticsTables` 16, `emrTables` 56, `inpatientTables` 35, `pharmacyTables` 9). Staff, roster, attendance, leave, and payroll live in HR (`hrCore`, `hr-attendance`, `hr-leave`). Stateless throughout: `$initialize`/`$prepareRuntime`/`$cleanup` empty; no schedules, no subscriptions. Kernel `$dependencies = ["masters"]`; each satellite `$dependencies = ["healthcare"]`.
 
 ## Entity-Relationship Diagram
 
@@ -56,7 +56,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
-Counts sum to 137 `pgTable` + 13 pgEnums (`healthcare_appointment_status`, `healthcare_queue_token_status`, `healthcare_encounter_status`, `healthcare_invoice_status`, `healthcare_lab_order_status`, `healthcare_radio_order_status`, `healthcare_task_status`, `healthcare_sitting_status`, `healthcare_resident_status`, `healthcare_sale_status`, `healthcare_po_status`, `healthcare_grn_status`, `healthcare_batch_status`).
+Counts sum to 137 `pgTable` + 13 pgEnums (`healthcare_appointment_status`, `healthcare_queue_token_status`, `healthcare_encounter_status`, `healthcare_invoice_status`, `healthcare_lab_order_status`, `healthcare_radio_order_status`, `healthcare_task_status`, `healthcare_sitting_status`, `healthcare_resident_status`, `healthcare_sale_status`, `healthcare_po_status`, `healthcare_grn_status`, `healthcare_batch_status`). Kernel exposes 11 workflow groups (admin, appointments, billing, encounters, facilities, operations, patients, practitioners, pricelists, records, services); specialty/care surfaces live in satellites (see `diagnostics.md`, `emr.md`, `inpatient.md`, `pharmacy.md`).
 
 ## Aggregates
 
@@ -184,9 +184,9 @@ Staff, role, roster, attendance, leave-request, and payroll tables are deleted. 
 
 `healthcare_counter` backs gapless numbers. No workflow group; used internally by numbering flows.
 
-## Domain Events — 47
+## Domain Events — 26 (kernel; satellites add 21 more)
 
-One payload shape for all events — `HealthcareEntityEvent { id, branchId, at, actorId?, data? }` — unlike other modules' per-event payloads. Grouped:
+One payload shape for all kernel events — `HealthcareEntityEvent { id, branchId, at, actorId?, data? }` — unlike other modules' per-event payloads. Grouped:
 
 | Group            | Events                                                                                                               |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------- |
@@ -196,21 +196,12 @@ One payload shape for all events — `HealthcareEntityEvent { id, branchId, at, 
 | Service (3)      | `healthcare.service_created`, `healthcare.service_updated`, `healthcare.service_redeemed`                            |
 | Appointment (2)  | `healthcare.appointment_created`, `healthcare.appointment_updated`                                                   |
 | Encounter (3)    | `healthcare.encounter_created`, `healthcare.encounter_updated`, `healthcare.encounter_signed`                        |
-| Allopathy (2)    | `healthcare.allopathy_created`, `healthcare.allopathy_updated`                                                       |
-| Dental (2)       | `healthcare.dental_created`, `healthcare.dental_updated`                                                             |
-| Ayush (2)        | `healthcare.ayush_created`, `healthcare.ayush_updated`                                                               |
-| Rehab (2)        | `healthcare.rehab_created`, `healthcare.rehab_updated`                                                               |
-| Psych (2)        | `healthcare.psych_created`, `healthcare.psych_updated`                                                               |
-| Resident (2)     | `healthcare.resident_created`, `healthcare.resident_updated`                                                         |
-| Pharmacy (3)     | `healthcare.pharmacy_created`, `healthcare.pharmacy_updated`, `healthcare.pharmacy_dispensed`                        |
-| Diagnostics (3)  | `healthcare.diagnostics_created`, `healthcare.diagnostics_updated`, `healthcare.diagnostics_authorized`              |
 | Billing (3)      | `healthcare.billing_created`, `healthcare.billing_updated`, `healthcare.billing_collected`                           |
-| Nursing (3)      | `healthcare.nursing_created`, `healthcare.nursing_updated`, `healthcare.nursing_escalated`                           |
 | Records (4)      | `healthcare.records_created`, `healthcare.records_updated`, `healthcare.records_merged`, `healthcare.records_viewed` |
 | Operations (2)   | `healthcare.operations_created`, `healthcare.operations_updated`                                                     |
 | Branch (2)       | `healthcare.branch_created`, `healthcare.branch_updated`                                                             |
 
-`HealthcareEventMap` composes 19 per-group maps by intersection. No `$consumes`; no cross-module subscriptions.
+Satellites: `diagnostics.*` (3), `emr.{allopathy,dental,ayush,rehab,psych}_*` (10), `inpatient.nursing_*` (3) + `inpatient.resident_*` (2), `pharmacy.*` (3) — see satellite files. `HealthcareEventMap` composes 10 per-group kernel maps. No `$consumes`; no cross-module subscriptions.
 
 ## Command-Query Separation
 
@@ -241,5 +232,5 @@ Each group exposes `get`/`list` plus boards: `queueBoard`, `dayBoard`, `statusBo
 7. **Mutations audit + publish; reads silent** — every mutation writes `audit_log` + publishes its `healthcare.*` event; reads publish nothing.
 8. **No ADT/IPD/OT/insurance** — residents = long-stay care only; no bed-management ADT, no OT scheduling, no TPA claims.
 9. **Stateless runtime** — no pg-boss schedules, no subscriptions; `$prepareRuntime()`/`$cleanup()` empty.
-10. **Single event payload** — 47 topics carry `HealthcareEntityEvent`; `data` holds varying detail.
-11. **Elevated ACLs are narrow** — only `billing:discount-approve`, `diagnostics:authorize`, `psych:override` exceed CRUD.
+10. **Single event payload** — 26 kernel topics carry `HealthcareEntityEvent`; `data` holds varying detail. Satellites add 21 topics in their own namespaces (`diagnostics.*`, `emr.*`, `inpatient.*`, `pharmacy.*`).
+11. **Elevated ACLs are narrow** — kernel only `billing:discount-approve`; `diagnostics:authorize` lives in `diagnostics`, satellite `psych:override` lives in `emr` (see satellite files).
