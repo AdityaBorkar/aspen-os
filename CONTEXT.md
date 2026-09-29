@@ -2,7 +2,7 @@
 
 Aspen OS = business application framework on Bun/TypeScript. Platform kernel provides composable infrastructure (database, auth, logging, pub/sub, RPC, storage, KV store) so domain modules build on top without reinventing plumbing.
 
-> **Ubiquitous-language harmonization (2026-09-09, re-verified 2026-09-28 against code):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement.published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept; `dashboard` remains deprecated alias). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt). `Tenant` = SaaS customer (Management); Masters `Entity` + `OrgBranch`; `organization` package does not exist on disk — org surface is `masters.orgBranches` + `management.organizations`. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite. Masters has no `bank_account` table — bank details are inline fields on `payment_method`. Calendar has no `Calendar` collection table — single shared calendar, scope is per-item `(audience_type, audience_id)` on events + reminders. Healthcare is kernel + 4 satellite shim packages (`diagnostics`, `emr`, `inpatient`, `pharmacy` re-export kernel tables). Comms has `push` group + `comms_push_subscription` control table.
+> **Ubiquitous-language harmonization (2026-09-09, re-verified 2026-09-29 against code):** `Contact` = Masters business relationship (canonical); others are `ContactRef/AttendeeContact/RecipientContact` in prose (enum values stay wire-compat). `Connection` = Masters integration credential (glossary note; never business relationship). `Reminder` = Calendar (single dispatcher); `DeliverySchedule` = Workspace (per-dashboard cron). Compliance `reminder_*` → `expiry_policy_*`; `SCHEDULE_EVENTS` alias deleted. `Notification` = Comms inbox; `Announcement` = HR authoring only (`announcement.published` is intent, Comms owns delivery). `Dashboard` = Workspace composable; Compliance `Summary` (renamed `dashboard.*` → `summary.*`, `getSummary` kept; `dashboard` remains deprecated alias). `Draft` = Workspace entity; others are draft status values. `AuditLog` = platform store; per-module `ActivityFeed` is projection (Tasks `activity_log` exempt). `Tenant` = SaaS customer (Management); Masters `Entity` + `OrgBranch`; `organization` package does not exist on disk — org surface is `masters.orgBranches` + `management.organizations`. Roles scoped: `PlatformRole, ProjectRole, HrRole, ChannelRole`. `Share` (grant) + `PublicLink` (token) = DMS; `Attendee` = Calendar invite. Masters has no `bank_account` table — bank details are inline fields on `payment_method`. Calendar has no `Calendar` collection table — single shared calendar, scope is per-item `(audience_type, audience_id)` on events + reminders. Healthcare is kernel + 4 satellite shim packages (`diagnostics`, `emr`, `inpatient`, `pharmacy` re-export kernel tables). Comms has `push` group + `comms_push_subscription` control table. `Item` = Products master (canonical; inventory/accounting keep soft FKs + snapshots, never local definitions); `Warehouse`/`StockLedger` = Inventory; `Journal`/`GL Entry` = Accounting (no separate pricelist package — rates live in products).
 
 ## Language
 
@@ -603,6 +603,96 @@ _Avoid_: Appointment (booking), SOAP Note (one allopathy artifact inside it)
 Stateless OPD clinic kernel (`$initialize`/`$prepareRuntime`/`$cleanup` empty, no schedules, no subscriptions): 11 workflow groups (admin, appointments, billing, encounters, facilities, operations, patients, practitioners, pricelists, records, services). 137 `healthcare_*` tables (all tenant) + 13 pgEnums, 26 events sharing one `HealthcareEntityEvent` payload, 10 ACL resources (elevated only `billing:discount-approve`). `$dependencies = ["masters"]`. Four satellite shim packages re-export kernel storage (single-writer kernel): `diagnostics` (1 group, 16 table refs, 3 events, 1 ACL), `emr` (5 groups, 56 table refs, 10 events, 5 ACL incl. `psych:override`), `inpatient` (2 groups, 35 table refs, 5 events, 2 ACL), `pharmacy` (1 group, 9 table refs, 3 events, 1 ACL) — each `$dependencies = ["healthcare"]`, all stateless. OPD only — no ADT/IPD, no OT, no insurance/TPA.
 _Avoid_: Service, Handler
 
+### Accounting Domain
+
+**Account**:
+Chart-of-accounts row w/ unique `code`, `rootType` (asset/liability/equity/income/expense), `accountType`. One control account per reconciliation scope. Drafts never post.
+_Avoid_: Ledger (that is the GL projection), Cost Center (non-goal)
+
+**Fiscal Year**:
+Posting period w/ unique `name`, `startDate`/`endDate`, `status` (open/closed). `close` freezes the period; emits `accounting.financial_year_started` (consumed by compliance EventBridge → monthly GST obligation).
+_Avoid_: Financial Year (use Fiscal Year), Period
+
+**Journal Entry**:
+Double-entry header w/ `status` (draft/submitted/cancelled), `type`, lines carrying `accountId` + debit/credit. `submit` posts to GL; `cancel` reverses per linked-document order; submitted docs immutable (amend = cancel + new draft).
+_Avoid_: Voucher, Transaction
+
+**GL Entry**:
+Immutable ledger projection written on journal submit. Never edited in place.
+_Avoid_: Journal (that is the entry header), Ledger Balance (a report)
+
+**Sales Document**:
+Order-to-cash chain — `Quotation` → `SalesOrder` → `DeliveryNote` → `SalesInvoice` (each header + item rows, `creditNote` returns into sales invoice). `update_stock` invoices forbidden when delivery already moved the quantity.
+_Avoid_: Order (use Sales Order), Challan (use Delivery Note)
+
+**Purchase Document**:
+Procure-to-pay chain — `MaterialRequest` → `Rfq` → `SupplierQuotation` → `PurchaseOrder` → `ReceiptNote` → `PurchaseInvoice` (each header + item rows, `debitNote` returns into purchase invoice). Supplier invoice numbers unique per supplier.
+_Avoid_: PO (use Purchase Order), GRN (use Receipt Note)
+
+**Payment Entry**:
+Inbound/outbound payment w/ `partyType` (customer/supplier), `paidAmount`, allocations via `PaymentReference` (allocated ≤ min(outstanding, available)).
+_Avoid_: Transaction, Settlement
+
+**Asset**:
+Depreciable item w/ `AssetCategory` + `AssetLocation` masters, `DepreciationSchedule` rows per frequency. Lifecycle via `transfer/scrap/sell/logRepair/postDepreciation`.
+_Avoid_: Fixed Asset (informal), Inventory Item (that is products)
+
+**Accounting Workflow**:
+Domain operations within Accounting module, built on platform `Workflow` builder. 21 groups: `p.accounting.accounts` (5), `fiscalYears` (4), `journals` (6), `journalTemplates` (4), `taxTemplates` (4 exposed), `termsTemplates` (3), `paymentTerms` (3), `quotations` (7), `salesOrders` (9), `deliveries` (4), `salesInvoices` (9), `materialRequests` (3), `rfqs` (3), `supplierQuotations` (5), `purchaseOrders` (10), `receipts` (4), `purchaseInvoices` (11), `payments` (4), `reconciliation` (10), `assets` (15), `reports` (14 read-only statements). 37 tenant tables (`accounting_` prefix) + 17 pgEnums, 42 events, 18 ACL resources. `$dependencies = ["masters"]`; `$consumes` = 4 introspection-only (`inventory.stock_changed`, `masters.contact_created/_updated`, `comms.message_delivered`) with no runtime wiring. `$config = { baseCurrency: "INR" }`. Stateless (no schedules, no subscriptions).
+_Avoid_: Service, Handler
+
+### Products Domain
+
+**Item**:
+Centralized master row w/ unique `itemCode`, `status` (active/disabled/archived), `valuationMethod` (fifo/moving_average), `namingMode`. Transacted items cannot be deleted (disable/archive instead); `has_transactions`/`last_purchase_rate` maintained by price-fetch writes. Inventory/accounting keep soft FKs + snapshots, never local definitions.
+_Avoid_: Product, SKU (use itemCode)
+
+**Item Group**:
+Tree node (`parent_id` + `is_group`) organizing items. Only leaves hold stock (enforced in inventory).
+_Avoid_: Category, Classification
+
+**Variant**:
+Same-table item variant sharing template (`templateItemId` + `variantKey`, based on attribute/manufacturer). `createCombinations` generates cartesian variants; `syncFromTemplate` propagates only `VARIANT_SYNC_ALLOWLIST` fields.
+_Avoid_: SKU Variant, Child Product
+
+**Price List**:
+Named buying/selling rate list (`products_price_list`); rates are `ItemPrice` rows (draft/active/expired/cancelled) soft-FKed to items. No separate pricelist package — rates live here; UOM validation reuses `products_item_uom`; defaults resolve via `lookups.resolveDefaults`.
+_Avoid_: Pricelist package, Rate Card
+
+**Reorder Rule**:
+Per-item replenishment threshold (`level`/`qty`) read by inventory's nightly `reorder-scan`. Exposed via `reorderRules` + `lookups.getReorderRules`.
+_Avoid_: Reorder Point (informal), Safety Stock
+
+**Products Workflow**:
+Domain operations within Products module, built on platform `Workflow` builder. 16 groups: `p.products.items` (18), `groups` (8), `brands` (5), `manufacturers` (8), `attributes` (9), `variants` (10), `barcodes` (3), `alternatives` (3), `itemUoms` (5), `reorderRules` (7), `settings` (2), `lookups` (5 read-only), `priceLists` (8), `itemPrices` (9), `priceFetch` (4 read-only), `pricelistSettings` (2). 19 tenant tables (`products_` prefix) + 8 pgEnums, 29 events, 13 ACL resources. `$dependencies = []`; no `$consumes` property at all. Stateless (no schedules, no subscriptions).
+_Avoid_: Service, Handler
+
+### Inventory Domain
+
+**Warehouse**:
+Storage node in a tree (`parent_id` + `is_group`). Only leaves hold stock; groups organize. Disabled, never deleted, once history exists. Typed via `WarehouseType` (`kind`).
+_Avoid_: Godown, Store (informal), Branch (that is masters `org_branch`)
+
+**Stock Ledger**:
+Immutable per-movement projection (`item × warehouse × qty × valuation_rate`). Every submit appends rows; cancellations append counter-rows; nothing edited in place. Moving average derived (`value / qty`), never stored.
+_Avoid_: Stock Balance (a computed view), Ledger (that is accounting GL)
+
+**Stock Entry**:
+Movement document (`purpose`, `postingDate`, `status`) + item rows (soft FK to `products_item` + rate snapshot) + optional `AdditionalCost` (landed cost). Submit posts ledger; `freeze_upto_date`/`freeze_older_than_days` blocks backdated postings except `freeze_allowed_role`.
+_Avoid_: Goods Movement, Stock Voucher
+
+**Reservation**:
+Available-stock hold (`available = on_hand − reserved`) without moving physical stock. `consume`/`release` adjust availability; pick lists reserve before consuming.
+_Avoid_: Allocation (that is accounting payment allocation), Block
+
+**Reorder Scan**:
+Nightly cron (`inventory.reorder-scan`, `30 2 * * *`) reading non-disabled `products_reorder_rule` rows, computing available qty, publishing `inventory.reorder_triggered` + audit per fresh breach (→ accounting material-request flow).
+_Avoid_: Reorder Report, Auto-indent (informal)
+
+**Inventory Workflow**:
+Domain operations within Inventory module, built on platform `Workflow` builder. 12 groups: `p.inventory.warehouses` (5), `warehouseTypes` (6), `stockEntries` (7), `ledger` (1 read-only), `reconciliations` (7), `reservations` (6), `pickLists` (11), `putawayRules` (6), `serials` (5), `batches` (8), `settings` (2), `reorder` (2: `breaches`/`scan`). 15 tenant tables (`inventory_` prefix) + 10 pgEnums, 21 events, 11 ACL resources. `$dependencies = ["masters", "products"]`; `$consumes = []` in code (docs describe introspection-only `products.*`/`masters.unit_of_measure_updated`/`accounting.*` fulfilment pointers — docs-only, no subscriptions). `$config = { reorderScanCron: "30 2 * * *" }`. Runtime-wired (`db`, `pubsub`): `$prepareRuntime()` registers reorder scan; `$cleanup()` unregisters it.
+_Avoid_: Service, Handler
+
 ### Management Plane Domain
 
 **Tenancy**:
@@ -723,10 +813,13 @@ _Avoid_: Service, Handler
 │          │ │                  │ │              │ │ 2 crons      │ │ 2 crons        │ │              │ │ unused)      │ │ 1 cron +    │ │ per-schedule │
 │          │ │                  │ │              │ │              │ │                │ │              │ │              │ │ 3 bridges   │ │ crons        │
 └──────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────────┘ └──────────────┘ └──────────────┘ └──────────────┘ └──────────────┘
-Omitted from boxes for width — code truth (2026-09-28):
+Omitted from boxes for width — code truth (2026-09-29):
   Comms = 8 groups (channels/providers/notifications/preferences/push/templates/settings/messages), 2 control + 6 tenant tables, 9 pgEnums, 21 events, 7 ACL, 1 cron + 9 bridge subscriptions.
   Calendar = 3 groups (no calendars), 3 tables, 7 pgEnums, 11 events, 3 ACL, 1 cron + 3 bridges; single shared calendar, per-item audience scope.
   Healthcare kernel = 11 groups, 137 tables, 13 pgEnums, 26 events, 10 ACL, $dependencies=["masters"]; satellites diagnostics (1/16 refs/3/1), emr (5/56/10/5), inpatient (2/35/5/2), pharmacy (1/9/3/1).
+  Accounting = 21 groups, 37 tables, 17 pgEnums, 42 events, 18 ACL, $dependencies=["masters"], $consumes 4 introspection-only, stateless, $config { baseCurrency: "INR" }.
+  Products = 16 groups, 19 tables, 8 pgEnums, 29 events, 13 ACL, deps none, no $consumes, stateless.
+  Inventory = 12 groups, 15 tables, 10 pgEnums, 21 events, 11 ACL, $dependencies=["masters","products"], 1 cron (inventory.reorder-scan `30 2 * * *`).
 
 
 Implemented: DMS module — unified document/files management on a single `file`
@@ -803,10 +896,42 @@ Implemented: HR as three packages — hr-core (5 groups, 17 tenant tables,
   announcement `$dependencies = ["hrCore"]`; hr-attendance/hr-leave units
   `db`, `pubsub` (hr-core + announcement stateless).
 
-Stubs (package.json name only — no source): crm, fleet, inventory, reports.
+Implemented: Accounting module — single-tenant double-entry accounting
+  (chart, fiscal years, journals/GL, order-to-cash quotation → sales order →
+  delivery → sales invoice, procure-to-pay material request → RFQ → supplier
+  quotation → purchase order → receipt → purchase invoice, payments, two
+  reconciliation tools, asset register, 14 read-only statements). 37
+  `accounting_*` tables (all tenant) + 17 pgEnums, 42 events, 18 ACL
+  resources. `$dependencies = ["masters"]`; `$consumes` 4 introspection-only
+  (`inventory.stock_changed`, `masters.contact_created/_updated`,
+  `comms.message_delivered`) with no runtime wiring. Stateless (no schedules,
+  no subscriptions). `$config = { baseCurrency: "INR" }`. Emits
+  `accounting.financial_year_started` (consumed by compliance EventBridge).
+
+Implemented: Products module — centralized item master (items, groups,
+  brands, manufacturers, attributes/variants, barcodes, alternatives, UOMs,
+  reorder rules, settings, lookups, price lists/item prices — no separate
+  pricelist package). 19 `products_*` tables (all tenant) + 8 pgEnums, 29
+  events, 13 ACL resources. `$dependencies = []`; no `$consumes` at all.
+  Stateless (no schedules, no subscriptions). Upstream of inventory
+  (`inventory.$dependencies` includes `products`; reorder scan reads
+  `products_reorder_rule`).
+
+Implemented: Inventory module — multi-warehouse stock control (perpetual
+  append-only ledger with FIFO/moving-average valuation, stock entries,
+  reservations, putaway/pick, serial/batch traceability, reconciliation, plus
+  nightly reorder scan). 15 `inventory_*` tables (all tenant) + 10 pgEnums, 21
+  events, 11 ACL resources. `$dependencies = ["masters", "products"]`;
+  `$consumes = []` in code (docs describe introspection-only `products.*` /
+  `masters.unit_of_measure_updated` / `accounting.*` fulfilment pointers —
+  docs-only). Runtime-wired (`db`, `pubsub`): `inventory.reorder-scan` cron
+  (`30 2 * * *`). Emits `inventory.stock_changed` (consumed introspection-only
+  by accounting) + `inventory.reorder_triggered` (→ accounting
+  material-request flow).
+
+Stubs (package.json name only — no source): crm, fleet, reports.
 Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
-  compliance, comms, country-codes). Leftover `packages/pricelist/` has no
-  package.json/src (untracked, never a workspace package — ignore).
+  compliance, comms, country-codes).
 ```
 
 ## Known Gaps
@@ -815,6 +940,7 @@ Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
 2. **`TenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `TenantPlatform.create()` instead of accepting real `TenantResolver` via config.
 3. **`ManagementPlaneConfig` = `undefined`** — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet.
 4. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
+5. **Inventory `$consumes` docs-vs-code** — `packages/inventory/docs/overview.mdx` + `docs/events.mdx` describe `$consumes` covering `products.*` / `masters.unit_of_measure_updated` / `accounting.*` fulfilment topics (introspection-only), but `src/module.ts` declares `$consumes = []`. Accounting's `$consumes` (4 topics) is likewise introspection-only with empty `$prepareRuntime()` — no runtime subscriptions exist for either. Code is truth; package docs overclaim.
 
 ## Anti-Patterns
 
@@ -830,3 +956,5 @@ Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
 - Don't assume workspace view-resolver registry — `domain` is free-form text + documented constants; module never queries other modules' tables
 - Don't add second `task_reminder` surface or compliance Reminder Engine — `@aspen-os/calendar` owns single reminder surface
 - Don't assume `master_bank_account` table — bank details are inline fields on `master_payment_method`
+- Don't import a separate pricelist package — rates live in `@aspen-os/products` (`products_price_list` + `products_item_price`); healthcare `pricelists` group is clinical pricing, not the item master
+- Don't assume inventory/accounting `$consumes` means runtime subscriptions — both are introspection-only (accounting `$prepareRuntime()` empty; inventory `$consumes = []` in code despite package docs listing fulfilment topics)

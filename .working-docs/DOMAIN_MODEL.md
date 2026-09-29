@@ -26,6 +26,9 @@ This document is **overview** of domain model. Each package's domain has been sp
 | `@aspen-os/emr`           | [`domain-model/emr.md`](domain-model/emr.md)                   |
 | `@aspen-os/inpatient`     | [`domain-model/inpatient.md`](domain-model/inpatient.md)       |
 | `@aspen-os/pharmacy`      | [`domain-model/pharmacy.md`](domain-model/pharmacy.md)         |
+| `@aspen-os/accounting`    | [`domain-model/accounting.md`](domain-model/accounting.md)     |
+| `@aspen-os/products`      | [`domain-model/products.md`](domain-model/products.md)         |
+| `@aspen-os/inventory`     | [`domain-model/inventory.md`](domain-model/inventory.md)       |
 
 Bounded-context detail (relationships, structure, language) for each package lives in [`bounded-contexts/`](bounded-contexts/).
 
@@ -52,6 +55,9 @@ Bounded-context detail (relationships, structure, language) for each package liv
 | EMR             | 0 owned / 56 refs | shim over healthcare kernel (`emrTables` re-exports)                                              |
 | Inpatient       | 0 owned / 35 refs | shim over healthcare kernel (`inpatientTables` re-exports)                                        |
 | Pharmacy        | 0 owned / 9 refs  | shim over healthcare kernel (`pharmacyTables` re-exports)                                         |
+| Accounting      | 37                | all tenant (`accounting_` prefix; `control_plane_schemas = {}`) + 17 `accounting_*` pgEnums       |
+| Products        | 19                | all tenant (`products_` prefix; `control_plane_schemas = {}`) + 8 `products_*` pgEnums            |
+| Inventory       | 15                | all tenant (`inventory_` prefix; `control_plane_schemas = {}`) + 10 `inventory_*` pgEnums         |
 
 ## Cross-Cutting Conventions
 
