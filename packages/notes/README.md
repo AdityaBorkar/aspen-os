@@ -24,12 +24,12 @@ platform.notes.notes; // create, delete, get, list, update
 ## Quick Start
 
 ```ts
-import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
+import { TenantPlatform } from "@aspen-os/platform/server";
 import { Notes } from "@aspen-os/notes";
 
 const notes = Notes.create();
 
-const platform = IsolatedTenantPlatform.create(config, [notes]);
+const platform = TenantPlatform.create(config, [notes]);
 
 await platform.prepare();
 

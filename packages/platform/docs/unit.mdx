@@ -33,7 +33,7 @@ export interface Module {
 
 ## The Eight Server Units
 
-All eight are constructed inside `IsolatedTenantPlatform.createCore()`. `audit` takes no config — it is always present:
+All eight are constructed inside `TenantPlatform.createCore()`. `audit` takes no config — it is always present:
 
 | Key       | Unit class     | `$name`     | Depends on                   | Purpose                                       |
 | --------- | -------------- | ----------- | ---------------------------- | --------------------------------------------- |
@@ -91,7 +91,7 @@ Client units have no constructor injection. `AuthUnit` takes only `AuthConfig` (
 ## How Units Are Created
 
 ```ts
-const p = IsolatedTenantPlatform.create(
+const p = TenantPlatform.create(
   {
     db: { host, port, user, password, database },
     auth: { baseURL, secret },

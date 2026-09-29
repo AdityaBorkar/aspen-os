@@ -29,12 +29,12 @@ All create/list operations take `entityType` + `entityId` for the polymorphic sc
 ## Quick Start
 
 ```ts
-import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
+import { TenantPlatform } from "@aspen-os/platform/server";
 import { Masters } from "@aspen-os/masters";
 
 const masters = Masters.create();
 
-const platform = IsolatedTenantPlatform.create(config, [masters, organization]);
+const platform = TenantPlatform.create(config, [masters, organization]);
 
 await platform.prepare();
 

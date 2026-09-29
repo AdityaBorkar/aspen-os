@@ -1,13 +1,13 @@
 import type { AuthConfig, AuthUnit } from "#/server/auth";
-import type { IsolatedTenantPlatformInstance } from "#/server/base-platform";
 import type {
   DatabaseConfig,
   DatabaseUnit,
-  IsolatedTenantDbConfig,
-  IsolatedTenantProvisioningResult,
+  TenantDbConfig,
+  TenantProvisioningResult,
 } from "#/server/db";
 import type { KvStoreConfig, KvStoreUnit } from "#/server/kv-store";
 import type { LogConfig, LogUnit } from "#/server/log";
+import type { TenantPlatformInstance } from "#/server/platform.js";
 import type { PubSubConfig, PubSubUnit } from "#/server/pubsub";
 import type { RpcConfig, RpcUnit } from "#/server/rpc";
 import type {
@@ -42,8 +42,8 @@ export type {
   AuthUnit,
   DatabaseConfig,
   DatabaseUnit,
-  IsolatedTenantDbConfig,
-  IsolatedTenantProvisioningResult,
+  TenantDbConfig,
+  TenantProvisioningResult,
   KvStoreConfig,
   KvStoreUnit,
   LogConfig,
@@ -61,14 +61,14 @@ export type {
   StorageProvider,
   StorageUnit,
 };
-export type PlatformInstance<TModules extends Module[]> = IsolatedTenantPlatformInstance<TModules>;
+export type PlatformInstance<TModules extends Module[]> = TenantPlatformInstance<TModules>;
 
 export {
   type CommonConfig,
-  type IsolatedTenantConfig,
-  IsolatedTenantPlatform,
-  type IsolatedTenantPlatformInstance,
-} from "#/server/base-platform";
+  type TenantConfig,
+  TenantPlatform,
+  type TenantPlatformInstance,
+} from "#/server/platform.js";
 export {
   type InferSchemaOutput,
   type RunOptions,

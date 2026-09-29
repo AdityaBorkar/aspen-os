@@ -24,7 +24,7 @@ type DatabaseConfig = {
 new DatabaseUnit(config.db);
 ```
 
-`db` config is always the **control-plane** connection; per-tenant config derives from `IsolatedTenantDatabaseConfig` (`controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`).
+`db` config is always the **control-plane** connection; per-tenant config derives from `TenantDatabaseConfig` (`controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`).
 
 ## Features
 

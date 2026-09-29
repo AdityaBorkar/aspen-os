@@ -28,7 +28,7 @@ type HealthcareConfig = {
 
 ```ts
 const healthcare = Healthcare.create({ tenantCodePrefix: "HC" });
-const p = IsolatedTenantPlatform.create(config, [healthcare]);
+const p = TenantPlatform.create(config, [healthcare]);
 ```
 
 ## Dependencies

@@ -23,7 +23,7 @@ export interface DatabaseConfig {
   tenantDbPrefix?: string;
 }
 
-export interface IsolatedTenantDbConfig {
+export interface TenantDbConfig {
   database: string;
   host: string;
   password: string;
@@ -32,11 +32,11 @@ export interface IsolatedTenantDbConfig {
   user: string;
 }
 
-export type IsolatedTenantProvisioningResult = {
+export type TenantProvisioningResult = {
   tenancyMode: "isolated";
-} & IsolatedTenantDbConfig;
+} & TenantDbConfig;
 
-export interface IsolatedTenantDatabaseConfig {
+export interface TenantDatabaseConfig {
   /**
    * Admin bootstrap database used only for `CREATE DATABASE` when provisioning
    * tenants. Defaults to `"postgres"`. This is not the control-plane database.
@@ -75,7 +75,7 @@ export interface TenantConnectionOverrides {
 }
 
 /**
- * Default resolver used when `IsolatedTenantDatabaseConfig.resolver` is omitted.
+ * Default resolver used when `TenantDatabaseConfig.resolver` is omitted.
  * Mirrors `DatabaseUnit.resolveDatabaseName` so `resolveDatabase`,
  * `provisionTenant`, and `getTenantDb` agree. `list()` is empty until a real
  * resolver is configured.
@@ -98,11 +98,11 @@ export function defaultTenantResolver(prefix: string): TenantResolver {
  * `DatabaseConfig`. All field mapping lives here so `create()` never
  * hand-copies connection fields.
  */
-export function toDatabaseConfig(isolated: IsolatedTenantDatabaseConfig): DatabaseConfig {
+export function toDatabaseConfig(isolated: TenantDatabaseConfig): DatabaseConfig {
   let { resolver } = isolated;
   if (!resolver) {
     console.warn(
-      "IsolatedTenantDatabaseConfig.resolver is not configured; using the " +
+      "TenantDatabaseConfig.resolver is not configured; using the " +
         "`tenantDbPrefix_tenantId` naming convention and reporting no tenants " +
         "for $prepareTenant until a resolver is provided.",
     );
@@ -132,7 +132,7 @@ export function resolveTenantConnection(
   config: DatabaseConfig,
   database: string,
   overrides?: TenantConnectionOverrides,
-): IsolatedTenantDbConfig {
+): TenantDbConfig {
   return {
     database: overrides?.databaseName ?? database,
     host: overrides?.host ?? config.tenantDbDefaults?.host ?? config.host,

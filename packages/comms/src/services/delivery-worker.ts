@@ -64,7 +64,7 @@ export async function registerMessageSweepHandler(
 }
 
 export async function sweepQueuedMessages(deps: DeliveryWorkerDeps): Promise<number> {
-  return sweepIsolatedTenants(deps);
+  return sweepTenants(deps);
 }
 
 async function fetchQueuedMessages(
@@ -74,7 +74,7 @@ async function fetchQueuedMessages(
   return db.select().from(commsMessage).where(eq(commsMessage.status, "queued")).limit(batchSize);
 }
 
-async function sweepIsolatedTenants(deps: DeliveryWorkerDeps): Promise<number> {
+async function sweepTenants(deps: DeliveryWorkerDeps): Promise<number> {
   const tenantIds = (await deps.db.resolver?.list().catch((): string[] => [])) ?? [];
   const databases = new Set<string>();
   // oxlint-disable eslint(no-await-in-loop)

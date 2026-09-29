@@ -43,7 +43,7 @@ const calendar = Calendar.create({
   tasksEnabled: true,
   complianceEnabled: true,
 });
-const p = IsolatedTenantPlatform.create(config, [calendar]);
+const p = TenantPlatform.create(config, [calendar]);
 ```
 
 ## Dependencies

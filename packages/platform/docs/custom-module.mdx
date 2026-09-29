@@ -369,12 +369,12 @@ export { CreateMyEntitySchema, MyEntityFiltersSchema, UpdateMyEntitySchema } fro
 ## Step 9: Use It
 
 ```ts
-import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
+import { TenantPlatform } from "@aspen-os/platform/server";
 import { MyModule } from "@aspen-os/my-module";
 
 const myModule = MyModule.create({});
 
-const p = IsolatedTenantPlatform.create(config, [myModule]);
+const p = TenantPlatform.create(config, [myModule]);
 
 await p.$prepareInfra();
 

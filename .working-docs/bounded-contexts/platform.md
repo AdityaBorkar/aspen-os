@@ -17,7 +17,7 @@
 | KV Store        | Postgres          | Conformist        | KvStoreUnit adapts Postgres as a Redis-like KV store                    |
 | Audit           | —                 | Core              | Native platform unit — `audit_log` table, no external dependency        |
 | Client Platform | —                 | —                 | Browser-side `Platform` with 3 units (auth, logs, rpc)                  |
-| Recruiter       | Platform          | Downstream        | Intended first app — uses `IsolatedTenantPlatform`, org + tasks         |
+| Recruiter       | Platform          | Downstream        | Intended first app — uses `TenantPlatform`, org + tasks                 |
 
 ## Shared Kernel
 
@@ -38,11 +38,11 @@ Both server and client use the `$` prefix for lifecycle methods and the name pro
 
 ## Platform → Units (Customer–Supplier)
 
-**Direction**: `IsolatedTenantPlatform` creates and wires units via `IsolatedTenantPlatform.create(config, modules)`. Units have no knowledge of Platform. The client has a single `Platform` class.
+**Direction**: `TenantPlatform` creates and wires units via `TenantPlatform.create(config, modules)`. Units have no knowledge of Platform. The client has a single `Platform` class.
 
 ```
-IsolatedTenantPlatform.create(config, modules)
-IsolatedTenantPlatform.create(config, modules)
+TenantPlatform.create(config, modules)
+TenantPlatform.create(config, modules)
     │
     ├── creates DatabaseUnit(config.db, tenancy config)
     ├── creates LogUnit(config.logs, { db })
@@ -93,9 +93,9 @@ AuthUnit     ← RpcUnit
 
 ### Tenancy sub-contexts
 
-- **Tenancy**: database-per-tenant isolation — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, `run(tenantId, fn)`). The config type does not include a `tenancy` field.
+- **Tenancy**: database-per-tenant isolation — `TenantPlatform` (control-plane DB + per-tenant DBs, `run(tenantId, fn)`). The config type does not include a `tenancy` field.
 - **Tenant ID**: a string identifier resolved from the authenticated session (e.g. better-auth `session.activeOrganizationId`) and passed to `platform.run(tenantId, fn)`. Stored in `AsyncLocalStorage`; routes the stable DB wrapper, `PubSubUnit` messages, and `StorageUnit`/`KvStoreUnit` key prefixes.
-- **Tenant Resolver**: `{ resolve(tenantId) → dbName, list() → tenantIds }` used by `IsolatedTenantPlatform` to lazily create per-tenant pools. Known WIP gap: `IsolatedTenantConfig` does not expose a `resolver` field — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline.
+- **Tenant Resolver**: `{ resolve(tenantId) → dbName, list() → tenantIds }` used by `TenantPlatform` to lazily create per-tenant pools. Known WIP gap: `TenantConfig` does not expose a `resolver` field — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline.
 - **Control Plane**: the management/administration DB connection. In `single`/`shared` this IS the app database; in `isolated` it is the shared control-plane DB holding auth + platform tables. `DatabaseUnit` always holds a control-plane pool; `AuthUnit` always uses `controlPlaneDb`.
 - **Tenant Database**: per-tenant Postgres DB holding that tenant's data-plane tables. No auth tables live here. Isolation is physical.
 - **Stable DB Wrapper**: a JS `Proxy` returned by `DatabaseUnit.db` (a getter). Property access reads the per-request drizzle instance from `AsyncLocalStorage` and delegates to it; global `"$global"` requests fall back to the control-plane drizzle instance.
@@ -217,12 +217,12 @@ AuthUnit     ← RpcUnit
 
 ## Recruiter (Downstream App)
 
-**Relationship**: The intended first app creates the platform via `IsolatedTenantPlatform.create(config, modules)` and passes domain modules. Currently registers `organization` and `tasks`. Not yet in the repo — there is no `examples/` directory.
+**Relationship**: The intended first app creates the platform via `TenantPlatform.create(config, modules)` and passes domain modules. Currently registers `organization` and `tasks`. Not yet in the repo — there is no `examples/` directory.
 
 **Lifecycle**:
 
 ```
-IsolatedTenantPlatform.create(config, [organization, tasks])
+TenantPlatform.create(config, [organization, tasks])
     → p.$prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
     → p.run(tenantId, fn) // AsyncLocalStorage context
     → p.$cleanup()       // mod.$cleanup() then unit.$cleanup()

@@ -59,7 +59,7 @@ import { Compliance } from "@aspen-os/compliance";
 const organization = Organization.create({ country: "INDIA" });
 const compliance = Compliance.create({ country: "INDIA" });
 
-const p = IsolatedTenantPlatform.create(config, [organization, compliance]);
+const p = TenantPlatform.create(config, [organization, compliance]);
 
 await p.$prepareInfra();
 ```

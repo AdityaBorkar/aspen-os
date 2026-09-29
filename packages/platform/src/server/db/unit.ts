@@ -1,8 +1,8 @@
 import * as db_schemas from "#/server/db/schema";
 import type {
   DatabaseConfig,
-  IsolatedTenantDbConfig,
-  IsolatedTenantProvisioningResult,
+  TenantDbConfig,
+  TenantProvisioningResult,
   TenantConnectionOverrides,
 } from "#/server/db/types";
 import { resolveTenantConnection } from "#/server/db/types";
@@ -21,7 +21,7 @@ export type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> =
 /** Bound on cached per-tenant pools; the least-recently-used entry is evicted. */
 const MAX_TENANT_POOLS = 50;
 
-function toPostgresOptions(connection: IsolatedTenantDbConfig & { maxConnections?: number }) {
+function toPostgresOptions(connection: TenantDbConfig & { maxConnections?: number }) {
   return {
     database: connection.database,
     host: connection.host,
@@ -178,7 +178,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   async provisionTenant(
     tenantId: string,
     options?: TenantConnectionOverrides,
-  ): Promise<IsolatedTenantProvisioningResult> {
+  ): Promise<TenantProvisioningResult> {
     const database = options?.databaseName ?? (await this.resolveDatabaseName(tenantId));
     const dbConfig = resolveTenantConnection(this.config, database, options);
 
@@ -199,11 +199,11 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     return {
       tenancyMode: "isolated",
       ...dbConfig,
-    } satisfies IsolatedTenantProvisioningResult;
+    } satisfies TenantProvisioningResult;
   }
 
   async seedTenantDb(
-    dbConfig: IsolatedTenantDbConfig,
+    dbConfig: TenantDbConfig,
     fn: (db: DrizzleDB<TSchemas>) => Promise<void>,
   ): Promise<void> {
     const pool = postgres(toPostgresOptions(dbConfig));
@@ -239,7 +239,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     }
   }
 
-  private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
+  private async createTenantDatabase(dbConfig: TenantDbConfig): Promise<void> {
     const admin = postgres(
       toPostgresOptions({
         database: this.controlPlaneDbName ?? "postgres",

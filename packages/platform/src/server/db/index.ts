@@ -1,8 +1,8 @@
 export type {
   DatabaseConfig,
-  IsolatedTenantDatabaseConfig,
-  IsolatedTenantDbConfig,
-  IsolatedTenantProvisioningResult,
+  TenantDatabaseConfig,
+  TenantDbConfig,
+  TenantProvisioningResult,
   TenantConnectionOverrides,
   TenantDbDefaults,
 } from "#/server/db/types";

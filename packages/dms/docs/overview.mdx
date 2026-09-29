@@ -41,7 +41,7 @@ type DmsModuleConfig = {
 
 ```ts
 const dms = Dms.create({ maxFileSize: 50 * 1024 * 1024, trashRetentionDays: 14 });
-const p = IsolatedTenantPlatform.create(config, [masters, dms]);
+const p = TenantPlatform.create(config, [masters, dms]);
 ```
 
 ## Dependencies

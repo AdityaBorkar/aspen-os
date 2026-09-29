@@ -1,7 +1,7 @@
 # 0005 — Multi-tenant host app with single-realm auth
 
 > **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: The platform
-> is database-per-tenant (`IsolatedTenantPlatform`). This ADR's description of a multi-tenant
+> is database-per-tenant (`TenantPlatform`). This ADR's description of a multi-tenant
 > host app with single-realm auth remains valid for the `isolated` mode specifically. The
 > `tenant_id` column requirement described below is revised — see ADR-0007 for the updated
 > schema approach (always present, not added per-query).

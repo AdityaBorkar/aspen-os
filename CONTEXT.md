@@ -9,7 +9,7 @@ Aspen OS = business application framework on Bun/TypeScript. Platform kernel pro
 ### Platform Kernel
 
 **Platform**:
-Server side has a single `IsolatedTenantPlatform` class — control-plane DB + per-tenant DBs (physical isolation). Created via `IsolatedTenantPlatform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
+Server side has a single `TenantPlatform` class — control-plane DB + per-tenant DBs (physical isolation). Created via `TenantPlatform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
 _Avoid_: Framework (on server), App, Container, DI Container
 
 **Platform** (client only):
@@ -21,11 +21,11 @@ Infrastructure building block w/ `$name`, required `$cleanup()` method, optional
 _Avoid_: Service, Provider
 
 **Module**:
-Business logic plugin passed to `IsolatedTenantPlatform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares hard module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if dependency not provided) and introspection-only peer topics via `$consumes: readonly string[]` (never validated). Accessed on platform instance via proxy — e.g. `p.masters`. Both server + client Module interfaces use `$` prefix.
+Business logic plugin passed to `TenantPlatform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares hard module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if dependency not provided) and introspection-only peer topics via `$consumes: readonly string[]` (never validated). Accessed on platform instance via proxy — e.g. `p.masters`. Both server + client Module interfaces use `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
-Static factory (`IsolatedTenantPlatform.create`). Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped platform instance. Only way to construct Platform — constructor internal.
+Static factory (`TenantPlatform.create`). Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped platform instance. Only way to construct Platform — constructor internal.
 _Avoid_: Register, Mount, Attach
 
 **PrepareInfra**:
@@ -606,7 +606,7 @@ _Avoid_: Service, Handler
 ### Management Plane Domain
 
 **Tenancy**:
-Database-per-tenant isolation — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). Same module code works for control-plane and tenant contexts. Config type (`IsolatedTenantConfig`) has no `tenancy` field. Uniform `run(tenantId, fn)` signature; `"$global"` = control plane.
+Database-per-tenant isolation — `TenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). Same module code works for control-plane and tenant contexts. Config type (`TenantConfig`) has no `tenancy` field. Uniform `run(tenantId, fn)` signature; `"$global"` = control plane.
 _Avoid_: Tenancy Strategy, Isolation Mode, Deployment Mode
 
 **Tenant ID**:
@@ -614,7 +614,7 @@ String identifier for tenant context of request. `"$global"` addresses control p
 _Avoid_: Org ID, Workspace ID, Customer ID
 
 **Tenant Resolver**:
-Function pair: `resolve(tenantId)` returns per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools + by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include `resolver` field — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()`. Known WIP gap.
+Function pair: `resolve(tenantId)` returns per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools + by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `TenantConfig` does NOT include `resolver` field — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `TenantPlatform.create()`. Known WIP gap.
 _Avoid_: Tenant Registry, Connection Provider
 
 **Control Plane**:
@@ -682,9 +682,9 @@ _Avoid_: Service, Handler
 ```
 ┌────────────────────────────────────────┐    ┌─────────────────────────────────────────────┐
 │    Recruiter                           │───→│            Server Platform                  │
-│                                        │    │  IsolatedTenantPlatform (DB/tenant)         │
+│                                        │    │  TenantPlatform (DB/tenant)         │
 │  registers modules via                 │    │  uniform run(tenantId, fn); "$global" =     │
-│  IsolatedTenantPlatform.create(...)    │    │  control plane; 8 core units: db, auth,     │
+│  TenantPlatform.create(...)    │    │  control plane; 8 core units: db, auth,     │
 │                                        │    │  logs, pubsub, rpc, storage, kvStore, audit │
 └────────────────────────────────────────┘    └──────────┬──────────────────────────────────┘
       │                            │ wires
@@ -812,13 +812,13 @@ Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
 ## Known Gaps
 
 1. **`RoleUnassignedEvent` missing `roleName`** — unlike `RoleAssignedEvent` which has `{ roleName, userId }`, unassigned event only has `{ userId }`.
-2. **`IsolatedTenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()` instead of accepting real `TenantResolver` via config.
+2. **`TenantConfig` has no `resolver` field** — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `TenantPlatform.create()` instead of accepting real `TenantResolver` via config.
 3. **`ManagementPlaneConfig` = `undefined`** — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet.
 4. **`context.actorId` typed but never populated by framework** — `AsyncLocalStorage` context declares `actorId?: string` but platform never sets it from authenticated session. Audit entries fall back to `"system"` until app code or middleware populates it.
 
 ## Anti-Patterns
 
-- Don't register modules after `create()` — pass them to `IsolatedTenantPlatform.create()` as second arg (array)
+- Don't register modules after `create()` — pass them to `TenantPlatform.create()` as second arg (array)
 - Don't use native UUID columns — always `id: uuidv7().primaryKey()` (SQL `text`; `uuidv7` type generates UUIDv7 default at insert time in JS)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told

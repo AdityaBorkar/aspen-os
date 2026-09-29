@@ -9,19 +9,19 @@ Every tenant's data lives in its own Postgres database (control-plane DB + per-t
 ## The Platform Class
 
 ```ts
-import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
+import { TenantPlatform } from "@aspen-os/platform/server";
 
 // Database per tenant: run(tenantId, fn)
-const p = IsolatedTenantPlatform.create(config, [modules]);
+const p = TenantPlatform.create(config, [modules]);
 ```
 
 The config type is fixed:
 
 ```ts
-// IsolatedTenantConfig = CommonConfig & { db: IsolatedTenantDatabaseConfig }
+// TenantConfig = CommonConfig & { db: TenantDatabaseConfig }
 ```
 
-The `db` config is the **control-plane** database (auth + platform tables); per-tenant DB configuration is derived from `IsolatedTenantDatabaseConfig` (`controlDbName`, `tenantDbPrefix`, `tenantDbDefaults`, `connection`).
+The `db` config is the **control-plane** database (auth + platform tables); per-tenant DB configuration is derived from `TenantDatabaseConfig` (`controlDbName`, `tenantDbPrefix`, `tenantDbDefaults`, `connection`).
 
 ## `run()` Signatures
 
@@ -67,11 +67,11 @@ p.db.provisionTenant(tenantId, config); // create + push schemas → { tenancyMo
 p.db.seedTenantDb(dbConfig, async (db) => {}); // run a seed fn against a tenant DB
 ```
 
-`IsolatedTenantPlatform.$prepareInfra()` also calls each module's `$prepareTenant(tenantId)` for every tenant returned by the resolver.
+`TenantPlatform.$prepareInfra()` also calls each module's `$prepareTenant(tenantId)` for every tenant returned by the resolver.
 
 <Callout type="info">
-  The `IsolatedTenantDatabaseConfig.resolver` described in older docs does not exist as a config
-  field. A dummy resolver is constructed internally in `IsolatedTenantPlatform.create()`.
+  The `TenantDatabaseConfig.resolver` described in older docs does not exist as a config field. A
+  dummy resolver is constructed internally in `TenantPlatform.create()`.
 </Callout>
 
 ### `tenant_id` Column

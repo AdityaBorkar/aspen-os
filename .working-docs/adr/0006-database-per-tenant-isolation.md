@@ -1,7 +1,7 @@
 # 0006 — Database-per-tenant isolation with control-plane auth
 
 > **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: Database-per-tenant is now
-> the platform architecture (`IsolatedTenantPlatform`). This
+> the platform architecture (`TenantPlatform`). This
 > ADR describes the `isolated` mode. The rejection of app-level `tenant_id`
 > filtering below was the decision for the management host app.
 

@@ -2,7 +2,7 @@
 
 > **Note (2026-09-29):** the shared-tenancy machinery referenced below
 > (`runWithTenant`, RLS, `tenancyMode`) has been removed — the platform is
-> isolated-DB only (`IsolatedTenantPlatform`). Shared-mode passages describe
+> isolated-DB only (`TenantPlatform`). Shared-mode passages describe
 > a removed architecture; the isolated-mode analysis still applies.
 
 ## Status

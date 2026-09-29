@@ -25,7 +25,7 @@
 ## Architecture
 
 - Server lifecycle is `Platform.create(config, modules)` -> `$prepareInfra()` -> `run(...)` -> `$cleanup()`. Creation validates module `$dependencies`, initializes modules with units, and returns a proxy exposing unit keys and module `$name`s.
-- Tenancy is class-time with a uniform signature: `IsolatedTenantPlatform.run(tenantId, fn)` (inherits `IsolatedTenantPlatform.run`; there is no zero-arg server `run(fn)`). Control-plane DB + per-tenant DBs with physical isolation. Do not add an overloaded `run()` signature.
+- Tenancy is class-time with a uniform signature: `TenantPlatform.run(tenantId, fn)` (inherits `TenantPlatform.run`; there is no zero-arg server `run(fn)`). Control-plane DB + per-tenant DBs with physical isolation. Do not add an overloaded `run()` signature.
 - Modules declare schemas, ACL, and event contracts from `$prepareInfra()`. Platform pushes schemas, applies merged ACL, then invokes module `$prepareRuntime()`. Runtime-wired modules must unregister schedules/subscriptions in `$cleanup()`.
 - A normal domain module has `src/module.ts`, `auth.ts`, `pubsub.ts`, `types.ts`, `db-schemas/`, `schemas/`, `workflows/`, and optional `services/` or `runtime.ts`. Keep one workflow action per file and compose public workflow groups in the module.
 - Each package maps `#/*` to its own `./src/*` (via `imports` + local `tsconfig.json` paths). Root `tsconfig.json` has no `paths`, so never use a package's `#/*` alias from another package.

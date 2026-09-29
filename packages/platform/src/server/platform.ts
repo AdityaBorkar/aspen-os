@@ -2,7 +2,7 @@ import { AuditUnit } from "#/server/audit";
 import { AuthUnit } from "#/server/auth";
 import type { AuthConfig } from "#/server/auth";
 import { DatabaseUnit, toDatabaseConfig } from "#/server/db";
-import type { IsolatedTenantDatabaseConfig } from "#/server/db";
+import type { TenantDatabaseConfig } from "#/server/db";
 import { KvStoreUnit } from "#/server/kv-store";
 import type { KvStoreConfig } from "#/server/kv-store";
 import { LogUnit } from "#/server/log";
@@ -52,7 +52,7 @@ export type MergedSchemas<TModules extends Module[]> = InferControlPlaneSchemas<
   InferTenantSchemas<TModules> &
   Record<string, never>;
 
-/** Units + modules assembled by {@link IsolatedTenantPlatform.create}. */
+/** Units + modules assembled by {@link TenantPlatform.create}. */
 export interface CoreUnits<TModules extends Module[], TSchemas extends SchemaMap> {
   modules: TModules;
   units: PlatformUnits<TSchemas>;
@@ -67,14 +67,14 @@ export interface CommonConfig {
   storage: StorageConfig;
 }
 
-export type IsolatedTenantConfig = CommonConfig & {
-  db: IsolatedTenantDatabaseConfig;
+export type TenantConfig = CommonConfig & {
+  db: TenantDatabaseConfig;
 };
 
-export type IsolatedTenantPlatformInstance<
+export type TenantPlatformInstance<
   TModules extends Module[],
   TSchemas extends SchemaMap = MergedSchemas<TModules>,
-> = IsolatedTenantPlatform<TModules, TSchemas> &
+> = TenantPlatform<TModules, TSchemas> &
   UnitAccessors<TSchemas> &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
@@ -144,7 +144,7 @@ async function prepareWithLabel(name: string, fn: () => Promise<void>): Promise<
   }
 }
 
-export class IsolatedTenantPlatform<
+export class TenantPlatform<
   TModules extends Module[],
   TSchemas extends SchemaMap = MergedSchemas<TModules>,
 > implements UnitAccessors<TSchemas> {
@@ -186,15 +186,11 @@ export class IsolatedTenantPlatform<
   }
 
   static create<TModules extends Module[]>(
-    config: IsolatedTenantConfig,
+    config: TenantConfig,
     modules: TModules,
-  ): IsolatedTenantPlatformInstance<TModules> {
+  ): TenantPlatformInstance<TModules> {
     const db = new DatabaseUnit<MergedSchemas<TModules>>(toDatabaseConfig(config.db));
-    const core = IsolatedTenantPlatform.createCore<TModules, MergedSchemas<TModules>>(
-      db,
-      config,
-      modules,
-    );
+    const core = TenantPlatform.createCore<TModules, MergedSchemas<TModules>>(db, config, modules);
     // Aggregate module schemas eagerly so `provisionTenant` pushes complete
     // tenant databases in any process — not only ones that ran $prepareInfra.
     // (Previously tenants onboarded from the dev server/seed got platform
@@ -202,10 +198,10 @@ export class IsolatedTenantPlatform<
     const { controlPlaneSchemas, tenantSchemas } = collectModuleInfra(modules);
     db.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
     // SAFETY: create() returned an instance whose units/modules match the merged schema type.
-    return new IsolatedTenantPlatform<TModules>(
+    return new TenantPlatform<TModules>(
       core.units,
       core.modules,
-    ) as IsolatedTenantPlatformInstance<TModules>;
+    ) as TenantPlatformInstance<TModules>;
   }
 
   protected static createCore<TModules extends Module[], TSchemas extends SchemaMap>(

@@ -71,7 +71,7 @@ interface Module<N extends string = string> {
 
 ```ts
 // Created by createCore() — you provide config, not an instance
-const p = IsolatedTenantPlatform.create(
+const p = TenantPlatform.create(
   {
     db: { host: "localhost", port: 5432, user: "app", password: "secret", database: "app" },
     // ... other 6 configs + audit (no config)
@@ -91,7 +91,7 @@ p.getUnit("db"); // → DatabaseUnit
 const organization = Organization.create({ country: "INDIA" });
 
 // Passed to Platform.create()
-const p = IsolatedTenantPlatform.create(config, [organization]);
+const p = TenantPlatform.create(config, [organization]);
 
 // Access via proxy
 p.organization; // → Organization

@@ -5,19 +5,19 @@
 > shared/single-tenancy machinery (`runWithTenant`, `applyRlsPolicies`,
 > `tenancyMode`, RLS) has been removed — the passages below describing it are
 > historical. The platform server now exports one class,
-> `IsolatedTenantPlatform`, with database-per-tenant isolation.
+> `TenantPlatform`, with database-per-tenant isolation.
 
-The platform server exports `IsolatedTenantPlatform` — control-plane DB plus
+The platform server exports `TenantPlatform` — control-plane DB plus
 one database per tenant (physical isolation). There is no `tenancy` config
-field. The config type is `IsolatedTenantConfig` (`CommonConfig` plus an
-`IsolatedTenantDatabaseConfig` `db`). The same module code — workflows,
+field. The config type is `TenantConfig` (`CommonConfig` plus an
+`TenantDatabaseConfig` `db`). The same module code — workflows,
 services, schemas — works for control-plane and tenant contexts.
 
 `run(tenantId, fn)` requires a tenant ID (no overloads): `"$global"` routes to
 the control-plane DB, any other ID resolves the per-tenant pool via
 `getTenantDb`.
 
-`DatabaseUnit` is constructed internally by `IsolatedTenantPlatform.create()`
+`DatabaseUnit` is constructed internally by `TenantPlatform.create()`
 with the control-plane connection plus the tenant-resolution config
 (`controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, `resolver`).
 
@@ -66,12 +66,12 @@ unchanged" point still holds structurally.
 
 ## Consequences
 
-- No `tenancy` field in config. `IsolatedTenantConfig` omits `tenancy`
+- No `tenancy` field in config. `TenantConfig` omits `tenancy`
   entirely.
-- `run()` is not overloaded. `IsolatedTenantPlatform.run(tenantId, fn)` is
+- `run()` is not overloaded. `TenantPlatform.run(tenantId, fn)` is
   the only signature. The type system enforces correct usage.
 - `PlatformInstance<M>` is a structural type (not tied to a specific class)
-  used by the CLI for dynamic loading. Use `IsolatedTenantPlatformInstance<M>`
+  used by the CLI for dynamic loading. Use `TenantPlatformInstance<M>`
   for typed access including `run()`.
 - `DatabaseUnit` exposes `controlPlaneDb`, `resolver`, `pool`,
   `prepareWithModules()`, `getTenantDb()`, `provisionTenant()`,
@@ -83,8 +83,8 @@ unchanged" point still holds structurally.
 - Unique constraints on existing tables need composite variants including
   `tenant_id`.
 - The app provides a `TenantResolver` (resolve + list
-  functions) via `IsolatedTenantConfig.db`. (Note: the `resolver` field on
-  `IsolatedTenantConfig` is currently commented out — a dummy resolver is
+  functions) via `TenantConfig.db`. (Note: the `resolver` field on
+  `TenantConfig` is currently commented out — a dummy resolver is
   used inline. This is a known WIP gap.)
 - `prepareInfra()` iterates tenants from `resolver.list()`
   and calls `$prepareTenant(tenantId)` on each module within

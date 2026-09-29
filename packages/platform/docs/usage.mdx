@@ -18,14 +18,14 @@ Create, prepare, run, and tear down a platform — end-to-end inside `p.run(tena
 Pass a config and a module **array** to the static factory — no `new`, no `registerModule()`.
 
 ```ts
-import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
+import { TenantPlatform } from "@aspen-os/platform/server";
 import { Organization } from "@aspen-os/organization";
 import { Compliance } from "@aspen-os/compliance";
 
 const organization = Organization.create({ country: "INDIA" });
 const compliance = Compliance.create({ country: "INDIA" });
 
-const p = IsolatedTenantPlatform.create(
+const p = TenantPlatform.create(
   {
     auth: authConfig,
     db: dbConfig,
@@ -39,7 +39,7 @@ const p = IsolatedTenantPlatform.create(
 );
 ```
 
-There is a single platform class — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). There is no `tenancy` config field.
+There is a single platform class — `TenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). There is no `tenancy` config field.
 
 ## Step 2: Prepare Infrastructure
 
@@ -123,7 +123,7 @@ await p.$cleanup(); // Promise.allSettled → AggregateError if any fail
 ## Use It
 
 ```ts
-const p = IsolatedTenantPlatform.create(config, [Organization.create({ country: "INDIA" })]);
+const p = TenantPlatform.create(config, [Organization.create({ country: "INDIA" })]);
 await p.$prepareInfra();
 await p.run("$global", async () => {
   const { db } = getContext();

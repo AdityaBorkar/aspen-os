@@ -4,7 +4,7 @@ description: Architecture overview, entry surfaces, and lifecycle of a Platform 
 icon: IconInfoCircle
 ---
 
-The platform is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the platform **orchestrator** — `IsolatedTenantPlatform` — that wires them together.
+The platform is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the platform **orchestrator** — `TenantPlatform` — that wires them together.
 
 ## Entry Surfaces
 
@@ -27,11 +27,11 @@ No bare `"."` entry — import via subpaths. `./server/db-schemas` re-exports th
 
 ### Server (`@aspen-os/platform/server`)
 
-Exports a single platform class, `IsolatedTenantPlatform` — control-plane DB + per-tenant DBs (physical isolation), `run(tenantId, fn)` with per-tenant pools.
+Exports a single platform class, `TenantPlatform` — control-plane DB + per-tenant DBs (physical isolation), `run(tenantId, fn)` with per-tenant pools.
 
 Also exports:
 
-- `IsolatedTenantConfig`, `IsolatedTenantPlatformInstance`, `CommonConfig` types
+- `TenantConfig`, `TenantPlatformInstance`, `CommonConfig` types
 - `getContext()` — access `AsyncLocalStorage` inside `run()`
 - `Workflow`, `WorkflowStep` — durable workflow builder
 - `Unit`, `Module` interfaces, `ModuleInfra` type
@@ -51,7 +51,7 @@ Exports a single `Platform` class (browser-side, 3 units: `auth`, `logs`, `rpc` 
 
 ## Configuration
 
-`IsolatedTenantConfig` extends `CommonConfig` with the isolated `db` shape:
+`TenantConfig` extends `CommonConfig` with the isolated `db` shape:
 
 ```ts title="src/server/base-platform.ts"
 type CommonConfig = {
@@ -62,16 +62,16 @@ type CommonConfig = {
   rpc: RpcConfig;
   storage: StorageConfig;
 };
-// IsolatedTenantConfig = CommonConfig & { db: IsolatedTenantDatabaseConfig }
+// TenantConfig = CommonConfig & { db: TenantDatabaseConfig }
 ```
 
-`CommonConfig` has no `db`. `IsolatedTenantDatabaseConfig` carries `controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, and a `TenantResolver`.
+`CommonConfig` has no `db`. `TenantDatabaseConfig` carries `controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, and a `TenantResolver`.
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-  Create["IsolatedTenantPlatform.create(config, modules: Module[])"] --> Core["createCore(db, CommonConfig, modules)"]
+  Create["TenantPlatform.create(config, modules: Module[])"] --> Core["createCore(db, CommonConfig, modules)"]
   Core --> Units["instantiate 8 units\nlogs → audit → pubsub → auth\nstorage → kvStore → rpc\n(db passed in; pubsub.setAuth(auth))"]
   Units --> Validate["validate module $dependencies"]
   Validate --> Init["mod.$initialize(units)"]
@@ -83,7 +83,7 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  A["IsolatedTenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
+  A["TenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
   B --> B1["db.$prepareInfra() + auth.$prepareInfra()\n(failures are fatal)"]
   B1 --> B2["remaining units in parallel\ncollect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
   B2 --> B3["db.$prepareInfra(merged...) – pushSchemasTo controlPlaneDb"]
@@ -100,7 +100,7 @@ flowchart TB
 Static factory — the **only** way to construct a platform. Modules are an **array**, not an object:
 
 ```ts
-const p = IsolatedTenantPlatform.create(config, [organizationModule]);
+const p = TenantPlatform.create(config, [organizationModule]);
 ```
 
 Inside `createCore()`: instantiate units in dependency order, cross-wire `pubsub.setAuth(auth)`, validate `$dependencies`, call `$initialize`, return Proxy.
