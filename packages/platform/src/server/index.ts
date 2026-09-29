@@ -5,10 +5,6 @@ import type {
   DatabaseUnit,
   IsolatedTenantDbConfig,
   IsolatedTenantProvisioningResult,
-  SharedTenantDbConfig,
-  SharedTenantProvisioningResult,
-  SingleTenantDbConfig,
-  TenantProvisioningResult,
 } from "#/server/db";
 import type { KvStoreConfig, KvStoreUnit } from "#/server/kv-store";
 import type { LogConfig, LogUnit } from "#/server/log";
@@ -24,13 +20,7 @@ import type {
   StorageProvider,
   StorageUnit,
 } from "#/server/storage";
-import type {
-  Module,
-  TenancyMode,
-  ArrayModuleAccessors,
-  PlatformUnits,
-  UnitAccessors,
-} from "#/server/types";
+import type { Module, ArrayModuleAccessors, PlatformUnits, UnitAccessors } from "#/server/types";
 
 export type { JsonValue, SchemaMap } from "#/server/types";
 export type {
@@ -39,7 +29,7 @@ export type {
   PlatformUnits,
   UnitAccessors,
 } from "#/server/types";
-export type { Module, ModuleInfra, TenantResolver, TenancyMode, Unit } from "#/server/types";
+export type { Module, ModuleInfra, TenantResolver, Unit } from "#/server/types";
 export type { AuditUnit } from "#/server/audit";
 export type { AclDeclaration } from "#/server/auth";
 export { defineAcl } from "#/server/auth";
@@ -62,21 +52,16 @@ export type {
   PubSubUnit,
   RpcConfig,
   RpcUnit,
-  SharedTenantDbConfig,
-  SharedTenantProvisioningResult,
   SignedPutUrlOptions,
   SignedUrlOptions,
-  SingleTenantDbConfig,
   FileObject,
   FileUploadInput,
   ListOptions,
   StorageConfig,
   StorageProvider,
   StorageUnit,
-  TenantProvisioningResult,
 };
 export type PlatformInstance<TModules extends Module[]> = {
-  tenancyMode: TenancyMode;
   $prepareInfra: () => Promise<void>;
   $cleanup: () => Promise<void>;
   getModule: <TKey extends TModules[number]["$name"]>(
@@ -86,22 +71,12 @@ export type PlatformInstance<TModules extends Module[]> = {
 } & UnitAccessors &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
-export { BasePlatform, type CommonConfig } from "#/server/base-platform";
 export {
+  type CommonConfig,
   type IsolatedTenantConfig,
   IsolatedTenantPlatform,
   type IsolatedTenantPlatformInstance,
-} from "#/server/create-isolated-tenant";
-export {
-  type SharedTenantConfig,
-  SharedTenantPlatform,
-  type SharedTenantPlatformInstance,
-} from "#/server/create-shared-tenant";
-export {
-  type SingleTenantConfig,
-  SingleTenantPlatform,
-  type SingleTenantPlatformInstance,
-} from "#/server/create-single-tenant";
+} from "#/server/base-platform";
 export {
   type InferSchemaOutput,
   type RunOptions,

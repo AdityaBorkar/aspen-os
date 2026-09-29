@@ -6,8 +6,6 @@
 
 ## (Framework Type) Unit
 
-- Single Tenant
-- Multi Tenant (DB with RLS)
 - Multi Tenant (Isolated DB)
   - lru-cache to manage multiple pools (Use the same in Durable Objects for Serverless Executions)
 

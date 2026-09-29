@@ -99,10 +99,6 @@ async function resolveStudioCredentials(
     return resolveTenantCredentials(platformInstance, dbConfig, tenantFlag);
   }
 
-  if (platformInstance.db.tenancyMode !== "isolated") {
-    return controlPlaneCredentials(dbConfig);
-  }
-
   const selection = await promptDatabaseSelection(dbConfig.database);
   if (selection.kind === "control") {
     return controlPlaneCredentials(dbConfig);

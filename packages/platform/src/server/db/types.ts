@@ -29,23 +29,9 @@ export interface IsolatedTenantDbConfig {
   user: string;
 }
 
-export interface SharedTenantDbConfig {
-  tenantId: string;
-}
-
-export type SingleTenantDbConfig = Record<string, never>;
-
 export type IsolatedTenantProvisioningResult = {
   tenancyMode: "isolated";
 } & IsolatedTenantDbConfig;
-
-export type SharedTenantProvisioningResult = {
-  tenancyMode: "shared";
-} & SharedTenantDbConfig;
-
-export type TenantProvisioningResult =
-  | IsolatedTenantProvisioningResult
-  | SharedTenantProvisioningResult;
 
 export interface IsolatedTenantDatabaseConfig {
   controlPlaneDbName?: string;

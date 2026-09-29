@@ -41,7 +41,7 @@ type ModuleInfra = {
 | `$initialize(units)`       | Inside `create()`, after all units are instantiated | Receives the units. May store a unit reference.   |
 | `$prepareInfra()`          | During `$prepareInfra()`                            | Returns `ModuleInfra` — DB schemas + ACL + events |
 | `$prepareRuntime()`        | During `$prepareInfra()`, after units prepared      | Registers pubsub handlers/schedules               |
-| `$prepareTenant(tenantId)` | During `$prepareInfra()` in isolated mode           | Per-tenant cron/schedules                         |
+| `$prepareTenant(tenantId)` | During `$prepareInfra()`                            | Per-tenant cron/schedules                         |
 | `$cleanup()`               | During `$cleanup()`, before units are destroyed     | Releases resources                                |
 
 <Callout type="warn">
@@ -59,7 +59,7 @@ import { Compliance } from "@aspen-os/compliance";
 const organization = Organization.create({ country: "INDIA" });
 const compliance = Compliance.create({ country: "INDIA" });
 
-const p = SingleTenantPlatform.create(config, [organization, compliance]);
+const p = IsolatedTenantPlatform.create(config, [organization, compliance]);
 
 await p.$prepareInfra();
 ```

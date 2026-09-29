@@ -25,8 +25,6 @@ export type JsonValue =
   | JsonValue[]
   | { [key: string]: JsonValue };
 
-export type TenancyMode = "single" | "shared" | "isolated";
-
 export interface TenantResolver {
   resolve: (tenantId: string) => Promise<string>;
   list: () => Promise<string[]>;

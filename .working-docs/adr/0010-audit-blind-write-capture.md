@@ -1,5 +1,11 @@
 # ADR-0010: Capturing blind writes — DB-level change logging (Layer 2)
 
+> **Note (2026-09-29):** the shared-tenancy machinery referenced below
+> (`runWithTenant`, `applyRlsPolicies`, RLS, `tenancyMode`) has been removed —
+> the platform is isolated-DB only (`IsolatedTenantPlatform`). Shared-mode
+> passages describe a removed architecture; the isolated-mode analysis still
+> applies.
+
 ## Status
 
 Proposed — 2026-08-05

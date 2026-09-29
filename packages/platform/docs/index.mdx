@@ -4,7 +4,7 @@ description: Core business framework — units, modules, and the lifecycle of a 
 icon: IconStack
 ---
 
-The platform provides composable **units** (infrastructure services) and **modules** (domain logic) wired together by one of three platform classes — `SingleTenantPlatform`, `SharedTenantPlatform`, or `IsolatedTenantPlatform`.
+The platform provides composable **units** (infrastructure services) and **modules** (domain logic) wired together by `IsolatedTenantPlatform` — control-plane DB + per-tenant DBs.
 
 ## Getting Started
 
@@ -32,7 +32,7 @@ The platform provides composable **units** (infrastructure services) and **modul
   <Card
     title="Tenancy"
     href="/docs/platform/tenancy"
-    description="Single, shared (RLS), and isolated modes selected by platform class"
+    description="Database-per-tenant isolation behind one platform class"
   />
   <Card
     title="Units vs Modules"

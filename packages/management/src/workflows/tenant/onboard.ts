@@ -55,19 +55,17 @@ export function createOnboardTenant(dbUnit: DatabaseUnit) {
           throw error;
         });
 
-      if (provisioning.tenancyMode === "isolated") {
-        await ctx.step.run("seed-profile", async () => {
-          await dbUnit.seedTenantDb(provisioning, async (tenantDb) => {
-            await tenantDb.insert(organization).values({
-              createdAt: new Date(),
-              id: tenantId,
-              logo: parsed.logo ?? null,
-              name: parsed.name,
-              slug: parsed.slug,
-            });
+      await ctx.step.run("seed-profile", async () => {
+        await dbUnit.seedTenantDb(provisioning, async (tenantDb) => {
+          await tenantDb.insert(organization).values({
+            createdAt: new Date(),
+            id: tenantId,
+            logo: parsed.logo ?? null,
+            name: parsed.name,
+            slug: parsed.slug,
           });
         });
-      }
+      });
 
       await ctx.step.run("record-tenant", async () => {
         await ctx.db.insert(managedOrganization).values({

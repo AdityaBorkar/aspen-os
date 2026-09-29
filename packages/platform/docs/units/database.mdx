@@ -4,7 +4,7 @@ description: PostgreSQL connection pool and Drizzle ORM integration with tenancy
 icon: IconDatabase
 ---
 
-The `DatabaseUnit` (`$name: "db"`) owns a control-plane `postgres-js` pool and Drizzle instance, plus per-tenant pools in isolated mode.
+The `DatabaseUnit` (`$name: "db"`) owns a control-plane `postgres-js` pool and Drizzle instance, plus lazily-created per-tenant pools.
 
 ## Configuration
 
@@ -21,10 +21,10 @@ type DatabaseConfig = {
 ```
 
 ```ts
-new DatabaseUnit(config.db, "single"); // or "shared" / "isolated" with controlPlaneDbName, tenantDbPrefix, resolver
+new DatabaseUnit(config.db);
 ```
 
-`db` config is always the **control-plane** connection; in isolated mode per-tenant config derives from `IsolatedTenantDatabaseConfig` (`controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`).
+`db` config is always the **control-plane** connection; per-tenant config derives from `IsolatedTenantDatabaseConfig` (`controlDbName`, `connection`, `tenantDbPrefix`, `tenantDbDefaults`).
 
 ## Features
 
@@ -47,20 +47,9 @@ await p.db.prepareWithModules(controlPlaneSchemas, tenantSchemas);
 // $prepareInfra merges schemas from all ModuleInfra then pushes
 ```
 
-No migrations — `pushSchema` only; auth tables are exempt from RLS (no `tenant_id`).
+No migrations — `pushSchema` only.
 
-### Shared-mode RLS
-
-Isolate rows with `SET LOCAL app.tenant_id` + `SET LOCAL ROLE tenant_role` inside a transaction.
-
-```ts
-await p.db.runWithTenant("tenant_123", async (tx) => {
-  await tx.select().from(documents); // RLS-scoped
-});
-await p.db.applyRlsPolicies(p.db.controlPlaneDb); // create role + policies for every tenant_id table
-```
-
-### Isolated pools
+### Tenant pools
 
 Lazily create and cache a per-tenant `postgres-js` pool.
 
@@ -74,11 +63,11 @@ await p.db.seedTenantDb(dbConfig, async (db) => {
 
 ### Tenant provisioning
 
-Create the tenant DB and push schemas; shared mode returns `{ tenancyMode: "shared", tenantId }`.
+Create the tenant DB and push schemas:
 
 ```ts
 const result = await p.db.provisionTenant("tenant_123");
-// isolated → { tenancyMode: "isolated", database, host, ... }
+// → { tenancyMode: "isolated", database, host, ... }
 ```
 
 ### Request context

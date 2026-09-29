@@ -64,11 +64,7 @@ export async function registerMessageSweepHandler(
 }
 
 export async function sweepQueuedMessages(deps: DeliveryWorkerDeps): Promise<number> {
-  if (deps.db.tenancyMode === "isolated") {
-    return sweepIsolatedTenants(deps);
-  }
-  const rows = await fetchQueuedMessages(deps.db.controlPlaneDb, deps.batchSize);
-  return processBatch(rows, deps);
+  return sweepIsolatedTenants(deps);
 }
 
 async function fetchQueuedMessages(
@@ -96,7 +92,9 @@ async function sweepIsolatedTenants(deps: DeliveryWorkerDeps): Promise<number> {
     const rows = await deps.db.controlPlaneDb.execute<{ datname: string }>(
       sql`SELECT datname FROM pg_database WHERE datname LIKE 'tenant\\_%' ESCAPE '\\' AND datistemplate = false`,
     );
-    for (const row of rows) databases.add(row.datname);
+    for (const row of rows) {
+      databases.add(row.datname);
+    }
   } catch {
     // Best-effort discovery.
   }

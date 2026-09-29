@@ -9,7 +9,7 @@ Aspen OS = business application framework on Bun/TypeScript. Platform kernel pro
 ### Platform Kernel
 
 **Platform**:
-Server side has no generic `Platform` class — three self-contained classes, one per tenancy architecture: `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform`. Each has its own `create(config, modules)` static factory. Created via `XxxPlatform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
+Server side has a single `IsolatedTenantPlatform` class — control-plane DB + per-tenant DBs (physical isolation). Created via `IsolatedTenantPlatform.create(config, modules)`, which instantiates all Units, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped instance. Lifecycle: `create()` → `$prepareInfra()` → `run()` → `$cleanup()`.
 _Avoid_: Framework (on server), App, Container, DI Container
 
 **Platform** (client only):
@@ -21,19 +21,19 @@ Infrastructure building block w/ `$name`, required `$cleanup()` method, optional
 _Avoid_: Service, Provider
 
 **Module**:
-Business logic plugin passed to `XxxPlatform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, optional per-tenant setup via `$prepareTenant?(tenantId)` (isolated mode only). Declares hard module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if dependency not provided) and introspection-only peer topics via `$consumes: readonly string[]` (never validated). Accessed on platform instance via proxy — e.g. `p.masters`. Both server + client Module interfaces use `$` prefix.
+Business logic plugin passed to `IsolatedTenantPlatform.create()`. Receives unit dependencies via `$initialize(units)`. Declares infra needs via `$prepareInfra()` (returns `ModuleInfra`), runtime setup via `$prepareRuntime()`, optional per-tenant setup via `$prepareTenant?(tenantId)`. Declares hard module dependencies via `$dependencies: readonly string[]` (validated at `create()` time — throws if dependency not provided) and introspection-only peer topics via `$consumes: readonly string[]` (never validated). Accessed on platform instance via proxy — e.g. `p.masters`. Both server + client Module interfaces use `$` prefix.
 _Avoid_: Plugin, Extension
 
 **Create**:
-Per-class static factory (`SingleTenantPlatform.create`, `SharedTenantPlatform.create`, `IsolatedTenantPlatform.create`). Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped platform instance. Only way to construct Platform — constructor internal.
+Static factory (`IsolatedTenantPlatform.create`). Instantiates all Units from config, validates module `$dependencies`, calls `module.$initialize(units)` on each module, returns proxy-wrapped platform instance. Only way to construct Platform — constructor internal.
 _Avoid_: Register, Mount, Attach
 
 **PrepareInfra**:
-Post-creation infrastructure setup on all Units + Modules. Called after `create()`. Runs each `unit.$prepareInfra()` under `$global` context, collects `mod.$prepareInfra()` declarations (schemas, ACL, events) from modules, merges them, calls `db.prepareWithModules()` (schema push) + `auth.applyModuleAcl()`, then `mod.$prepareRuntime()` on each module under `$global`. In isolated mode, also iterates tenants from `resolver.list()` + calls `mod.$prepareTenant(tenantId)` per tenant (errors logged, non-fatal). In shared mode, applies RLS policies via `db.applyRlsPolicies()`. PubSub boss stays lazy — `$prepareInfra()` on PubSubUnit is no-op.
+Post-creation infrastructure setup on all Units + Modules. Called after `create()`. Prepares `db`/`auth` first (failures are fatal), then remaining units sequentially, collects `mod.$prepareInfra()` declarations (schemas, ACL, events) from modules, merges them, calls `db.prepareWithModules()` (schema push) + `auth.applyModuleAcl()`, then `mod.$prepareRuntime()` on each module under `$global`, then iterates tenants from `resolver.list()` + calls `mod.$prepareTenant(tenantId)` per tenant (errors logged, non-fatal). PubSub boss stays lazy — `$prepareInfra()` on PubSubUnit is no-op.
 _Avoid_: Migrate, Setup, Prepare
 
 **Run**:
-Executing function within `AsyncLocalStorage` context providing `audit`, `auth`, `db` (per-request drizzle instance), `log`, `pubsub`. Uniform signature on all three server classes: `run(tenantId, fn)` (`BasePlatform.run`, incl. `SingleTenantPlatform` — there is no zero-arg server `run(fn)`). `"$global"` routes to control-plane DB; any other ID resolves per mode (shared: RLS transaction setting `app.tenant_id` + `SET LOCAL ROLE tenant_role`; isolated: per-tenant pool via `getTenantDb`, throws for unknown tenant outside isolated mode).
+Executing function within `AsyncLocalStorage` context providing `audit`, `auth`, `db` (per-request drizzle instance), `log`, `pubsub`. Single signature: `run(tenantId, fn)` — there is no zero-arg server `run(fn)`. `"$global"` routes to control-plane DB; any other ID resolves the per-tenant pool via `getTenantDb`.
 _Avoid_: Execute, Dispatch
 
 **Destroy**:
@@ -49,13 +49,13 @@ Typed accessor to retrieve Module by name. Requires name — throws if not found
 _Avoid_: Resolve, Get
 
 **Health Check**:
-There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedure (trivial `base.handler(async () => ({ status: "ok" }))`, routed as `health.check` alongside `echo`) plus `PubSubUnit.getUnsubscribedProducedTopics()` — topics published to w/ no registered subscriber (pg-boss silently drops these, so they flag producer/consumer wiring bug; `publish()` warns but does not throw on no-id result).
+There is no `Platform.healthCheck()`. Liveness = RPC `health.check` procedure (trivial `base.handler(async () => ({ status: "ok" }))`, routed as `health.check` alongside `echo`) plus `PubSubUnit.getUnsubscribedProducedTopics()` — topics published to w/ no registered subscriber (pg-boss silently drops these, so they flag producer/consumer wiring bug; `publish()` warns but does not throw on no-id result).
 _Avoid_: Ping, Health Probe, Heartbeat (as platform method names)
 
 ### Database
 
 **DatabaseUnit**:
-Core unit owning `pg.Pool` + drizzle `NodePgDatabase`. `$name` = `"db"`. Exposes `$prepareInfra()` which runs `pushSchema()` from drizzle-kit to apply schema migrations. Also exposes `tenancyMode`, `controlPlaneDb`, `resolver`, `pool`, `applyRlsPolicies()`, `prepareWithModules()`, `getTenantDb()`, `provisionTenant()`, `runWithTenant()`.
+Core unit owning `pg.Pool` + drizzle `NodePgDatabase`. `$name` = `"db"`. Exposes `$prepareInfra()` which runs `pushSchema()` from drizzle-kit to apply schema migrations. Also exposes `controlPlaneDb`, `resolver`, `pool`, `prepareWithModules()`, `getTenantDb()`, `provisionTenant()`, `seedTenantDb()`.
 _Avoid_: DbUnit, ConnectionPool
 
 **DatabaseConfig**:
@@ -605,8 +605,8 @@ _Avoid_: Service, Handler
 
 ### Management Plane Domain
 
-**Tenancy Mode**:
-Class-time choice — developer selects one of three platform classes at startup: `SingleTenantPlatform` (one database, no isolation — currently EXPERIMENTAL), `SharedTenantPlatform` (one shared database, Postgres RLS policies enforce isolation — currently EXPERIMENTAL), `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). Once class chosen, mode cannot change. Same module code works in all three modes. Config type (`SingleTenantConfig`, `SharedTenantConfig`, `IsolatedTenantConfig`) does not include `tenancy` field — class IS mode. All three share uniform `run(tenantId, fn)` signature; `"$global"` = control plane.
+**Tenancy**:
+Database-per-tenant isolation — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). Same module code works for control-plane and tenant contexts. Config type (`IsolatedTenantConfig`) has no `tenancy` field. Uniform `run(tenantId, fn)` signature; `"$global"` = control plane.
 _Avoid_: Tenancy Strategy, Isolation Mode, Deployment Mode
 
 **Tenant ID**:
@@ -614,15 +614,15 @@ String identifier for tenant context of request. `"$global"` addresses control p
 _Avoid_: Org ID, Workspace ID, Customer ID
 
 **Tenant Resolver**:
-Function pair used in `isolated` mode: `resolve(tenantId)` returns per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools + by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include `resolver` field — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()`. Known WIP gap.
+Function pair: `resolve(tenantId)` returns per-tenant database name, `list()` returns all tenant IDs. Used by `DatabaseUnit` to lazily create per-tenant connection pools + by `prepareInfra()` to call `$prepareTenant()` for each tenant at startup. Note: `IsolatedTenantConfig` does NOT include `resolver` field — dummy resolver (`list: async () => []`, `resolve: async (id) => id`) constructed inline in `IsolatedTenantPlatform.create()`. Known WIP gap.
 _Avoid_: Tenant Registry, Connection Provider
 
 **Control Plane**:
-Management/administration database connection. In `single` + `shared` modes, this IS app database. In `isolated` mode, shared control-plane database holding auth tables + platform-level tables. `DatabaseUnit` always holds control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables exempt from `tenant_id` columns + RLS policies.
+Management/administration database connection. The shared control-plane database holds auth tables + platform-level tables. `DatabaseUnit` always holds control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables exempt from `tenant_id` columns.
 _Avoid_: Management DB, Admin DB
 
 **Tenant Database**:
-Per-tenant Postgres database in `isolated` mode. Holds that tenant's data-plane data (all module tables). No auth tables live here. `DatabaseUnit` lazily creates pool per tenant database. Isolation physical — tenant cannot reach another tenant's database.
+Per-tenant Postgres database. Holds that tenant's data-plane data (all module tables). No auth tables live here. `DatabaseUnit` lazily creates pool per tenant database. Isolation physical — tenant cannot reach another tenant's database.
 _Avoid_: Tenant Schema, Data Plane DB
 
 **Stable DB Wrapper**:
@@ -630,7 +630,7 @@ JavaScript `Proxy` returned by `DatabaseUnit.db` (getter). Created once at init 
 _Avoid_: DB Proxy, Drizzle Router, Connection Resolver
 
 **Prepare Tenant**:
-Optional lifecycle method on `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant (in `isolated` mode) during `prepareInfra()` + during tenant provisioning. Modules register per-tenant cron schedules + subscriptions here. Platform sets up `AsyncLocalStorage` context w/ `tenantId` before calling each module's `$prepareTenant()`. Not called in `single` or `shared` modes.
+Optional lifecycle method on `Module` interface: `$prepareTenant(tenantId)`. Called at startup for each existing tenant during `prepareInfra()` + during tenant provisioning. Modules register per-tenant cron schedules + subscriptions here. Platform sets up `AsyncLocalStorage` context w/ `tenantId` before calling each module's `$prepareTenant()`.
 _Avoid_: Per-Tenant Init, Tenant Setup
 
 **Tenant**:
@@ -670,7 +670,7 @@ Read-only view produced by Management Plane over control-plane DB. Four categori
 _Avoid_: Dashboard, Analytics, Metric
 
 **Provisioning**:
-Workflow that creates new Tenant end-to-end, run by Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create better-auth Organization (Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — in isolated mode issues `CREATE DATABASE` against Postgres server via admin connection, runs `pushSchema()` against new tenant DB w/ all platform + module schemas, returns connection params; in shared mode no-op, (3) seed profile row in new tenant DB via `dbUnit.seedTenantDb()` (isolated only), (4) record connection params + status in control-plane `tenant` table, (5) write audit entry via `ctx.audit.write(...)`, (6) publish `tenant.provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` currently `undefined` — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet. Known WIP gap.
+Workflow that creates new Tenant end-to-end, run by Management Plane module via `Workflow.name("tenant.onboard")`. Steps: (1) create better-auth Organization (Tenant) via `ctx.auth.service.api.createOrganization()`, (2) call `dbUnit.provisionTenant(tenantId, dbOptions)` — issues `CREATE DATABASE` against Postgres server via admin connection, runs `pushSchema()` against new tenant DB w/ all platform + module schemas, returns connection params, (3) seed profile row in new tenant DB via `dbUnit.seedTenantDb()`, (4) record connection params + status in control-plane `tenant` table, (5) write audit entry via `ctx.audit.write(...)`, (6) publish `tenant.provisioned` event. Sets Tenant status to `onboarding`. Exposed via `p.management.tenants.onboard()`. Note: `ManagementPlaneConfig` currently `undefined` — provisioning workflow expects richer config (`tenantDbNamingScheme`, `defaultTenantDbHost`, `postgresAdminConnection`, `moduleSchemas`) but type not defined yet. Known WIP gap.
 _Avoid_: Onboarding (that's the Tenant Status stage AFTER provisioning), Setup, Initialization
 
 **Management Workflow**:
@@ -681,12 +681,10 @@ _Avoid_: Service, Handler
 
 ```
 ┌────────────────────────────────────────┐    ┌─────────────────────────────────────────────┐
-│    Recruiter                           │───→│            Server Platform Classes            │
-│    (not in repo; examples/ holds only  │    │  SingleTenantPlatform (EXPERIMENTAL)         │
-│    seaweedfs-s3.json stub)             │    │  SharedTenantPlatform (EXPERIMENTAL, RLS)    │
+│    Recruiter                           │───→│            Server Platform                  │
 │                                        │    │  IsolatedTenantPlatform (DB/tenant)         │
 │  registers modules via                 │    │  uniform run(tenantId, fn); "$global" =     │
-│  XxxPlatform.create(config, [modules]) │    │  control plane; 8 core units: db, auth,     │
+│  IsolatedTenantPlatform.create(...)    │    │  control plane; 8 core units: db, auth,     │
 │                                        │    │  logs, pubsub, rpc, storage, kvStore, audit │
 └────────────────────────────────────────┘    └──────────┬──────────────────────────────────┘
       │                            │ wires
@@ -820,15 +818,15 @@ Build-step shared enums: `@aspen-os/constants` (organization, masters, notes,
 
 ## Anti-Patterns
 
-- Don't register modules after `create()` — pass them to `XxxPlatform.create()` as second arg (array)
+- Don't register modules after `create()` — pass them to `IsolatedTenantPlatform.create()` as second arg (array)
 - Don't use native UUID columns — always `id: uuidv7().primaryKey()` (SQL `text`; `uuidv7` type generates UUIDv7 default at insert time in JS)
 - Don't use `timestamp without time zone` — always `withTimezone: true`
 - Don't create barrel files unless explicitly told
 - Don't import bare `@aspen-os/platform` — use `/server` or `/client` subpath explicitly
 - Don't import `@aspen-os/organization` — package does not exist; use `p.masters.orgBranches` + `p.management.organizations`
 - Don't assume single `Hr` module — use `hrCore` / `hrAttendance` / `hrLeave` / `announcement` (`p.hrCore`, `p.hrAttendance`, `p.hrLeave`, `p.announcement`)
-- Don't assume `SingleTenantPlatform.run(fn)` — all server platforms use uniform `run(tenantId, fn)` (`"$global"` = control plane)
-- Don't assume `BasePlatform.healthCheck()` exists — use rpc `health.check` + `pubsub.getUnsubscribedProducedTopics()`
+- Don't assume a zero-arg server `run(fn)` — all server platforms use uniform `run(tenantId, fn)` (`"$global"` = control plane)
+- Don't assume `Platform.healthCheck()` exists — use rpc `health.check` + `pubsub.getUnsubscribedProducedTopics()`
 - Don't assume workspace view-resolver registry — `domain` is free-form text + documented constants; module never queries other modules' tables
 - Don't add second `task_reminder` surface or compliance Reminder Engine — `@aspen-os/calendar` owns single reminder surface
 - Don't assume `master_bank_account` table — bank details are inline fields on `master_payment_method`

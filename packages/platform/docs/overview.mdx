@@ -4,7 +4,7 @@ description: Architecture overview, entry surfaces, and lifecycle of a Platform 
 icon: IconInfoCircle
 ---
 
-The platform is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the platform **orchestrator** — one of three platform classes — that wires them together.
+The platform is organized around three concepts: **units** (infrastructure), **modules** (domain logic), and the platform **orchestrator** — `IsolatedTenantPlatform` — that wires them together.
 
 ## Entry Surfaces
 
@@ -27,22 +27,18 @@ No bare `"."` entry — import via subpaths. `./server/db-schemas` re-exports th
 
 ### Server (`@aspen-os/platform/server`)
 
-Exports three platform classes, all extending `BasePlatform`:
-
-- `SingleTenantPlatform` — single DB, `run(tenantId, fn)` with `"$global"` sentinel
-- `SharedTenantPlatform` — one DB with RLS, `run(tenantId, fn)`
-- `IsolatedTenantPlatform` — DB-per-tenant, `run(tenantId, fn)` with per-tenant pools (overrides `$prepareInfra`)
+Exports a single platform class, `IsolatedTenantPlatform` — control-plane DB + per-tenant DBs (physical isolation), `run(tenantId, fn)` with per-tenant pools.
 
 Also exports:
 
-- `BasePlatform`, `CommonConfig` type
+- `IsolatedTenantConfig`, `IsolatedTenantPlatformInstance`, `CommonConfig` types
 - `getContext()` — access `AsyncLocalStorage` inside `run()`
 - `Workflow`, `WorkflowStep` — durable workflow builder
 - `Unit`, `Module` interfaces, `ModuleInfra` type
 - `defineAcl`, `AclDeclaration`
 - `isGlobalTenantId`, `generateUuidv7`, `uuidv7`
 - All 8 unit config types and unit type exports
-- `PlatformInstance`, `PlatformUnits`, `TenancyMode`, `TenantResolver` types
+- `PlatformInstance`, `PlatformUnits`, `TenantResolver` types
 - `context`, `password`, `EmailSchema` etc.
 
 ### Client (`@aspen-os/platform/client`)
@@ -50,12 +46,12 @@ Also exports:
 Exports a single `Platform` class (browser-side, 3 units: `auth`, `logs`, `rpc` stubs). Client `AuthUnit` takes only `AuthConfig`; no `db`, no tenancy.
 
 <Callout type="warn">
-  Server `run(tenantId, fn)` requires a tenant id (`"$global"` for control-plane / single-tenant). Client `Platform.run(fn)` takes **no** tenant id — it sets `{ auth, logs, rpc }` on `AsyncLocalStorage` and invokes `fn()` synchronously.
+  Server `run(tenantId, fn)` requires a tenant id (`"$global"` for control-plane work). Client `Platform.run(fn)` takes **no** tenant id — it sets `{ auth, logs, rpc }` on `AsyncLocalStorage` and invokes `fn()` synchronously.
 </Callout>
 
 ## Configuration
 
-Each platform class extends `CommonConfig` with its own `db` shape:
+`IsolatedTenantConfig` extends `CommonConfig` with the isolated `db` shape:
 
 ```ts title="src/server/base-platform.ts"
 type CommonConfig = {
@@ -66,18 +62,16 @@ type CommonConfig = {
   rpc: RpcConfig;
   storage: StorageConfig;
 };
-// SingleTenantConfig  = CommonConfig & { db: DatabaseConfig }
-// SharedTenantConfig  = CommonConfig & { db: DatabaseConfig }
-// IsolatedTenantConfig= CommonConfig & { db: IsolatedTenantDatabaseConfig }
+// IsolatedTenantConfig = CommonConfig & { db: IsolatedTenantDatabaseConfig }
 ```
 
-`CommonConfig` has no `db` — the tenancy mode is the `DatabaseUnit` constructor's second arg, not a config field. `IsolatedTenantDatabaseConfig` carries `controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, and a `TenantResolver`.
+`CommonConfig` has no `db`. `IsolatedTenantDatabaseConfig` carries `controlPlaneDbName`, `tenantDbPrefix`, `tenantDbDefaults`, and a `TenantResolver`.
 
 ## Architecture
 
 ```mermaid
 flowchart TB
-  Create["Platform.create(config, modules: Module[])"] --> Core["BasePlatform.createCore(db, CommonConfig, modules)"]
+  Create["IsolatedTenantPlatform.create(config, modules: Module[])"] --> Core["createCore(db, CommonConfig, modules)"]
   Core --> Units["instantiate 8 units\nlogs → audit → pubsub → auth\nstorage → kvStore → rpc\n(db passed in; pubsub.setAuth(auth))"]
   Units --> Validate["validate module $dependencies"]
   Validate --> Init["mod.$initialize(units)"]
@@ -89,13 +83,14 @@ flowchart TB
 
 ```mermaid
 flowchart TB
-  A["SingleTenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
-  B --> B1["unit.$prepareInfra() in parallel\n(rethrows per-unit with name)"]
-  B1 --> B2["collect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
+  A["IsolatedTenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
+  B --> B1["db.$prepareInfra() + auth.$prepareInfra()\n(failures are fatal)"]
+  B1 --> B2["remaining units sequentially\ncollect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
   B2 --> B3["db.prepareWithModules(merged...) – pushSchemasTo controlPlaneDb"]
   B3 --> B4["auth.applyModuleAcl(mergedAcl)"]
-  B4 --> B5["mod.$prepareRuntime() in parallel\nrun('$global', ...)"]
-  B5 --> C["p.run(tenantId, fn)\nAsyncLocalStorage { audit, auth, db, log, pubsub }"]
+  B4 --> B5["mod.$prepareRuntime() per-module\nrun('$global', ...)"]
+  B5 --> B6["resolver.list() → run(tenantId)\n→ mod.$prepareTenant?.(tenantId)"]
+  B6 --> C["p.run(tenantId, fn)\nAsyncLocalStorage { audit, auth, db, log, pubsub }"]
   C --> D["p.$cleanup()\nPromise.allSettled modules + units\n→ throw AggregateError if any fail"]
   D --> E["pool.end() / boss.stop()"]
 ```
@@ -105,16 +100,14 @@ flowchart TB
 Static factory — the **only** way to construct a platform. Modules are an **array**, not an object:
 
 ```ts
-const p = SingleTenantPlatform.create(config, [organizationModule]);
+const p = IsolatedTenantPlatform.create(config, [organizationModule]);
 ```
 
 Inside `createCore()`: instantiate units in dependency order, cross-wire `pubsub.setAuth(auth)`, validate `$dependencies`, call `$initialize`, return Proxy.
 
 ### `$prepareInfra()`
 
-Base implementation: runs every unit's `$prepareInfra()` (`Promise.all`, rethrows per-unit as `Failed to prepare unit "name"`), merges `ModuleInfra` (schemas + ACL), calls `db.prepareWithModules(controlSchemas, tenantSchemas)` on the control-plane DB, applies ACL via `auth.applyModuleAcl`, then runs each module's `$prepareRuntime()` via `run("$global", ...)`.
-
-`SharedTenantPlatform` does **not** auto-apply RLS — call `db.applyRlsPolicies(db)` explicitly. `IsolatedTenantPlatform` **overrides** `$prepareInfra`: prepares `db`/`auth` with `try/catch` + `console.error`, prepares remaining units sequentially, runs `$prepareRuntime` per-module with `run("$global", ...)`, then iterates `resolver.list()` and runs `mod.$prepareTenant?.(tenantId)` per tenant (also `console.error` on failure, not throw).
+Prepares `db`/`auth` first (`try/catch`, failures are fatal so callers never see a false success), then the remaining units sequentially, merges `ModuleInfra` (schemas + ACL), calls `db.prepareWithModules(controlSchemas, tenantSchemas)` on the control-plane DB, applies ACL via `auth.applyModuleAcl`, then runs each module's `$prepareRuntime()` via `run("$global", ...)`, then iterates `resolver.list()` and runs `mod.$prepareTenant?.(tenantId)` per tenant (`console.error` on failure, not throw).
 
 ### `run(tenantId, fn)`
 
@@ -122,7 +115,7 @@ Base implementation: runs every unit's `$prepareInfra()` (`Promise.all`, rethrow
 run<TValue>(tenantId: string, fn: () => TValue | Promise<TValue>): Promise<TValue>
 ```
 
-One signature — no overloads. Single-tenant callers pass `"$global"` (resolves to `controlPlaneDb`); shared callers run inside `db.runWithTenant` only when the workflow explicitly uses it; isolated callers resolve `getTenantDb(tenantId)` and expose it via `context`. Inside `fn`, `getContext()` yields `{ audit, auth, db, log, pubsub, tenantId? }`.
+One signature — no overloads. `"$global"` routes to `controlPlaneDb`; any other tenant id resolves `getTenantDb(tenantId)` and exposes it via `context`. Inside `fn`, `getContext()` yields `{ audit, auth, db, log, pubsub, tenantId? }`.
 
 ### `$cleanup()`
 

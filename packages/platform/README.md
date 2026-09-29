@@ -88,7 +88,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -106,40 +105,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -148,11 +131,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -278,7 +260,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -296,40 +277,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -338,11 +303,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -468,7 +432,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -486,40 +449,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -528,11 +475,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -581,7 +527,7 @@ interface Module<N extends string = string> {
   readonly $name: N;
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
-  $prepareTenant?(tenantId: string): Promise<void>; // isolated mode
+  $prepareTenant?(tenantId: string): Promise<void>; // per-tenant schedules/subscriptions
   $cleanup(): Promise<void>;
 }
 ```
@@ -592,7 +538,7 @@ Modules are passed as a named object to `Platform.create()`. Module `$name`s bec
 
 ```
 Platform.create(config, modules)
-    --> validates tenancy config
+    --> validates module dependencies
     --> instantiates 7 units (dependency-injected via constructor)
     --> cross-wires pubsub <-> auth
     --> calls module.$initialize(units) for each module
@@ -601,13 +547,12 @@ Platform.create(config, modules)
 platform.prepare()
     --> unit.$prepare() for each unit (DatabaseUnit pushes core schemas)
     --> module.$prepare() for each module (modules push domain schemas, register pubsub handlers)
-    --> shared: applyRlsPolicies() to all tables with tenant_id
-    --> isolated: $prepareTenant(tenantId) for each tenant + each module
+    --> $prepareTenant(tenantId) for each tenant + each module
 
 platform.run(fn)
     --> executes fn inside AsyncLocalStorage providing { auth, db, pubsub, tenantId? }
 
-platform.run(tenantId, fn)   --> multi-tenant: per-request db + tenantId in context
+platform.run(tenantId, fn)   --> per-request db + tenantId in context
 
 platform.destroy()
     --> module.$cleanup() for each module
@@ -631,11 +576,10 @@ type PlatformConfig = {
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
-  tenancy: TenancyConfig;
 };
 ```
 
-All seven units are required, plus a `tenancy` config that selects the tenancy mode.
+All seven units are required.
 
 ### The Seven Core Units
 
@@ -653,7 +597,7 @@ Units are instantiated in dependency order inside `Platform.create()`:
 
 ### DatabaseUnit
 
-Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance. In isolated mode, also manages per-tenant pools.
+Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance, plus lazily-created per-tenant pools.
 
 ```ts
 type DatabaseConfig = {
@@ -667,9 +611,9 @@ type DatabaseConfig = {
 };
 ```
 
-The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DBs are resolved by the `TenantResolver`.
+The `db` config is always the **control-plane** database; per-tenant DBs are resolved by the `TenantResolver`.
 
-`$prepare()` uses `pushSchema()` from `drizzle-kit/api` to apply core schemas (auth, logs, storage, kv-store). In shared mode, RLS policies are applied after all schemas are pushed.
+`$prepare()` uses `pushSchema()` from `drizzle-kit/api` to apply core schemas (auth, logs, storage, kv-store).
 
 `getSchemas()` returns the merged schema object for all core unit tables.
 
@@ -679,10 +623,9 @@ platform.db.db; // stable wrapper (Proxy) — resolves per-request via AsyncLoca
 platform.db.controlPlaneDb; // drizzle NodePgDatabase — control-plane connection
 platform.db.pool; // pg.Pool — control-plane connection pool
 platform.db.config; // DatabaseConfig
-platform.db.tenancyMode; // "single" | "shared" | "isolated"
 platform.db.getSchemas(); // merged core schemas
 
-// Per-tenant (isolated mode)
+// Per-tenant pools
 platform.db.getTenantDb(tenantId); // Promise<NodePgDatabase>
 platform.db.pushSchemasToTenant(tenantId, schemas); // provisioning
 ```
@@ -732,7 +675,7 @@ platform.auth.role.list()  // Promise<RoleData[]>
 platform.auth.role.delete({ name })  // Promise<void>
 ```
 
-Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7("id").primaryKey()`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
+Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7("id").primaryKey()`. Auth tables are **exempt** from `tenant_id` columns — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
 
 **Event Map** (`AuthEventMap`): 9 events -- `user.created`, `user.updated`, `user.deleted`, `session.created`, `session.invalidated`, `role.assigned`, `role.unassigned`, `role.created`, `role.deleted`. Published via PubSub as plain string topics.
 
@@ -775,11 +718,10 @@ interface PubSubConfig {
 }
 ```
 
-PubSub creates its **own** pg connection pool from `DatabaseUnit.config` -- it does not reuse the DatabaseUnit's pool. In isolated mode, per-tenant pg-boss instances are created lazily and routed by context `tenantId`. Use `publishControlPlane()` for control-plane events (e.g., auth events).
+PubSub creates its **own** pg connection pool from `DatabaseUnit.config` -- it does not reuse the DatabaseUnit's pool. There is exactly **one** pg-boss (the control-plane boss); handler `ctx.db` resolves to the tenant DB for per-tenant subscriptions.
 
 ```ts
 platform.pubsub.publish<T>(topic: string, data: T, options?: PublishOptions): Promise<string>
-platform.pubsub.publishControlPlane<T>(topic: string, data: T, options?: PublishOptions): Promise<string>
 platform.pubsub.publishBatch<T>(topic: string, messages: { data: T; options?: PublishOptions }[]): Promise<string[]>
 platform.pubsub.subscribe<T>(topic: string, handler: MessageHandler<T>): Promise<void>
 platform.pubsub.unsubscribe(topic: string): Promise<void>
@@ -921,7 +863,7 @@ aspen db-studio --config=src/aspen/server.ts [--port=4983] [--host=0.0.0.0] [--t
 aspen tenants --config=src/aspen/server.ts
 ```
 
-Dynamically imports the platform config file, reads the database config and schemas, and launches Drizzle Kit Studio for visual database management. In isolated mode, `--tenant` launches Studio against a per-tenant database. The `tenants` command lists all tenant IDs.
+Dynamically imports the platform config file, reads the database config and schemas, and launches Drizzle Kit Studio for visual database management. `--tenant` launches Studio against a per-tenant database. The `tenants` command lists all tenant IDs.
 
 ## Writing a Domain Module
 
@@ -1016,8 +958,6 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 | `Unit`                | Server unit interface (`$name`, `$prepare`, `$cleanup`)                             |
 | `Module<N>`           | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
 | `DatabaseConfig`      | DB connection parameters                                                            |
-| `TenancyConfig`       | Tenancy mode configuration (`single`, `shared`, `isolated`)                         |
-| `TenancyMode`         | `"single" \\                                                                        | "shared" \\ | "isolated"` |
 | `TenantResolver`      | Per-tenant DB config resolver (`resolve`, `list`)                                   |
 | `AuthConfig`          | Auth configuration                                                                  |
 | `LogConfig`           | Log configuration                                                                   |
@@ -1124,7 +1064,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -1142,40 +1081,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -1184,11 +1107,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -1314,7 +1236,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -1332,40 +1253,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -1374,11 +1279,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -1504,7 +1408,6 @@ const platform = Platform.create(
       },
     },
     kvStore: { defaultTtl: 3600 },
-    tenancy: { mode: "single" },
   },
   { organization },
 );
@@ -1522,40 +1425,24 @@ await platform.destroy();
 
 ## Tenancy
 
-The platform supports three tenancy architectures as a **config-time choice**. The developer picks one mode in `PlatformConfig.tenancy` and commits to it for the application's lifetime. The same module code works transparently across all three modes.
+The platform uses database-per-tenant isolation: a control-plane database plus one database per tenant. There is no mode to choose — isolation is physical (separate DBs) via per-tenant pool resolution.
 
-| Mode                | Databases                        | Isolation               | Connection routing               |
-| ------------------- | -------------------------------- | ----------------------- | -------------------------------- |
-| **Single Tenant**   | 1                                | None needed             | Static pool                      |
-| **Shared DB + RLS** | 1 (shared)                       | Postgres RLS policies   | Per-request client + `SET LOCAL` |
-| **Isolated DB**     | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution       |
+| Architecture    | Databases                        | Isolation               | Connection routing         |
+| --------------- | -------------------------------- | ----------------------- | -------------------------- |
+| **Isolated DB** | N+1 (control-plane + per-tenant) | Physical (separate DBs) | Per-tenant pool resolution |
 
 ```ts
-// Single tenant
-tenancy: { mode: "single" }
-
-// Shared DB with Row-Level Security
-tenancy: { mode: "shared" }
-
 // Isolated database per tenant
-tenancy: {
-  mode: "isolated",
-  resolver: {
-    resolve: async (tenantId) => ({ /* DatabaseConfig */ }),
-    list: async () => ["tenant_1", "tenant_2"],
-  },
+db: {
+  controlDbName: "app_control",
+  tenantDbPrefix: "tenant",
+  connection: { host: "localhost", port: 5432, user: "app", password: "...", ssl: false },
 }
 ```
 
 ### `run()` Signatures
 
 ```ts
-// Single-tenant mode
-await platform.run(async () => {
-  /* db resolves to control-plane */
-});
-
-// Multi-tenant modes
 await platform.run(tenantId, async () => {
   /* db resolves per-request/per-tenant */
 });
@@ -1564,11 +1451,10 @@ await platform.run(tenantId, async () => {
 ### Key Design Points
 
 - **Stable DB wrapper** — `DatabaseUnit.db` is a getter returning a Proxy that resolves the correct drizzle instance per-request via `AsyncLocalStorage`. Workflows keep `this.db = units.db.db` — no workflow code changes.
-- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id` and RLS.
+- **Control-plane connection always** — `DatabaseUnit` always holds a control-plane pool. `AuthUnit` always uses `controlPlaneDb`. Auth tables are exempt from `tenant_id`.
 - **`tenant_id` column always present** — Every table (except auth) gains `tenant_id` with `DEFAULT COALESCE(current_setting('app.tenant_id', true), 'default')`. Avoids conditional schema definitions.
-- **RLS via post-push SQL** — In shared mode, the platform discovers all tables with `tenant_id` and applies RLS policies after `pushSchema()` during `prepare()`.
-- **Per-tenant PubSub** — In isolated mode, each tenant DB has its own pg-boss. `PubSubUnit` routes based on context `tenantId`.
-- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant in isolated mode for cron/subscription registration.
+- **`$prepareTenant(tenantId)`** — New optional `Module` lifecycle method. Called per-tenant for cron/subscription registration.
+- **Single control-plane pg-boss** — `PubSubUnit` publishes/subscribes on the control-plane boss; handler `ctx.db` resolves to the tenant DB.
 
 ## Package Exports
 
@@ -1617,7 +1503,7 @@ interface Module<N extends string = string> {
   readonly $name: N;
   $initialize?(units: Record<string, Unit>): void;
   $prepare?(): Promise<void>;
-  $prepareTenant?(tenantId: string): Promise<void>; // isolated mode
+  $prepareTenant?(tenantId: string): Promise<void>; // per-tenant schedules/subscriptions
   $cleanup(): Promise<void>;
 }
 ```
@@ -1628,7 +1514,7 @@ Modules are passed as a named object to `Platform.create()`. Module `$name`s bec
 
 ```
 Platform.create(config, modules)
-    --> validates tenancy config
+    --> validates module dependencies
     --> instantiates 7 units (dependency-injected via constructor)
     --> cross-wires pubsub <-> auth
     --> calls module.$initialize(units) for each module
@@ -1637,13 +1523,12 @@ Platform.create(config, modules)
 platform.prepare()
     --> unit.$prepare() for each unit (DatabaseUnit pushes core schemas)
     --> module.$prepare() for each module (modules push domain schemas, register pubsub handlers)
-    --> shared: applyRlsPolicies() to all tables with tenant_id
-    --> isolated: $prepareTenant(tenantId) for each tenant + each module
+    --> $prepareTenant(tenantId) for each tenant + each module
 
 platform.run(fn)
     --> executes fn inside AsyncLocalStorage providing { auth, db, pubsub, tenantId? }
 
-platform.run(tenantId, fn)   --> multi-tenant: per-request db + tenantId in context
+platform.run(tenantId, fn)   --> per-request db + tenantId in context
 
 platform.destroy()
     --> module.$cleanup() for each module
@@ -1667,11 +1552,10 @@ type PlatformConfig = {
   pubsub: PubSubConfig;
   rpc: RpcConfig;
   storage: StorageConfig;
-  tenancy: TenancyConfig;
 };
 ```
 
-All seven units are required, plus a `tenancy` config that selects the tenancy mode.
+All seven units are required.
 
 ### The Seven Core Units
 
@@ -1689,7 +1573,7 @@ Units are instantiated in dependency order inside `Platform.create()`:
 
 ### DatabaseUnit
 
-Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance. In isolated mode, also manages per-tenant pools.
+Owns a control-plane `pg.Pool` and a drizzle `NodePgDatabase` instance, plus lazily-created per-tenant pools.
 
 ```ts
 type DatabaseConfig = {
@@ -1703,9 +1587,9 @@ type DatabaseConfig = {
 };
 ```
 
-The `db` config is always the **control-plane** database. In single/RLS mode, this IS the app database. In isolated mode, this is the control-plane database; per-tenant DBs are resolved by the `TenantResolver`.
+The `db` config is always the **control-plane** database; per-tenant DBs are resolved by the `TenantResolver`.
 
-`$prepare()` uses `pushSchema()` from `drizzle-kit/api` to apply core schemas (auth, logs, storage, kv-store). In shared mode, RLS policies are applied after all schemas are pushed.
+`$prepare()` uses `pushSchema()` from `drizzle-kit/api` to apply core schemas (auth, logs, storage, kv-store).
 
 `getSchemas()` returns the merged schema object for all core unit tables.
 
@@ -1715,10 +1599,9 @@ platform.db.db; // stable wrapper (Proxy) — resolves per-request via AsyncLoca
 platform.db.controlPlaneDb; // drizzle NodePgDatabase — control-plane connection
 platform.db.pool; // pg.Pool — control-plane connection pool
 platform.db.config; // DatabaseConfig
-platform.db.tenancyMode; // "single" | "shared" | "isolated"
 platform.db.getSchemas(); // merged core schemas
 
-// Per-tenant (isolated mode)
+// Per-tenant pools
 platform.db.getTenantDb(tenantId); // Promise<NodePgDatabase>
 platform.db.pushSchemasToTenant(tenantId, schemas); // provisioning
 ```
@@ -1768,7 +1651,7 @@ platform.auth.role.list()  // Promise<RoleData[]>
 platform.auth.role.delete({ name })  // Promise<void>
 ```
 
-Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7("id").primaryKey()`. Auth tables are **exempt** from `tenant_id` columns and RLS — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
+Auth tables (`user`, `session`, `account`, `verification`) follow better-auth's adapter pattern. They use `text("id").primaryKey()` without a default (better-auth manages ID generation), unlike other tables which use `uuidv7("id").primaryKey()`. Auth tables are **exempt** from `tenant_id` columns — they live only on the control-plane DB. `AuthUnit` always uses `DatabaseUnit.controlPlaneDb`.
 
 **Event Map** (`AuthEventMap`): 9 events -- `user.created`, `user.updated`, `user.deleted`, `session.created`, `session.invalidated`, `role.assigned`, `role.unassigned`, `role.created`, `role.deleted`. Published via PubSub as plain string topics.
 
@@ -1811,11 +1694,10 @@ interface PubSubConfig {
 }
 ```
 
-PubSub creates its **own** pg connection pool from `DatabaseUnit.config` -- it does not reuse the DatabaseUnit's pool. In isolated mode, per-tenant pg-boss instances are created lazily and routed by context `tenantId`. Use `publishControlPlane()` for control-plane events (e.g., auth events).
+PubSub creates its **own** pg connection pool from `DatabaseUnit.config` -- it does not reuse the DatabaseUnit's pool. There is exactly **one** pg-boss (the control-plane boss); handler `ctx.db` resolves to the tenant DB for per-tenant subscriptions.
 
 ```ts
 platform.pubsub.publish<T>(topic: string, data: T, options?: PublishOptions): Promise<string>
-platform.pubsub.publishControlPlane<T>(topic: string, data: T, options?: PublishOptions): Promise<string>
 platform.pubsub.publishBatch<T>(topic: string, messages: { data: T; options?: PublishOptions }[]): Promise<string[]>
 platform.pubsub.subscribe<T>(topic: string, handler: MessageHandler<T>): Promise<void>
 platform.pubsub.unsubscribe(topic: string): Promise<void>
@@ -1957,7 +1839,7 @@ aspen db-studio --config=src/aspen/server.ts [--port=4983] [--host=0.0.0.0] [--t
 aspen tenants --config=src/aspen/server.ts
 ```
 
-Dynamically imports the platform config file, reads the database config and schemas, and launches Drizzle Kit Studio for visual database management. In isolated mode, `--tenant` launches Studio against a per-tenant database. The `tenants` command lists all tenant IDs.
+Dynamically imports the platform config file, reads the database config and schemas, and launches Drizzle Kit Studio for visual database management. `--tenant` launches Studio against a per-tenant database. The `tenants` command lists all tenant IDs.
 
 ## Writing a Domain Module
 
@@ -2052,8 +1934,6 @@ On the server side, `access_control` and `roles` from `AuthConfig` are passed to
 | `Unit`                | Server unit interface (`$name`, `$prepare`, `$cleanup`)                             |
 | `Module<N>`           | Module interface (`$name`, `$initialize`, `$prepare`, `$prepareTenant`, `$cleanup`) |
 | `DatabaseConfig`      | DB connection parameters                                                            |
-| `TenancyConfig`       | Tenancy mode configuration (`single`, `shared`, `isolated`)                         |
-| `TenancyMode`         | `"single" \\                                                                        | "shared" \\ | "isolated"` |
 | `TenantResolver`      | Per-tenant DB config resolver (`resolve`, `list`)                                   |
 | `AuthConfig`          | Auth configuration                                                                  |
 | `LogConfig`           | Log configuration                                                                   |

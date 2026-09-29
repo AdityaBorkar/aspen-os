@@ -1,8 +1,7 @@
 # 0005 — Multi-tenant host app with single-realm auth
 
-> **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: The platform now exports
-> three platform classes (`SingleTenantPlatform`, `SharedTenantPlatform`,
-> `IsolatedTenantPlatform`) — one per tenancy mode. This ADR's description of a multi-tenant
+> **Revised by [ADR-0007](./0007-framework-tenancy-abstraction.md)**: The platform
+> is database-per-tenant (`IsolatedTenantPlatform`). This ADR's description of a multi-tenant
 > host app with single-realm auth remains valid for the `isolated` mode specifically. The
 > `tenant_id` column requirement described below is revised — see ADR-0007 for the updated
 > schema approach (always present, not added per-query).
@@ -20,8 +19,8 @@ We also explicitly rejected **multi-realm auth** (extending the platform `AuthUn
 
 This is a platform rewrite, not a module addition:
 
-- Every existing module table (`organization`, `branch`, `task`, `dms_file`, all 50 HR tables, etc.) gains a `tenant_id` column. Per ADR-0007, this column is always present with `DEFAULT 'default'` — not added per-query. In `isolated` mode, it's redundant per database. In `shared` mode, RLS policies filter by it.
-- Workflow queries do NOT need explicit `.where(tenantId)` scoping — isolation is handled by the platform (RLS policies or database-per-tenant), not by app-level filtering.
+- Every existing module table (`organization`, `branch`, `task`, `dms_file`, all 50 HR tables, etc.) gains a `tenant_id` column. Per ADR-0007, this column is always present with `DEFAULT 'default'` — not added per-query. It's redundant per database given physical isolation.
+- Workflow queries do NOT need explicit `.where(tenantId)` scoping — isolation is handled by the platform (database-per-tenant), not by app-level filtering.
 - The platform `run()` context gains `tenantId` (resolved from the authenticated user's active organization, or from a platform admin's selected/impersonated tenant). See ADR-0007 for the `run(tenantId, fn)` signature.
 - The `user` table does NOT gain a `tenant_id` column. Tenant membership is via better-auth's `member` table. See ADR-0006 for the membership model.
 - The Recruiter app is migrated into the new host (or deprecated in favor of it).

@@ -23,13 +23,10 @@ db: {
 }
 ```
 
-Modules declare which of their tables belong to the control plane and which belong to tenants. The platform routes them appropriately based on tenancy mode:
+Modules declare which of their tables belong to the control plane and which belong to tenants. The platform routes them appropriately:
 
-| Mode         | control_plane_schemas   | tenant_schemas                  |
-| ------------ | ----------------------- | ------------------------------- |
-| **Single**   | → single DB             | → single DB                     |
-| **Shared**   | → shared DB             | → shared DB (RLS applied after) |
-| **Isolated** | → control-plane DB only | → each tenant DB only           |
+- `control_plane_schemas` → control-plane DB only
+- `tenant_schemas` → each tenant DB only
 
 Platform core schemas (auth, log, storage, kvStore, workflow) always go to the control-plane DB, unchanged.
 
@@ -46,7 +43,7 @@ Platform core schemas (auth, log, storage, kvStore, workflow) always go to the c
 
 - Every module's `$prepareInfra()` must change
 - `DatabaseUnit` API changes (`prepareWithModules` signature)
-- All three platform class `$prepareInfra()` methods must update their merge logic
+- All platform class `$prepareInfra()` methods must update their merge logic
 - Breaking change for any external code depending on `ModuleInfra.db.schemas`
 
 ## Alternatives Considered

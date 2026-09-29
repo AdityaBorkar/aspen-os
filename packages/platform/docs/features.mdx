@@ -47,6 +47,6 @@ Platform is the foundation every module builds on — sign-in, data storage, bac
 - **Type-safe APIs** — Serve API requests with a built-in health check.
 - **Reliable multi-step work** — Define trackable workflows with automatic retry for each step.
 
-## Tenancy modes
+## Tenancy
 
-- **Single, shared, or isolated** — Run one customer, many customers in one database with row-level isolation, or each customer in its own database.
+- **Isolated** — Each customer gets its own database, with a shared control-plane database for auth and platform tables.

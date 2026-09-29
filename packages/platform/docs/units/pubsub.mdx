@@ -53,7 +53,7 @@ await p.pubsub.subscribe("organization.created", async (message) => {
 await p.pubsub.unsubscribe("organization.created");
 ```
 
-Handlers' `getContext().db` resolves to the tenant DB in isolated mode when subscribed inside `p.run(tenantId, ...)`.
+Handlers' `getContext().db` resolves to the tenant DB when subscribed inside `p.run(tenantId, ...)`.
 
 ### Scheduling
 

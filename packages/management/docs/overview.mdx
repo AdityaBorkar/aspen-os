@@ -67,7 +67,7 @@ flowchart TB
 
 ### Tenants
 
-A tenant is a better-auth `organization` row plus its `managed_organization` companion (shared `id`, PK/FK). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB, seeds the `organization` row on isolated tenancy, and inserts the companion. The tenant logo lives on better-auth `organization.logo` as a Storage logical key (`logos/tenant/<id>/<file>`); upload via `tenants.uploadLogo` / `tenants.issueLogoUploadUrl` + `tenants.attachLogo`, remove via `tenants.removeLogo`, display via `tenants.getLogoUrl`. The isolated database name is derived, not stored: `tenants.resolveDatabase` uses the configured `TenantResolver` or the `tenantDbPrefix_<tenantId>` convention.
+A tenant is a better-auth `organization` row plus its `managed_organization` companion (shared `id`, PK/FK). Lifecycle via `activate`/`suspend`/`reactivate`/`churn`; SP assignment via `assignServiceProvider`/`unassignServiceProvider`; `onboard` provisions the tenant DB, seeds the `organization` row, and inserts the companion. The tenant logo lives on better-auth `organization.logo` as a Storage logical key (`logos/tenant/<id>/<file>`); upload via `tenants.uploadLogo` / `tenants.issueLogoUploadUrl` + `tenants.attachLogo`, remove via `tenants.removeLogo`, display via `tenants.getLogoUrl`. The isolated database name is derived, not stored: `tenants.resolveDatabase` uses the configured `TenantResolver` or the `tenantDbPrefix_<tenantId>` convention.
 
 ### Service Providers
 

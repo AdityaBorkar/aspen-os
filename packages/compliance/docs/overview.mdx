@@ -37,7 +37,7 @@ export interface ComplianceModuleConfig {
 
 ```ts
 const compliance = Compliance.create({ country: "INDIA" });
-SingleTenantPlatform.create(config, [compliance]);
+IsolatedTenantPlatform.create(config, [compliance]);
 ```
 
 ## Dependencies
@@ -70,7 +70,7 @@ flowchart TB
 
 ### Tenant-Scope
 
-Tables live in `tenant_schemas` (per-tenant in isolated mode, single DB in single/shared mode). Every document carries `sourceModule`/`sourceEntityId` soft links to external entities — no hard FK across modules.
+Tables live in `tenant_schemas` (one database per tenant). Every document carries `sourceModule`/`sourceEntityId` soft links to external entities — no hard FK across modules.
 
 ### Obligation Templates
 

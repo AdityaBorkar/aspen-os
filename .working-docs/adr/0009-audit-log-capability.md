@@ -1,5 +1,10 @@
 # ADR-0009: Cross-module audit log with DB-record replayability
 
+> **Note (2026-09-29):** the shared-tenancy machinery referenced below
+> (`runWithTenant`, RLS, `tenancyMode`) has been removed — the platform is
+> isolated-DB only (`IsolatedTenantPlatform`). Shared-mode passages describe
+> a removed architecture; the isolated-mode analysis still applies.
+
 ## Status
 
 Accepted (Layer 1) — 2026-08-05. Layer 2 (blind-write capture) remains Proposed.

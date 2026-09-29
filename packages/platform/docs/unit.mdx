@@ -33,7 +33,7 @@ export interface Module {
 
 ## The Eight Server Units
 
-All eight are constructed inside `BasePlatform.createCore()`. `audit` takes no config — it is always present:
+All eight are constructed inside `IsolatedTenantPlatform.createCore()`. `audit` takes no config — it is always present:
 
 | Key       | Unit class     | `$name`     | Depends on                   | Purpose                                       |
 | --------- | -------------- | ----------- | ---------------------------- | --------------------------------------------- |
@@ -91,7 +91,7 @@ Client units have no constructor injection. `AuthUnit` takes only `AuthConfig` (
 ## How Units Are Created
 
 ```ts
-const p = SingleTenantPlatform.create(
+const p = IsolatedTenantPlatform.create(
   {
     db: { host, port, user, password, database },
     auth: { baseURL, secret },
@@ -126,7 +126,7 @@ flowchart TB
 
 ### `$prepareInfra()`
 
-`DatabaseUnit.$prepareInfra()` pushes schemas; `PubSubUnit.$prepareInfra()` is a **no-op** (pg-boss starts lazily); `AuthUnit.$prepareInfra()` reapplies ACL. Isolated mode overrides this flow (see [Overview](/docs/platform/overview)).
+`DatabaseUnit.$prepareInfra()` pushes schemas; `PubSubUnit.$prepareInfra()` is a **no-op** (pg-boss starts lazily); `AuthUnit.$prepareInfra()` reapplies ACL. The platform prepares `db`/`auth` first, then remaining units (see [Overview](/docs/platform/overview)).
 
 ### `$cleanup()`
 

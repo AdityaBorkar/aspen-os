@@ -3,7 +3,6 @@ import type { AuthUnit } from "#/server/auth";
 import type { DatabaseUnit } from "#/server/db";
 import type { DatabaseConfig } from "#/server/db/types";
 import type { LogUnit } from "#/server/log";
-import type { TenancyMode } from "#/server/types";
 import { context, isGlobalTenantId } from "#/server/utils";
 
 import { PgBoss } from "pg-boss";
@@ -21,7 +20,6 @@ export class PubSubUnit {
   readonly $name = "pubsub" as const;
 
   private readonly dbUnit: DatabaseUnit<any>;
-  private readonly tenancyMode: TenancyMode;
   private authInstance: AuthUnit | null = null;
   private readonly auditInstance: AuditUnit;
   private readonly logInstance: LogUnit;
@@ -37,7 +35,6 @@ export class PubSubUnit {
     { audit, db, log }: { audit: AuditUnit; db: DatabaseUnit<any>; log: LogUnit },
   ) {
     this.dbUnit = db;
-    this.tenancyMode = db.tenancyMode;
     this.auditInstance = audit;
     this.monitorIntervalSeconds = config.monitorIntervalSeconds ?? 30;
     this.boss = this.createBoss(db.config);
@@ -232,7 +229,7 @@ export class PubSubUnit {
       // oxlint-disable eslint/no-await-in-loop
       for (const job of jobs) {
         const handlerDb =
-          this.tenancyMode === "isolated" && tenantId && !isGlobalTenantId(tenantId)
+          tenantId && !isGlobalTenantId(tenantId)
             ? await this.dbUnit.getTenantDb(tenantId)
             : this.dbUnit.controlPlaneDb;
 

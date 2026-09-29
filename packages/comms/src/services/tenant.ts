@@ -41,11 +41,6 @@ export async function runInTenantContext<TValue>(
   if (isGlobalTenantId(tenantId)) {
     return fn(dbUnit.controlPlaneDb);
   }
-  if (dbUnit.tenancyMode === "isolated") {
-    const db = await dbUnit.getTenantDb(tenantId);
-    return fn(db);
-  }
-  // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // whose surface is a PostgresJsDatabase; the generic schema parameter is erased.
-  return dbUnit.runWithTenant(tenantId, (db) => fn(db));
+  const db = await dbUnit.getTenantDb(tenantId);
+  return fn(db);
 }

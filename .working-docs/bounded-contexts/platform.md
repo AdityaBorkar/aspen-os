@@ -17,7 +17,7 @@
 | KV Store        | Postgres          | Conformist        | KvStoreUnit adapts Postgres as a Redis-like KV store                    |
 | Audit           | —                 | Core              | Native platform unit — `audit_log` table, no external dependency        |
 | Client Platform | —                 | —                 | Browser-side `Platform` with 3 units (auth, logs, rpc)                  |
-| Recruiter       | Platform          | Downstream        | Intended first app — uses `SingleTenantPlatform`, org + tasks           |
+| Recruiter       | Platform          | Downstream        | Intended first app — uses `IsolatedTenantPlatform`, org + tasks         |
 
 ## Shared Kernel
 
@@ -38,11 +38,10 @@ Both server and client use the `$` prefix for lifecycle methods and the name pro
 
 ## Platform → Units (Customer–Supplier)
 
-**Direction**: Platform classes create and wire units via `Platform.create(config, modules)`. Units have no knowledge of Platform. Three server platform classes: `SingleTenantPlatform`, `SharedTenantPlatform`, `IsolatedTenantPlatform`. The client has a single `Platform` class.
+**Direction**: `IsolatedTenantPlatform` creates and wires units via `IsolatedTenantPlatform.create(config, modules)`. Units have no knowledge of Platform. The client has a single `Platform` class.
 
 ```
-SingleTenantPlatform.create(config, modules)
-SharedTenantPlatform.create(config, modules)
+IsolatedTenantPlatform.create(config, modules)
 IsolatedTenantPlatform.create(config, modules)
     │
     ├── creates DatabaseUnit(config.db, tenancy config)
@@ -81,7 +80,7 @@ AuthUnit     ← RpcUnit
 
 | Unit                    | `$name`     | Injected deps                | Notes                                                                   |
 | ----------------------- | ----------- | ---------------------------- | ----------------------------------------------------------------------- |
-| `db` (DatabaseUnit)     | `"db"`      | — (owns `pg.Pool` + drizzle) | tenancy, RLS, `prepareWithModules`; the load-bearing unit               |
+| `db` (DatabaseUnit)     | `"db"`      | — (owns `pg.Pool` + drizzle) | per-tenant pools, `prepareWithModules`; the load-bearing unit           |
 | `auth` (AuthUnit)       | `"auth"`    | `{ db, pubsub }`             | better-auth service, `fetchHandler`, `rest` getter, `applyModuleAcl`    |
 | `audit` (AuditUnit)     | `"audit"`   | `{ db }`                     | `diff`/`write`/`query`/`reconstructState`/`count`; `audit_log` table    |
 | `logs` (LogUnit)        | `"logs"`    | `{ db }`                     | buffered pino-style logger; `child()`, `query`, `getStats`              |
@@ -94,17 +93,17 @@ AuthUnit     ← RpcUnit
 
 ### Tenancy sub-contexts
 
-- **Tenancy Mode**: a class-time choice — `SingleTenantPlatform` (one DB, `run(fn)`, currently EXPERIMENTAL), `SharedTenantPlatform` (one DB + Postgres RLS, `run(tenantId, fn)`, currently EXPERIMENTAL), or `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, `run(tenantId, fn)`). The config type does not include a `tenancy` field — the class IS the mode.
-- **Tenant ID**: a string identifier resolved from the authenticated session (e.g. better-auth `session.activeOrganizationId`) and passed to `platform.run(tenantId, fn)`. In `single` mode always `"default"`. Stored in `AsyncLocalStorage`; routes the stable DB wrapper, `PubSubUnit` messages, and `StorageUnit`/`KvStoreUnit` key prefixes.
+- **Tenancy**: database-per-tenant isolation — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, `run(tenantId, fn)`). The config type does not include a `tenancy` field.
+- **Tenant ID**: a string identifier resolved from the authenticated session (e.g. better-auth `session.activeOrganizationId`) and passed to `platform.run(tenantId, fn)`. Stored in `AsyncLocalStorage`; routes the stable DB wrapper, `PubSubUnit` messages, and `StorageUnit`/`KvStoreUnit` key prefixes.
 - **Tenant Resolver**: `{ resolve(tenantId) → dbName, list() → tenantIds }` used by `IsolatedTenantPlatform` to lazily create per-tenant pools. Known WIP gap: `IsolatedTenantConfig` does not expose a `resolver` field — a dummy resolver (`list: async () => []`, `resolve: async (id) => id`) is constructed inline.
 - **Control Plane**: the management/administration DB connection. In `single`/`shared` this IS the app database; in `isolated` it is the shared control-plane DB holding auth + platform tables. `DatabaseUnit` always holds a control-plane pool; `AuthUnit` always uses `controlPlaneDb`.
-- **Tenant Database**: per-tenant Postgres DB in `isolated` mode holding that tenant's data-plane tables. No auth tables live here. Isolation is physical.
-- **Stable DB Wrapper**: a JS `Proxy` returned by `DatabaseUnit.db` (a getter). Property access reads the per-request drizzle instance from `AsyncLocalStorage` and delegates to it; in `single` mode falls back to the control-plane drizzle instance.
-- **Prepare Tenant**: optional `Module.$prepareTenant(tenantId)` called per tenant at startup in `isolated` mode and during provisioning. The platform sets `AsyncLocalStorage` context with `tenantId` first. Not called in `single`/`shared` modes.
+- **Tenant Database**: per-tenant Postgres DB holding that tenant's data-plane tables. No auth tables live here. Isolation is physical.
+- **Stable DB Wrapper**: a JS `Proxy` returned by `DatabaseUnit.db` (a getter). Property access reads the per-request drizzle instance from `AsyncLocalStorage` and delegates to it; global `"$global"` requests fall back to the control-plane drizzle instance.
+- **Prepare Tenant**: optional `Module.$prepareTenant(tenantId)` called per tenant at startup and during provisioning. The platform sets `AsyncLocalStorage` context with `tenantId` first.
 
 ### `isGlobalTenantId`
 
-`isGlobalTenantId(tenantId)` returns true for `"$global"` — global tenant IDs route to the control-plane DB in shared/isolated modes.
+`isGlobalTenantId(tenantId)` returns true for `"$global"` — global tenant IDs route to the control-plane DB.
 
 ## Auth → better-auth (Conformist)
 
@@ -150,7 +149,7 @@ AuthUnit     ← RpcUnit
 
 **Lifecycle**: uses a single control-plane pg-boss started **lazily on first use** (`ensureStarted()` memoizes a started-promise; reset on failure so it can retry). `$prepareInfra()` is a no-op — runtime connections are deferred to first use because `$prepareInfra()` runs at deploy time, not server start. It does **not** reuse DatabaseUnit's pool; pg-boss manages its own connection lifecycle.
 
-**Health probe**: `getQueueSize(topic)` lazily starts the boss and runs a live SQL COUNT round-trip; it works on unregistered topics and has no side effects. There is no `BasePlatform.healthCheck()` — liveness is the RPC `health.check` procedure plus `getUnsubscribedProducedTopics()`.
+**Health probe**: `getQueueSize(topic)` lazily starts the boss and runs a live SQL COUNT round-trip; it works on unregistered topics and has no side effects. There is no `Platform.healthCheck()` — liveness is the RPC `health.check` procedure plus `getUnsubscribedProducedTopics()`.
 
 **Produce tracking**: `publish`/`publishBatch` record produced topics in a `producedTopics` map. `getUnsubscribedProducedTopics()` filters to those with no registered subscriber. pg-boss silently drops publishes to topics with no queue row (`send()` returns no job id) — consumers surface these as wiring bugs. On a no-id result `publish()` warns but does not throw.
 
@@ -218,14 +217,14 @@ AuthUnit     ← RpcUnit
 
 ## Recruiter (Downstream App)
 
-**Relationship**: The intended first app creates the platform via `SingleTenantPlatform.create(config, modules)` and passes domain modules. Currently registers `organization` and `tasks`. Not yet in the repo — there is no `examples/` directory.
+**Relationship**: The intended first app creates the platform via `IsolatedTenantPlatform.create(config, modules)` and passes domain modules. Currently registers `organization` and `tasks`. Not yet in the repo — there is no `examples/` directory.
 
 **Lifecycle**:
 
 ```
-SingleTenantPlatform.create(config, [organization, tasks])
+IsolatedTenantPlatform.create(config, [organization, tasks])
     → p.$prepareInfra()  // unit.$prepareInfra() + collect mod.$prepareInfra() + db.prepareWithModules() + auth.applyModuleAcl() + mod.$prepareRuntime()
-    → p.run(fn)         // AsyncLocalStorage context
+    → p.run(tenantId, fn) // AsyncLocalStorage context
     → p.$cleanup()       // mod.$cleanup() then unit.$cleanup()
 ```
 

@@ -83,7 +83,7 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 │  │ Recruiter App │  │ Organization      │  │ Compliance    │   │
 │  │ (not in repo) │  │ Module            │  │ Module        │   │
 │  │ uses          │  │ 1 wf group        │  │ 5 wf groups   │   │
-│  │ SingleTenant  │  │ 1 table           │  │ 3 services    │   │
+│  │ IsolatedTenant │  │ 1 table           │  │ 3 services    │   │
 │  │ Platform      │  │ 2 events          │  │ 3 tables      │   │
 │  │ .create()     │  │ deps: none        │  │ 23 events     │   │
 │  └───────────────┘  │ units: none       │  │ units: db,     │   │
@@ -147,10 +147,10 @@ Domain detail per context in [`domain-model/`](domain-model/) (also split per pa
 All units created + wired inside `Platform.create()`:
 
 ```typescript
-import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
 
-const p = SingleTenantPlatform.create(
-  { auth, db, kvStore, logs, pubsub, rpc, storage }, // SingleTenantConfig
+const p = IsolatedTenantPlatform.create(
+  { auth, db, kvStore, logs, pubsub, rpc, storage }, // IsolatedTenantConfig
   [organization, tasks], // modules array
 );
 ```
@@ -165,7 +165,7 @@ This:
 
 ### AsyncLocalStorage Context
 
-`run()` provides request-scoped context. Uniform signature on all three server classes — `run(tenantId, fn)` (`"$global"` = control plane):
+`run()` provides request-scoped context. Uniform signature on both server classes — `run(tenantId, fn)` (`"$global"` = control plane):
 
 ```typescript
 await p.run(tenantId, async () => {
@@ -233,8 +233,7 @@ Platform.prepareInfra()
     → DatabaseUnit.prepareWithModules(schemas) // pushSchema(coreSchemas + moduleSchemas, db)
     → AuthUnit.applyModuleAcl(acl)            // store merged ACL metadata
     → mod.$prepareRuntime() for each module   // register pubsub schedules/handlers
-    → [isolated only] $prepareTenant(tenantId) per tenant
-    → [shared only] db.applyRlsPolicies()
+    → $prepareTenant(tenantId) per tenant
 ```
 
 Schemas collected by `DatabaseUnit.prepareWithModules()`: core schemas (`auditSchema`, `authSchema`, `logSchema`, `storageSchema`, `kvStoreSchema`, `workflowSchema`) merged with module `db.control_plane_schemas` + `db.tenant_schemas` from `$prepareInfra()`. Domain module table counts per context in `domain-model/<package>.md`.
@@ -256,7 +255,7 @@ Five modules register scheduled cron jobs via PubSub (compliance defines `compli
 
 ### Health Check
 
-There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedure (trivial `base.handler(async () => ({ status: "ok" }))`) plus `PubSubUnit.getUnsubscribedProducedTopics()` — topics published to w/ no registered subscriber (pg-boss silently drops these, so they flag producer/consumer wiring bug):
+There is no `Platform.healthCheck()`. Liveness = RPC `health.check` procedure (trivial `base.handler(async () => ({ status: "ok" }))`) plus `PubSubUnit.getUnsubscribedProducedTopics()` — topics published to w/ no registered subscriber (pg-boss silently drops these, so they flag producer/consumer wiring bug):
 
 ```typescript
 {
@@ -266,7 +265,6 @@ There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedur
     pubsub:  { status, latencyMs?, error? },
   },
   unsubscribedTopics?: string[],  // produced but no registered consumer
-  tenancyMode: TenancyMode,
   at: string,                      // ISO timestamp
 }
 ```
@@ -291,7 +289,7 @@ There is no `BasePlatform.healthCheck()`. Liveness = RPC `health.check` procedur
 | Audit            | Core          | —                                           | All modules                          | Native platform unit — `audit_log` table, DB-record replayability                                                                     |
 | Workflow         | Core          | —                                           | All modules                          | Durable step runner (`workflow_runs`/`workflow_steps`)                                                                                |
 | Client Platform  | —             | —                                           | —                                    | Browser-side (3 units)                                                                                                                |
-| Recruiter        | Downstream    | Platform                                    | —                                    | Uses `SingleTenantPlatform`, registers organization + tasks (not yet in repo)                                                         |
+| Recruiter        | Downstream    | Platform                                    | —                                    | Uses `IsolatedTenantPlatform`, registers organization + tasks (not yet in repo)                                                       |
 | Organization     | Removed       | —                                           | —                                    | No package on disk; org surface = `masters.orgBranches` + `management.organizations` read model                                       |
 | Masters          | Downstream    | Platform, KV Store                          | Compliance                           | 9 workflow groups, 12 tables, 32 events, 9 ACL resources                                                                              |
 | Notes            | Downstream    | Platform                                    | —                                    | 1 workflow group, 1 table, 3 events, 1 ACL resource                                                                                   |

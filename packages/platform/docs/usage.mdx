@@ -18,14 +18,14 @@ Create, prepare, run, and tear down a platform — end-to-end inside `p.run(tena
 Pass a config and a module **array** to the static factory — no `new`, no `registerModule()`.
 
 ```ts
-import { SingleTenantPlatform } from "@aspen-os/platform/server";
+import { IsolatedTenantPlatform } from "@aspen-os/platform/server";
 import { Organization } from "@aspen-os/organization";
 import { Compliance } from "@aspen-os/compliance";
 
 const organization = Organization.create({ country: "INDIA" });
 const compliance = Compliance.create({ country: "INDIA" });
 
-const p = SingleTenantPlatform.create(
+const p = IsolatedTenantPlatform.create(
   {
     auth: authConfig,
     db: dbConfig,
@@ -39,7 +39,7 @@ const p = SingleTenantPlatform.create(
 );
 ```
 
-The class (`Single`/`Shared`/`Isolated`) fixes the tenancy mode — there is no `tenancy` config field.
+There is a single platform class — `IsolatedTenantPlatform` (control-plane DB + per-tenant DBs, physical isolation). There is no `tenancy` config field.
 
 ## Step 2: Prepare Infrastructure
 
@@ -49,11 +49,11 @@ Push schemas, apply ACL, and wire module runtimes.
 await p.$prepareInfra();
 ```
 
-Runs `unit.$prepareInfra()` in parallel, merges `ModuleInfra` (`db` schemas + `auth.acl`), calls `db.prepareWithModules()` (control-plane push), `auth.applyModuleAcl()`, then each module's `$prepareRuntime()` via `run("$global", ...)`. In isolated mode the override also iterates `resolver.list()` to call `mod.$prepareTenant`.
+Runs `db.$prepareInfra()` + `auth.$prepareInfra()` first (failures are fatal), then remaining units sequentially, merges `ModuleInfra` (`db` schemas + `auth.acl`), calls `db.prepareWithModules()` (control-plane push), `auth.applyModuleAcl()`, then each module's `$prepareRuntime()` via `run("$global", ...)`, then iterates `resolver.list()` to call `mod.$prepareTenant` per tenant.
 
 ## Step 3: Run in Request Context
 
-`run(tenantId, fn)` exposes units via `AsyncLocalStorage`. Pass `"$global"` for single-tenant control-plane work.
+`run(tenantId, fn)` exposes units via `AsyncLocalStorage`. Pass `"$global"` for control-plane work.
 
 ```ts
 import { getContext } from "@aspen-os/platform/server";
@@ -65,7 +65,7 @@ await p.run("$global", async () => {
 });
 ```
 
-Inside `fn` you have `db` (stable Proxy per-request), `pubsub`, `auth` (AuthUnit), `audit`, `log`. Isolated mode resolves `getTenantDb(tenantId)` under `fn`.
+Inside `fn` you have `db` (stable Proxy per-request), `pubsub`, `auth` (AuthUnit), `audit`, `log`. Non-global tenant ids resolve `getTenantDb(tenantId)` under `fn`.
 
 ## Step 4: Use Units
 
@@ -123,7 +123,7 @@ await p.$cleanup(); // Promise.allSettled → AggregateError if any fail
 ## Use It
 
 ```ts
-const p = SingleTenantPlatform.create(config, [Organization.create({ country: "INDIA" })]);
+const p = IsolatedTenantPlatform.create(config, [Organization.create({ country: "INDIA" })]);
 await p.$prepareInfra();
 await p.run("$global", async () => {
   const { db } = getContext();
@@ -134,7 +134,7 @@ await p.$cleanup();
 
 | Convention             | Value                                                                 |
 | ---------------------- | --------------------------------------------------------------------- |
-| Single-tenant sentinel | `"$global"` — `isGlobalTenantId()` tests it                           |
+| Control-plane sentinel | `"$global"` — `isGlobalTenantId()` tests it                           |
 | Module access          | `p.organization` (proxy by `$name`) or `p.getModule("organization")`  |
 | Auth HTTP              | `p.auth.fetchHandler(request)` or `p.auth.service.handler(request)`   |
 | Client `run`           | `Platform.run(fn)` — no tenant id, sets `{ auth, logs, rpc }` context |

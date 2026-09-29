@@ -344,14 +344,7 @@ async function handleTenantLifecycle(tenantId: string, deps: EventBridgeDeps): P
       { audit: deps.audit, db, log: deps.log, pubsub: deps.pubsub },
     );
 
-  if (deps.dbUnit.tenancyMode === "isolated") {
-    await run(await deps.dbUnit.getTenantDb(tenantId));
-    return;
-  }
-
-  // SAFETY: runWithTenant hands the callback a session-scoped drizzle instance
-  // whose surface matches the workflow db type; the generic parameter is erased.
-  await deps.dbUnit.runWithTenant(tenantId, (db) => run(db));
+  await run(await deps.dbUnit.getTenantDb(tenantId));
 }
 
 async function handleOtpRequested(
