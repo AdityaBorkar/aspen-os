@@ -1,5 +1,5 @@
 import type { AuthConfig, AuthUnit } from "#/server/auth";
-import type { ExtractModuleNames } from "#/server/base-platform";
+import type { IsolatedTenantPlatformInstance } from "#/server/base-platform";
 import type {
   DatabaseConfig,
   DatabaseUnit,
@@ -20,7 +20,7 @@ import type {
   StorageProvider,
   StorageUnit,
 } from "#/server/storage";
-import type { Module, ArrayModuleAccessors, PlatformUnits, UnitAccessors } from "#/server/types";
+import type { Module } from "#/server/types";
 
 export type { JsonValue, SchemaMap } from "#/server/types";
 export type {
@@ -61,15 +61,7 @@ export type {
   StorageProvider,
   StorageUnit,
 };
-export type PlatformInstance<TModules extends Module[]> = {
-  $prepareInfra: () => Promise<void>;
-  $cleanup: () => Promise<void>;
-  getModule: <TKey extends TModules[number]["$name"]>(
-    name: TKey,
-  ) => Extract<TModules[number], { $name: TKey }>;
-  getUnit: <TKey extends keyof PlatformUnits>(name: TKey) => PlatformUnits[TKey];
-} & UnitAccessors &
-  ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
+export type PlatformInstance<TModules extends Module[]> = IsolatedTenantPlatformInstance<TModules>;
 
 export {
   type CommonConfig,

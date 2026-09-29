@@ -2,6 +2,7 @@
 
 import type { Module, PlatformInstance } from "#/server";
 import type { DatabaseConfig } from "#/server/db";
+import { resolveTenantConnection } from "#/server/db";
 import { access, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
@@ -122,30 +123,8 @@ async function resolveTenantCredentials(
   dbConfig: DatabaseConfig,
   tenantId: string,
 ): Promise<StudioDbCredentials> {
-  const database = await resolveTenantDatabase(platformInstance, tenantId);
-  return {
-    database,
-    host: platformInstance.db.tenantDbDefaults?.host ?? dbConfig.host,
-    password: platformInstance.db.tenantDbDefaults?.password ?? dbConfig.password,
-    port: platformInstance.db.tenantDbDefaults?.port ?? dbConfig.port,
-    ssl: platformInstance.db.tenantDbDefaults?.ssl ?? dbConfig.ssl ?? false,
-    user: platformInstance.db.tenantDbDefaults?.user ?? dbConfig.user,
-  };
-}
-
-async function resolveTenantDatabase(
-  platformInstance: PlatformInstance<Module[]>,
-  tenantId: string,
-): Promise<string> {
-  try {
-    return await platformInstance.db.resolveDatabaseName(tenantId);
-  } catch (error) {
-    console.error(
-      `Warning: tenant database resolution failed for "${tenantId}", falling back to naming convention (${error instanceof Error ? error.message : String(error)})`,
-    );
-  }
-  const prefix = platformInstance.db.tenantDbPrefix;
-  return prefix ? `${prefix}_${tenantId}` : tenantId;
+  const database = await platformInstance.db.resolveDatabaseName(tenantId);
+  return resolveTenantConnection(dbConfig, database);
 }
 
 type DatabaseSelection = { kind: "control" } | { kind: "tenant"; tenantId: string };

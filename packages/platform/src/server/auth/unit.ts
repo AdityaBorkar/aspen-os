@@ -21,13 +21,45 @@ import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import { getOtp, storeOtp } from "./otp-service";
 import { assignRole, deleteRole, listRoles, unassignRole } from "./role-service";
 import { authenticate, invalidateSession, validateSession } from "./session-service";
-import type { AuthConfig, AuthService, AuthServiceDeps } from "./types";
+import type { AuthConfig, AuthService, AuthServiceDeps, RoleData, Session, User } from "./types";
 import { createUser, deleteUser, getUser, updateUser } from "./user-service";
 
 export type { AclDeclaration } from "./utils";
 export { defineAcl } from "./utils";
 export { toSession, toUser } from "./utils";
 export type { AuthConfig, AuthService, AuthServiceDeps, RoleData, Session, User } from "./types";
+
+/** Stable programmatic surface over the auth services. Built once per service instance. */
+export interface AuthRestApi {
+  otp: {
+    get: (tokenRef: string) => Promise<{ email: string; otp: string; type: string } | null>;
+  };
+  role: {
+    list: () => Promise<RoleData[]>;
+    remove: (input: { name: string }) => Promise<void>;
+  };
+  session: {
+    create: (input: {
+      email: string;
+      password: string;
+    }) => Promise<{ session: Session; user: User }>;
+    invalidate: (input: { sessionId: string }) => Promise<void>;
+    validate: (input: { token: string }) => Promise<{ session: Session; user: User } | null>;
+  };
+  user: {
+    create: (input: { email: string; name?: string; password: string }) => Promise<User>;
+    get: (query: { id: string } | { email: string }) => Promise<User | null>;
+    remove: (input: { id: string }) => Promise<void>;
+    role: {
+      assign: (input: { roleName: string; userId: string }) => Promise<void>;
+      unassign: (input: { userId: string }) => Promise<void>;
+    };
+    update: (input: {
+      id: string;
+      data: Partial<Pick<User, "image" | "name" | "role">>;
+    }) => Promise<User>;
+  };
+}
 
 type DrizzleDB = PostgresJsDatabase;
 
@@ -38,6 +70,7 @@ export class AuthUnit implements Unit {
   readonly #db: DrizzleDB;
   readonly #pubsub: PubSubUnit;
   #betterAuth: AuthService;
+  #rest: AuthRestApi;
 
   constructor(config: AuthConfig, units: { db: DatabaseUnit<any>; pubsub: PubSubUnit }) {
     this.#config = config;
@@ -46,6 +79,7 @@ export class AuthUnit implements Unit {
     this.#betterAuth = createBetterAuthService(config, units.db.controlPlaneDb, {
       pubsub: units.pubsub,
     });
+    this.#rest = this.buildRest();
   }
 
   async $prepareInfra(acl: Record<string, readonly string[]> = {}) {
@@ -68,9 +102,14 @@ export class AuthUnit implements Unit {
       ac,
       pubsub: this.#pubsub,
     });
+    this.#rest = this.buildRest();
   }
 
-  get rest() {
+  get rest(): AuthRestApi {
+    return this.#rest;
+  }
+
+  private buildRest(): AuthRestApi {
     const deps: AuthServiceDeps = {
       auth: this.#betterAuth,
       db: this.#db,
@@ -82,24 +121,26 @@ export class AuthUnit implements Unit {
       },
       role: {
         list: async () => listRoles(deps),
-        remove: async (input: Parameters<typeof deleteRole>[0]) => deleteRole(input, deps),
+        remove: async (input: { name: string }) => deleteRole(input, deps),
       },
       session: {
-        create: async (input: Parameters<typeof authenticate>[0]) => authenticate(input, deps),
-        invalidate: async (input: Parameters<typeof invalidateSession>[0]) =>
-          invalidateSession(input, deps),
-        validate: async (input: Parameters<typeof validateSession>[0]) =>
-          validateSession(input, deps),
+        create: async (input: { email: string; password: string }) => authenticate(input, deps),
+        invalidate: async (input: { sessionId: string }) => invalidateSession(input, deps),
+        validate: async (input: { token: string }) => validateSession(input, deps),
       },
       user: {
-        create: async (input: Parameters<typeof createUser>[0]) => createUser(input, deps),
-        get: async (query: Parameters<typeof getUser>[0]) => getUser(query, deps),
-        remove: async (input: Parameters<typeof deleteUser>[0]) => deleteUser(input, deps),
+        create: async (input: { email: string; name?: string; password: string }) =>
+          createUser(input, deps),
+        get: async (query: { id: string } | { email: string }) => getUser(query, deps),
+        remove: async (input: { id: string }) => deleteUser(input, deps),
         role: {
-          assign: async (input: Parameters<typeof assignRole>[0]) => assignRole(input, deps),
-          unassign: async (input: Parameters<typeof unassignRole>[0]) => unassignRole(input, deps),
+          assign: async (input: { roleName: string; userId: string }) => assignRole(input, deps),
+          unassign: async (input: { userId: string }) => unassignRole(input, deps),
         },
-        update: async (input: Parameters<typeof updateUser>[0]) => updateUser(input, deps),
+        update: async (input: {
+          id: string;
+          data: Partial<Pick<User, "image" | "name" | "role">>;
+        }) => updateUser(input, deps),
       },
     };
   }

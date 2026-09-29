@@ -118,7 +118,7 @@ const p = IsolatedTenantPlatform.create(
 flowchart TB
   Prep["p.$prepareInfra()"] --> UPrep["unit.$prepareInfra() in parallel\nrethrows as 'Failed to prepare unit name'"]
   UPrep --> Merge["collect ModuleInfra\n→ merged ACL + schemas"]
-  Merge --> Push["db.prepareWithModules(control, tenant)\n→ push to controlPlaneDb"]
+  Merge --> Push["db.$prepareInfra(control, tenant)\n→ push to controlPlaneDb"]
   Push --> ACL["auth.applyModuleAcl(acl)"]
   ACL --> Run["mod.$prepareRuntime()\nrun $global in parallel"]
   Run --> Cleanup["p.$cleanup()\nPromise.allSettled modules → units\n→ AggregateError if any"]

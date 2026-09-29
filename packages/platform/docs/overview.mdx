@@ -85,8 +85,8 @@ flowchart TB
 flowchart TB
   A["IsolatedTenantPlatform.create(config, modules)\ninstantiates units + validates deps + $initialize"] --> B["p.$prepareInfra()"]
   B --> B1["db.$prepareInfra() + auth.$prepareInfra()\n(failures are fatal)"]
-  B1 --> B2["remaining units sequentially\ncollect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
-  B2 --> B3["db.prepareWithModules(merged...) – pushSchemasTo controlPlaneDb"]
+  B1 --> B2["remaining units in parallel\ncollect mod.$prepareInfra()\n→ merged ACL + control_plane_schemas + tenant_schemas"]
+  B2 --> B3["db.$prepareInfra(merged...) – pushSchemasTo controlPlaneDb"]
   B3 --> B4["auth.applyModuleAcl(mergedAcl)"]
   B4 --> B5["mod.$prepareRuntime() per-module\nrun('$global', ...)"]
   B5 --> B6["resolver.list() → run(tenantId)\n→ mod.$prepareTenant?.(tenantId)"]
@@ -107,7 +107,7 @@ Inside `createCore()`: instantiate units in dependency order, cross-wire `pubsub
 
 ### `$prepareInfra()`
 
-Prepares `db`/`auth` first (`try/catch`, failures are fatal so callers never see a false success), then the remaining units sequentially, merges `ModuleInfra` (schemas + ACL), calls `db.prepareWithModules(controlSchemas, tenantSchemas)` on the control-plane DB, applies ACL via `auth.applyModuleAcl`, then runs each module's `$prepareRuntime()` via `run("$global", ...)`, then iterates `resolver.list()` and runs `mod.$prepareTenant?.(tenantId)` per tenant (`console.error` on failure, not throw).
+Prepares `db`/`auth` first (failures are fatal so callers never see a false success), then the remaining units in parallel, merges `ModuleInfra` (schemas + ACL, collisions throw, ACL actions deduped), calls `db.$prepareInfra(controlSchemas, tenantSchemas)` on the control-plane DB, applies ACL via `auth.applyModuleAcl`, then runs each module's `$prepareRuntime()` in parallel via `run("$global", ...)`, then runs `mod.$prepareTenant?.(tenantId)` per tenant in parallel (failures aggregated into `AggregateError`).
 
 ### `run(tenantId, fn)`
 

@@ -49,7 +49,7 @@ Push schemas, apply ACL, and wire module runtimes.
 await p.$prepareInfra();
 ```
 
-Runs `db.$prepareInfra()` + `auth.$prepareInfra()` first (failures are fatal), then remaining units sequentially, merges `ModuleInfra` (`db` schemas + `auth.acl`), calls `db.prepareWithModules()` (control-plane push), `auth.applyModuleAcl()`, then each module's `$prepareRuntime()` via `run("$global", ...)`, then iterates `resolver.list()` to call `mod.$prepareTenant` per tenant.
+Runs `db.$prepareInfra()` + `auth.$prepareInfra()` first (failures are fatal), then remaining units in parallel, merges `ModuleInfra` (`db` schemas + `auth.acl`, collisions throw, ACL deduped), calls `db.$prepareInfra()` (control-plane push), `auth.applyModuleAcl()`, then each module's `$prepareRuntime()` in parallel via `run("$global", ...)`, then iterates `resolver.list()` to call `mod.$prepareTenant` per tenant in parallel (failures aggregated, not logged-and-swallowed).
 
 ## Step 3: Run in Request Context
 

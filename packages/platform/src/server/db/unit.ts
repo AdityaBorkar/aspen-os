@@ -3,10 +3,13 @@ import type {
   DatabaseConfig,
   IsolatedTenantDbConfig,
   IsolatedTenantProvisioningResult,
+  TenantConnectionOverrides,
 } from "#/server/db/types";
+import { resolveTenantConnection } from "#/server/db/types";
 import type { TenantResolver, SchemaMap } from "#/server/types";
 import { context } from "#/server/utils";
 
+import { pushSchema } from "drizzle-kit/api";
 import { drizzle } from "drizzle-orm/postgres-js";
 import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
@@ -15,21 +18,28 @@ import type { Sql } from "postgres";
 export type DrizzleDB<TSchemas extends SchemaMap = Record<string, never>> =
   PostgresJsDatabase<TSchemas>;
 
+/** Bound on cached per-tenant pools; the least-recently-used entry is evicted. */
+const MAX_TENANT_POOLS = 50;
+
+function toPostgresOptions(connection: IsolatedTenantDbConfig & { maxConnections?: number }) {
+  return {
+    database: connection.database,
+    host: connection.host,
+    max: connection.maxConnections ?? 20,
+    password: connection.password,
+    port: connection.port,
+    ssl: connection.ssl ? { rejectUnauthorized: false } : false,
+    username: connection.user,
+  };
+}
+
 export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   readonly $name = "db";
   readonly config: DatabaseConfig;
   readonly resolver: TenantResolver | undefined;
   readonly tenantDbPrefix: string | undefined;
   readonly controlPlaneDbName: string | undefined;
-  readonly tenantDbDefaults:
-    | {
-        host?: string;
-        password?: string;
-        port?: number;
-        ssl?: boolean;
-        user?: string;
-      }
-    | undefined;
+  readonly tenantDbDefaults: DatabaseConfig["tenantDbDefaults"];
 
   protected controlPlanePool: Sql;
   protected controlPlaneDbInstance: DrizzleDB<TSchemas>;
@@ -46,15 +56,17 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     this.tenantDbPrefix = config.tenantDbPrefix;
     this.tenantDbDefaults = config.tenantDbDefaults;
 
-    this.controlPlanePool = postgres({
-      database: config.database,
-      host: config.host,
-      max: config.maxConnections ?? 20,
-      password: config.password,
-      port: config.port,
-      ssl: config.ssl ? { rejectUnauthorized: false } : false,
-      username: config.user,
-    });
+    this.controlPlanePool = postgres(
+      toPostgresOptions({
+        database: config.database,
+        host: config.host,
+        maxConnections: config.maxConnections,
+        password: config.password,
+        port: config.port,
+        ssl: config.ssl ?? false,
+        user: config.user,
+      }),
+    );
     this.controlPlaneDbInstance = drizzle<TSchemas>(this.controlPlanePool);
 
     this.dbWrapper = this.createDbWrapper();
@@ -75,29 +87,24 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   /**
    * Record the aggregated module schemas for later tenant provisioning.
    * Called eagerly at platform construction (so `provisionTenant` works in
-   * any process) and again by `$prepareInfra`/`prepareWithModules`.
+   * any process) and again by `$prepareInfra`. Both call sites pass the full
+   * aggregation; there are no partial updates.
    */
-  setStoredSchemas(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}): void {
+  setStoredSchemas(controlPlaneSchemas: SchemaMap, tenantSchemas: SchemaMap): void {
     this.storedControlPlaneSchemas = controlPlaneSchemas;
     this.storedTenantSchemas = tenantSchemas;
   }
 
+  /**
+   * Push control-plane schemas. Existing tenant databases are not
+   * auto-migrated here; provision new tenants via `provisionTenant` (which
+   * uses the stored schemas) and migrate existing ones via
+   * `pushSchemasToTenant`.
+   */
   async $prepareInfra(controlPlaneSchemas: SchemaMap = {}, tenantSchemas: SchemaMap = {}) {
     this.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
     const schemas = { ...this.getSchemas(), ...controlPlaneSchemas };
     await this.pushSchemasTo(this.controlPlaneDbInstance, schemas);
-  }
-
-  async prepareWithModules(
-    controlPlaneSchemas: SchemaMap = {},
-    tenantSchemas: SchemaMap = {},
-  ): Promise<void> {
-    this.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
-    const allControlPlaneSchemas = {
-      ...this.getSchemas(),
-      ...controlPlaneSchemas,
-    };
-    await this.pushSchemasTo(this.controlPlaneDbInstance, allControlPlaneSchemas);
   }
 
   async $cleanup() {
@@ -112,22 +119,25 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
 
   async getTenantDb(tenantId: string): Promise<DrizzleDB<TSchemas>> {
     const database = await this.resolveDatabaseName(tenantId);
-    let entry = this.tenantPools.get(database);
-    if (!entry) {
-      const pool = postgres({
-        database,
-        host: this.tenantDbDefaults?.host ?? this.config.host,
-        password: this.tenantDbDefaults?.password ?? this.config.password,
-        port: this.tenantDbDefaults?.port ?? this.config.port,
-        ssl:
-          (this.tenantDbDefaults?.ssl ?? this.config.ssl) ? { rejectUnauthorized: false } : false,
-        username: this.tenantDbDefaults?.user ?? this.config.user,
-      });
-      const db = drizzle<TSchemas>(pool);
-      entry = { db, pool };
-      this.tenantPools.set(database, entry);
+    const cached = this.tenantPools.get(database);
+    if (cached) {
+      this.tenantPools.delete(database);
+      this.tenantPools.set(database, cached);
+      return cached.db;
     }
-    return entry.db;
+    const connection = resolveTenantConnection(this.config, database);
+    const pool = postgres(toPostgresOptions(connection));
+    const db = drizzle<TSchemas>(pool);
+    if (this.tenantPools.size >= MAX_TENANT_POOLS) {
+      const oldest = this.tenantPools.keys().next().value;
+      if (oldest !== undefined) {
+        const evicted = this.tenantPools.get(oldest);
+        this.tenantPools.delete(oldest);
+        await evicted?.pool.end().catch(() => {});
+      }
+    }
+    this.tenantPools.set(database, { db, pool });
+    return db;
   }
 
   /**
@@ -139,7 +149,8 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
    * double-apply the prefix). Otherwise the configured resolver wins when
    * it returns a non-empty name, falling back to the
    * `tenantDbPrefix_tenantId` convention — the same derivation
-   * `provisionTenant` uses.
+   * `provisionTenant` uses. Resolver failures are logged and fall back so a
+   * misconfigured resolver degrades visibly instead of silently misrouting.
    */
   async resolveDatabaseName(tenantId: string): Promise<string> {
     if (this.tenantDbPrefix && tenantId.startsWith(`${this.tenantDbPrefix}_`)) {
@@ -150,8 +161,10 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
       if (resolved) {
         return resolved;
       }
-    } catch {
-      // Fall through to the naming convention when a custom resolver fails.
+    } catch (error) {
+      console.warn(
+        `Tenant database resolution failed for "${tenantId}", falling back to naming convention (${error instanceof Error ? error.message : String(error)})`,
+      );
     }
     return this.tenantDbPrefix ? `${this.tenantDbPrefix}_${tenantId}` : tenantId;
   }
@@ -164,36 +177,14 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
 
   async provisionTenant(
     tenantId: string,
-    options?: {
-      databaseName?: string;
-      host?: string;
-      password?: string;
-      port?: number;
-      ssl?: boolean;
-      user?: string;
-    },
+    options?: TenantConnectionOverrides,
   ): Promise<IsolatedTenantProvisioningResult> {
     const database = options?.databaseName ?? (await this.resolveDatabaseName(tenantId));
-
-    const dbConfig: IsolatedTenantDbConfig = {
-      database,
-      host: options?.host ?? this.tenantDbDefaults?.host ?? this.config.host,
-      password: options?.password ?? this.tenantDbDefaults?.password ?? this.config.password,
-      port: options?.port ?? this.tenantDbDefaults?.port ?? this.config.port,
-      ssl: options?.ssl ?? this.tenantDbDefaults?.ssl ?? this.config.ssl ?? false,
-      user: options?.user ?? this.tenantDbDefaults?.user ?? this.config.user,
-    };
+    const dbConfig = resolveTenantConnection(this.config, database, options);
 
     await this.createTenantDatabase(dbConfig);
 
-    const pool = postgres({
-      database: dbConfig.database,
-      host: dbConfig.host,
-      password: dbConfig.password,
-      port: dbConfig.port,
-      ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-      username: dbConfig.user,
-    });
+    const pool = postgres(toPostgresOptions(dbConfig));
     const tenantDb = drizzle<TSchemas>(pool);
     try {
       const allTenantSchemas = {
@@ -215,14 +206,7 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
     dbConfig: IsolatedTenantDbConfig,
     fn: (db: DrizzleDB<TSchemas>) => Promise<void>,
   ): Promise<void> {
-    const pool = postgres({
-      database: dbConfig.database,
-      host: dbConfig.host,
-      password: dbConfig.password,
-      port: dbConfig.port,
-      ssl: dbConfig.ssl ? { rejectUnauthorized: false } : false,
-      username: dbConfig.user,
-    });
+    const pool = postgres(toPostgresOptions(dbConfig));
     try {
       const db = drizzle<TSchemas>(pool);
       await fn(db);
@@ -236,8 +220,6 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   }
 
   protected async pushSchemasTo(db: DrizzleDB<TSchemas>, schemas: SchemaMap): Promise<void> {
-    const { pushSchema } = await import("drizzle-kit/api");
-
     const adapter = {
       execute: async (query: Parameters<DrizzleDB<TSchemas>["execute"]>[0]) => ({
         // SAFETY: postgres-js resolves execute() to a rows array; the cast only
@@ -258,14 +240,16 @@ export class DatabaseUnit<TSchemas extends SchemaMap = Record<string, never>> {
   }
 
   private async createTenantDatabase(dbConfig: IsolatedTenantDbConfig): Promise<void> {
-    const admin = postgres({
-      database: this.controlPlaneDbName ?? "postgres",
-      host: this.config.host,
-      password: this.config.password,
-      port: this.config.port,
-      ssl: this.config.ssl ? { rejectUnauthorized: false } : false,
-      username: this.config.user,
-    });
+    const admin = postgres(
+      toPostgresOptions({
+        database: this.controlPlaneDbName ?? "postgres",
+        host: this.config.host,
+        password: this.config.password,
+        port: this.config.port,
+        ssl: this.config.ssl ?? false,
+        user: this.config.user,
+      }),
+    );
 
     try {
       const escapedName = `"${dbConfig.database.replaceAll('"', '""')}"`;

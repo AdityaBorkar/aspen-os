@@ -43,7 +43,7 @@ p.db.pool; // postgres-js Sql pool
 Merged module schemas are pushed to the control-plane DB; `getSchemas()` returns platform core schemas (`user`, `session`, `account`, `verification`, `logs`, `file_metadata`, `kv_store`, `audit_log`, `workflow_runs`, `workflow_steps`).
 
 ```ts
-await p.db.prepareWithModules(controlPlaneSchemas, tenantSchemas);
+await p.db.$prepareInfra(controlPlaneSchemas, tenantSchemas);
 // $prepareInfra merges schemas from all ModuleInfra then pushes
 ```
 

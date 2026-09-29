@@ -1,7 +1,7 @@
 import { AuditUnit } from "#/server/audit";
 import { AuthUnit } from "#/server/auth";
 import type { AuthConfig } from "#/server/auth";
-import { DatabaseUnit } from "#/server/db";
+import { DatabaseUnit, toDatabaseConfig } from "#/server/db";
 import type { IsolatedTenantDatabaseConfig } from "#/server/db";
 import { KvStoreUnit } from "#/server/kv-store";
 import type { KvStoreConfig } from "#/server/kv-store";
@@ -78,6 +78,72 @@ export type IsolatedTenantPlatformInstance<
   UnitAccessors<TSchemas> &
   ArrayModuleAccessors<TModules, ExtractModuleNames<TModules>[number]>;
 
+interface CollectedInfra {
+  acl: Record<string, readonly string[]>;
+  controlPlaneSchemas: SchemaMap;
+  tenantSchemas: SchemaMap;
+}
+
+function mergeSchemas(target: SchemaMap, source: SchemaMap, origin: string): void {
+  for (const [key, schema] of Object.entries(source)) {
+    if (key in target && target[key] !== schema) {
+      throw new Error(
+        `Schema collision: ${origin} schema "${key}" is already provided by another module`,
+      );
+    }
+    target[key] = schema;
+  }
+}
+
+/**
+ * Single aggregation for module schemas and ACLs. Used by both `create()` and
+ * `$prepareInfra()` so eager provisioning and infra preparation never drift.
+ * Schema collisions throw; ACL actions are deduped per resource.
+ */
+function collectModuleInfra(modules: readonly Module[]): CollectedInfra {
+  const controlPlaneSchemas: SchemaMap = {};
+  const tenantSchemas: SchemaMap = {};
+  const actionsByResource = new Map<string, Set<string>>();
+  for (const mod of modules) {
+    const infra = mod.$prepareInfra?.();
+    if (!infra) {
+      continue;
+    }
+    mergeSchemas(
+      controlPlaneSchemas,
+      infra.db.control_plane_schemas,
+      `module "${mod.$name}" control-plane`,
+    );
+    mergeSchemas(tenantSchemas, infra.db.tenant_schemas, `module "${mod.$name}" tenant`);
+    for (const [resource, actions] of Object.entries(infra.auth.acl)) {
+      let seen = actionsByResource.get(resource);
+      if (!seen) {
+        seen = new Set();
+        actionsByResource.set(resource, seen);
+      }
+      for (const action of actions) {
+        seen.add(action);
+      }
+    }
+  }
+  const acl: Record<string, readonly string[]> = {};
+  for (const [resource, seen] of actionsByResource) {
+    acl[resource] = [...seen];
+  }
+  return { acl, controlPlaneSchemas, tenantSchemas };
+}
+
+async function prepareWithLabel(name: string, fn: () => Promise<void>): Promise<void> {
+  try {
+    await fn();
+  } catch (error) {
+    throw new Error(
+      `Failed to prepare unit "${name}": ${error instanceof Error ? error.message : String(error)}`,
+      { cause: error },
+    );
+  }
+}
+
 export class IsolatedTenantPlatform<
   TModules extends Module[],
   TSchemas extends SchemaMap = MergedSchemas<TModules>,
@@ -93,19 +159,23 @@ export class IsolatedTenantPlatform<
 
   protected readonly modules: TModules;
   protected readonly units: PlatformUnits<TSchemas>;
-  private readonly dbUnit: DatabaseUnit<TSchemas>;
+  readonly #moduleByName = new Map<string, Module>();
 
   constructor(units: PlatformUnits<TSchemas>, modules: TModules) {
     this.units = units;
     this.modules = modules;
-    this.dbUnit = units.db;
+    for (const mod of modules) {
+      this.#moduleByName.set(mod.$name, mod);
+    }
     return new Proxy(this, {
       get(target, prop, _receiver) {
         if (prop in target.units) {
           // SAFETY: proxy access for a unit name resolves to the matching unit.
           return target.units[prop as keyof PlatformUnits<TSchemas>];
         }
-        const mod = target.modules.find((module) => module.$name === prop);
+        // SAFETY: module `$name` keys are strings; symbol keys miss the map
+        // and fall through to the wrapped instance below.
+        const mod = target.#moduleByName.get(prop as string);
         if (mod) {
           return mod;
         }
@@ -119,30 +189,7 @@ export class IsolatedTenantPlatform<
     config: IsolatedTenantConfig,
     modules: TModules,
   ): IsolatedTenantPlatformInstance<TModules> {
-    const { tenantDbPrefix } = config.db;
-    const db = new DatabaseUnit<MergedSchemas<TModules>>({
-      controlPlaneDbName: config.db.controlPlaneDbName,
-      database: config.db.controlDbName,
-      host: config.db.connection.host,
-      maxConnections: config.db.pool?.maxConnections,
-      password: config.db.connection.password,
-      port: config.db.connection.port,
-      resolver: {
-        // Default resolver mirrors `DatabaseUnit.resolveDatabaseName` so
-        // `resolveDatabase`, `provisionTenant`, and `getTenantDb` agree.
-        // (The exact `${prefix}_${tenantId}` concatenation is preserved
-        // for backward compatibility with already-provisioned databases;
-        // configure the prefix without a trailing underscore for new deployments.)
-        // SAFETY: empty list is the complete tenant set until a real resolver is configured.
-        list: async () => [] as string[],
-        resolve: async (tenantId: string) =>
-          tenantDbPrefix ? `${tenantDbPrefix}_${tenantId}` : tenantId,
-      },
-      ssl: config.db.connection.ssl,
-      tenantDbDefaults: config.db.tenantDbDefaults,
-      tenantDbPrefix: config.db.tenantDbPrefix,
-      user: config.db.connection.user,
-    });
+    const db = new DatabaseUnit<MergedSchemas<TModules>>(toDatabaseConfig(config.db));
     const core = IsolatedTenantPlatform.createCore<TModules, MergedSchemas<TModules>>(
       db,
       config,
@@ -152,16 +199,8 @@ export class IsolatedTenantPlatform<
     // tenant databases in any process — not only ones that ran $prepareInfra.
     // (Previously tenants onboarded from the dev server/seed got platform
     // tables only, silently missing all domain tables.)
-    const storedControl: SchemaMap = {};
-    const storedTenant: SchemaMap = {};
-    for (const mod of modules) {
-      const infra = mod.$prepareInfra?.();
-      if (infra) {
-        Object.assign(storedControl, infra.db.control_plane_schemas);
-        Object.assign(storedTenant, infra.db.tenant_schemas);
-      }
-    }
-    db.setStoredSchemas(storedControl, storedTenant);
+    const { controlPlaneSchemas, tenantSchemas } = collectModuleInfra(modules);
+    db.setStoredSchemas(controlPlaneSchemas, tenantSchemas);
     // SAFETY: create() returned an instance whose units/modules match the merged schema type.
     return new IsolatedTenantPlatform<TModules>(
       core.units,
@@ -199,89 +238,95 @@ export class IsolatedTenantPlatform<
   }
 
   async $prepareInfra(): Promise<void> {
-    // Commons
-    const controlSchemas: SchemaMap = {};
-    const tenantSchemas: SchemaMap = {};
-    const acl: Record<string, string[]> = {};
+    const { acl, controlPlaneSchemas, tenantSchemas } = collectModuleInfra(this.modules);
+    await this.prepareUnits(controlPlaneSchemas, tenantSchemas, acl);
+    await this.prepareRuntimeModules();
+    await this.prepareTenantModules();
+  }
 
-    // Preparing Modules
-    for (const mod of this.modules) {
-      const infra = mod.$prepareInfra?.();
-      if (infra) {
-        Object.assign(controlSchemas, infra.db.control_plane_schemas);
-        Object.assign(tenantSchemas, infra.db.tenant_schemas);
-        for (const [resource, actions] of Object.entries(infra.auth.acl)) {
-          if (!acl[resource]) {
-            acl[resource] = [];
-          }
-          acl[resource] = [...acl[resource], ...actions];
-        }
-      }
-    }
+  private async prepareUnits(
+    controlPlaneSchemas: SchemaMap,
+    tenantSchemas: SchemaMap,
+    acl: Record<string, readonly string[]>,
+  ): Promise<void> {
+    // db and auth have no ordering dependency; remaining units are independent.
+    await Promise.all([
+      prepareWithLabel(this.units.db.$name, () =>
+        this.units.db.$prepareInfra(controlPlaneSchemas, tenantSchemas),
+      ),
+      prepareWithLabel(this.units.auth.$name, () => this.units.auth.$prepareInfra(acl)),
+    ]);
+    const rest = Object.values(this.units).filter(
+      (unit) => unit.$name !== "db" && unit.$name !== "auth",
+    );
+    await Promise.all(
+      rest.map((unit) =>
+        prepareWithLabel(unit.$name, () => unit.$prepareInfra?.() ?? Promise.resolve()),
+      ),
+    );
+  }
 
-    // Preparing Units — failures are fatal so callers never see a false success.
-    try {
-      await this.units.db.$prepareInfra(controlSchemas, tenantSchemas);
-    } catch (error) {
-      throw new Error(
-        `Failed to prepare unit "${this.units.db.$name}": ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
-    try {
-      await this.units.auth.$prepareInfra(acl);
-    } catch (error) {
-      throw new Error(
-        `Failed to prepare unit "${this.units.auth.$name}": ${error instanceof Error ? error.message : String(error)}`,
-        { cause: error },
-      );
-    }
-    // oxlint-disable eslint/no-await-in-loop
-    for (const unit of Object.values(this.units)) {
-      if (unit.$name === "db" || unit.$name === "auth") {
-        continue;
-      }
-      try {
-        await unit.$prepareInfra?.();
-      } catch (error) {
-        throw new Error(
-          `Failed to prepare unit "${unit.$name}": ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
+  private async prepareRuntimeModules(): Promise<void> {
+    const outcomes = await Promise.allSettled(
+      this.modules.map((mod) => this.run("$global", () => mod.$prepareRuntime?.())),
+    );
+    const failures: unknown[] = [];
+    outcomes.forEach((outcome, index) => {
+      if (outcome.status === "rejected") {
+        const name = this.modules[index]?.$name ?? `#${index}`;
+        const message =
+          outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+        failures.push(
+          new Error(`Failed to prepare module "${name}": ${message}`, { cause: outcome.reason }),
         );
       }
+    });
+    if (failures.length > 0) {
+      throw new AggregateError(failures, `Failed to prepare ${failures.length} module(s)`);
     }
-    // oxlint-enable eslint/no-await-in-loop
+  }
 
-    // Preparing Runtime Modules
-    // oxlint-disable eslint/no-await-in-loop
-    for (const mod of this.modules) {
-      try {
-        await this.run("$global", () => mod.$prepareRuntime?.());
-      } catch (error) {
-        throw new Error(
-          `Failed to prepare module "${mod.$name}": ${error instanceof Error ? error.message : String(error)}`,
-          { cause: error },
-        );
+  private async prepareTenantModules(): Promise<void> {
+    const tenantIds = (await this.units.db.resolver?.list()) ?? [];
+    const outcomes = await Promise.allSettled(
+      tenantIds.map((tenantId) => this.prepareOneTenant(tenantId)),
+    );
+    const failures: unknown[] = [];
+    for (const outcome of outcomes) {
+      if (outcome.status === "rejected") {
+        failures.push(outcome.reason);
       }
     }
-    // oxlint-enable eslint/no-await-in-loop
+    if (failures.length > 0) {
+      throw new AggregateError(failures, `Failed to prepare ${failures.length} tenant(s)`);
+    }
+  }
 
-    // Preparing Tenant Modules
-    const tenantIds = (await this.dbUnit.resolver?.list()) || [];
-    // oxlint-disable eslint/no-await-in-loop
-    for (const tenantId of tenantIds) {
-      await this.run(tenantId, async () => {
-        for (const mod of this.modules) {
-          await mod.$prepareTenant?.(tenantId).catch((error) => {
-            console.error(
-              `Failed to prepare tenant "${tenantId}" for module "${mod.$name}"`,
-              error,
-            );
-          });
+  private async prepareOneTenant(tenantId: string): Promise<void> {
+    await this.run(tenantId, async () => {
+      const outcomes = await Promise.allSettled(
+        this.modules.map((mod) => mod.$prepareTenant?.(tenantId) ?? Promise.resolve()),
+      );
+      const failures: unknown[] = [];
+      outcomes.forEach((outcome, index) => {
+        if (outcome.status === "rejected") {
+          const name = this.modules[index]?.$name ?? `#${index}`;
+          const message =
+            outcome.reason instanceof Error ? outcome.reason.message : String(outcome.reason);
+          failures.push(
+            new Error(`Failed to prepare tenant "${tenantId}" for module "${name}": ${message}`, {
+              cause: outcome.reason,
+            }),
+          );
         }
       });
-    }
-    // oxlint-enable eslint/no-await-in-loop
+      if (failures.length > 0) {
+        throw new AggregateError(
+          failures,
+          `Failed to prepare tenant "${tenantId}" for ${failures.length} module(s)`,
+        );
+      }
+    });
   }
 
   async $cleanup(): Promise<void> {
@@ -300,13 +345,13 @@ export class IsolatedTenantPlatform<
   }
 
   getModule<TKey extends TModules[number]["$name"]>(name: TKey): ModuleByName<TModules, TKey> {
-    const mod = this.modules.find(
-      (module): module is ModuleByName<TModules, TKey> => module.$name === name,
-    );
+    const mod = this.#moduleByName.get(name);
     if (!mod) {
       throw new Error(`Module "${name}" not found`);
     }
-    return mod;
+    // SAFETY: the by-name map is built from this.modules, so a hit for `name`
+    // is the module whose `$name` equals `name`.
+    return mod as ModuleByName<TModules, TKey>;
   }
 
   getUnit<TKey extends keyof PlatformUnits<TSchemas>>(name: TKey): PlatformUnits<TSchemas>[TKey] {
