@@ -10,7 +10,7 @@ Downstream of the Platform (Customer–Supplier). Stateless — `$initialize()`,
 
 - `Accounting.create(config?)` — factory; `$config: Required<AccountingModuleConfig> = { baseCurrency: "INR" }`
 - `$name = "accounting"`, `$dependencies = ["masters"]`
-- 21 workflow groups exposed as `readonly`: `accounts`, `fiscalYears`, `journals`, `journalTemplates`, `taxTemplates`, `termsTemplates`, `paymentTerms`, `quotations`, `salesOrders`, `deliveries`, `salesInvoices`, `materialRequests`, `rfqs`, `supplierQuotations`, `purchaseOrders`, `receipts`, `purchaseInvoices`, `payments`, `reconciliation`, `assets`, `reports` (137 actions total)
+- 21 workflow groups exposed as `readonly`: `accounts`, `fiscalYears`, `journals`, `journalTemplates`, `taxTemplates`, `termsTemplates`, `paymentTerms`, `quotations`, `salesOrders`, `deliveries`, `salesInvoices`, `materialRequests`, `rfqs`, `supplierQuotations`, `purchaseOrders`, `receipts`, `purchaseInvoices`, `payments`, `reconciliation`, `assets`, `reports` (136 actions total; `purchaseOrders` holds 9 — reorder detection lives in `inventory.reorder`)
 - 37 database tables (all `tenant_schemas`, `control_plane_schemas = {}`): `accounting_account`, `accounting_fiscal_year`, `accounting_journal_entry`, `accounting_journal_line`, `accounting_gl_entry`, 8 sales tables, 12 purchase tables, 3 payment tables, 4 asset tables, 3 tax tables, 2 settings tables — plus 17 `accounting_*` pgEnums in `tenant_schemas`
 - 42 domain events published via PubSub (`AccountingEventMap` across 17 `*_EVENTS` maps)
 - 18 ACL resources via `defineAcl()` (no `journal`/`journal_template`/`terms_template` entries)
@@ -33,7 +33,7 @@ p.accounting.salesInvoices      { create, list, get, submit, cancel, createCredi
 p.accounting.materialRequests   { create, list, get }
 p.accounting.rfqs               { create, list, get }
 p.accounting.supplierQuotations { create, list, get, convert, compare }
-p.accounting.purchaseOrders     { create, list, get, submit, cancel, close, hold, resume, reorderSignal, updateRate }
+p.accounting.purchaseOrders     { create, list, get, submit, cancel, close, hold, resume, updateRate }
 p.accounting.receipts           { create, list, get, cancel }
 p.accounting.purchaseInvoices   { create, list, get, submit, cancel, hold, releaseHold, createDebitNote, markOverdue, getOverdue, writeOff }
 p.accounting.payments           { create, list, get, cancel }

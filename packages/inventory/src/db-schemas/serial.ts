@@ -3,6 +3,9 @@ import { inventorySerialStatusEnum } from "#/db-schemas/enums";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, numeric, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+// Single owner: inventory owns serial rows. Products owns the flags
+// (has_serial_no/serial_number_series on products_item) — validate flags via
+// products.items.get before creating serial rows.
 export const inventorySerial = pgTable(
   "inventory_serial",
   {

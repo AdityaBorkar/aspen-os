@@ -17,6 +17,10 @@ import {
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 
+// Single-owner snapshots: products owns items/UOMs/prices/reorder policy,
+// inventory owns warehouses/stock/breaches. Purchase docs store snapshots
+// only — material requests are created off inventory.reorder_triggered,
+// never by a local reorder scan.
 export const accountingMaterialRequest = pgTable(
   "accounting_material_request",
   {

@@ -1,0 +1,1147 @@
+<!doctype html>
+<html lang="en" class="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>DATA_PATTERN.md — Platform Data-Structure Refactor Report</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              border: "hsl(var(--border))",
+              input: "hsl(var(--input))",
+              ring: "hsl(var(--ring))",
+              background: "hsl(var(--background))",
+              foreground: "hsl(var(--foreground))",
+              primary: {
+                DEFAULT: "hsl(var(--primary))",
+                foreground: "hsl(var(--primary-foreground))",
+              },
+              secondary: {
+                DEFAULT: "hsl(var(--secondary))",
+                foreground: "hsl(var(--secondary-foreground))",
+              },
+              destructive: {
+                DEFAULT: "hsl(var(--destructive))",
+                foreground: "hsl(var(--destructive-foreground))",
+              },
+              muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
+              accent: {
+                DEFAULT: "hsl(var(--accent))",
+                foreground: "hsl(var(--accent-foreground))",
+              },
+              card: { DEFAULT: "hsl(var(--card))", foreground: "hsl(var(--card-foreground))" },
+            },
+            borderRadius: {
+              lg: "var(--radius)",
+              md: "calc(var(--radius) - 2px)",
+              sm: "calc(var(--radius) - 4px)",
+            },
+            fontFamily: { mono: ["ui-monospace", "SFMono-Regular", "Menlo", "monospace"] },
+          },
+        },
+      };
+    </script>
+    <style>
+      :root {
+        --background: 0 0% 100%;
+        --foreground: 240 10% 3.9%;
+        --card: 0 0% 100%;
+        --card-foreground: 240 10% 3.9%;
+        --primary: 240 5.9% 10%;
+        --primary-foreground: 0 0% 98%;
+        --secondary: 240 4.8% 95.9%;
+        --secondary-foreground: 240 5.9% 10%;
+        --muted: 240 4.8% 95.9%;
+        --muted-foreground: 240 3.8% 46.1%;
+        --accent: 240 4.8% 95.9%;
+        --accent-foreground: 240 5.9% 10%;
+        --destructive: 0 84.2% 60.2%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 5.9% 90%;
+        --input: 240 5.9% 90%;
+        --ring: 240 5.9% 10%;
+        --radius: 0.5rem;
+      }
+      .dark {
+        --background: 240 10% 3.9%;
+        --foreground: 0 0% 98%;
+        --card: 240 10% 5.9%;
+        --card-foreground: 0 0% 98%;
+        --primary: 0 0% 98%;
+        --primary-foreground: 240 5.9% 10%;
+        --secondary: 240 3.7% 15.9%;
+        --secondary-foreground: 0 0% 98%;
+        --muted: 240 3.7% 15.9%;
+        --muted-foreground: 240 5% 64.9%;
+        --accent: 240 3.7% 15.9%;
+        --accent-foreground: 0 0% 98%;
+        --destructive: 0 62.8% 30.6%;
+        --destructive-foreground: 0 0% 98%;
+        --border: 240 3.7% 15.9%;
+        --input: 240 3.7% 15.9%;
+        --ring: 240 4.9% 83.9%;
+      }
+      html {
+        scroll-behavior: smooth;
+        scroll-padding-top: 5rem;
+      }
+      .tabbtn[aria-selected="true"] {
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+      }
+      .acc-body {
+        display: none;
+      }
+      .acc[data-open="true"] .acc-body {
+        display: block;
+      }
+      .acc[data-open="true"] .acc-chev {
+        transform: rotate(180deg);
+      }
+      .row-hidden {
+        display: none !important;
+      }
+      ::selection {
+        background: hsl(var(--primary));
+        color: hsl(var(--primary-foreground));
+      }
+    </style>
+  </head>
+  <body class="bg-background text-foreground antialiased">
+    <!-- ===== Header ===== -->
+    <header class="sticky top-0 z-50 w-full border-b border-border bg-background/80 backdrop-blur">
+      <div class="mx-auto flex h-14 max-w-7xl items-center gap-4 px-4">
+        <span
+          class="flex h-7 w-7 items-center justify-center rounded-md bg-primary text-primary-foreground font-bold text-xs"
+          >DP</span
+        >
+        <h1 class="text-sm font-semibold tracking-tight">
+          DATA_PATTERN · <span class="text-muted-foreground">@aspen-os/platform</span>
+        </h1>
+        <nav class="ml-auto hidden items-center gap-1 text-sm md:flex">
+          <a
+            href="#inventory"
+            class="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >Inventory</a
+          >
+          <a
+            href="#patterns"
+            class="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >Patterns</a
+          >
+          <a
+            href="#efficiency"
+            class="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >Efficiency</a
+          >
+          <a
+            href="#roadmap"
+            class="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >Roadmap</a
+          >
+          <a
+            href="#risks"
+            class="rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+            >Risks</a
+          >
+        </nav>
+        <button
+          id="themeBtn"
+          class="ml-auto rounded-md border border-border p-2 text-muted-foreground hover:bg-accent hover:text-accent-foreground md:ml-0"
+          title="Toggle theme"
+          aria-label="Toggle theme"
+        >
+          <svg
+            id="icon-moon"
+            class="h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+          </svg>
+          <svg
+            id="icon-sun"
+            class="hidden h-4 w-4"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="12" cy="12" r="4" />
+            <path
+              d="M12 2v2m0 16v2M4.9 4.9l1.4 1.4m11.4 11.4 1.4 1.4M2 12h2m16 0h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"
+            />
+          </svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-4 py-10">
+      <!-- ===== Hero ===== -->
+      <section class="mb-12">
+        <div class="flex flex-wrap items-center gap-2 mb-3">
+          <span
+            class="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium"
+            >Report only — no code changes</span
+          >
+          <span
+            class="inline-flex items-center rounded-full border border-border bg-secondary px-2.5 py-0.5 text-xs font-medium"
+            >Reference: refactoring.guru/design-patterns/catalog</span
+          >
+        </div>
+        <h2 class="text-4xl font-bold tracking-tight sm:text-5xl">
+          Platform Data-Structure<br class="hidden sm:block" />
+          Refactor Report
+        </h2>
+        <p class="mt-4 max-w-2xl text-muted-foreground">
+          How refactoring
+          <code class="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">packages/platform/</code>
+          around established design patterns leads to better code and measurable efficiencies.
+          Scope: <code class="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">src/server/</code> +
+          <code class="rounded bg-muted px-1.5 py-0.5 text-sm font-mono">src/client/</code>.
+        </p>
+
+        <div class="mt-8 grid grid-cols-2 gap-4 sm:grid-cols-4">
+          <div class="rounded-lg border border-border bg-card p-4">
+            <div class="text-3xl font-bold" data-count="14">0</div>
+            <div class="mt-1 text-xs text-muted-foreground">Pattern opportunities</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-4">
+            <div class="text-3xl font-bold" data-count="16">0</div>
+            <div class="mt-1 text-xs text-muted-foreground">Files verified</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-4">
+            <div class="text-3xl font-bold text-amber-500" data-count="3">0</div>
+            <div class="mt-1 text-xs text-muted-foreground">Highest-impact fixes</div>
+          </div>
+          <div class="rounded-lg border border-border bg-card p-4">
+            <div class="text-3xl font-bold text-emerald-500" data-count="6">0</div>
+            <div class="mt-1 text-xs text-muted-foreground">Roadmap phases</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Section 1: Clarification ===== -->
+      <section class="mb-14">
+        <div class="rounded-lg border border-border bg-card p-6">
+          <h3 class="flex items-center gap-2 text-lg font-semibold">
+            <span
+              class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+              >1</span
+            >
+            Clarification
+          </h3>
+          <p class="mt-3 text-sm text-muted-foreground leading-relaxed">
+            The reference catalog documents
+            <strong class="text-foreground">design patterns</strong>, not classic data structures
+            (array, tree, hash table, queue). This report therefore maps catalog patterns to the
+            <strong class="text-foreground"
+              >data structures and data flows already in
+              <code class="font-mono text-xs">platform/</code></strong
+            >, and identifies where a different structure removes a smell or bottleneck.
+          </p>
+          <details class="group mt-4">
+            <summary
+              class="flex cursor-pointer items-center gap-2 text-sm font-medium text-foreground"
+            >
+              <svg
+                class="h-4 w-4 text-muted-foreground transition-transform group-open:rotate-90"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                viewBox="0 0 24 24"
+              >
+                <path d="m9 18 6-6-6-6" />
+              </svg>
+              Verified sources
+            </summary>
+            <div class="mt-3 flex flex-wrap gap-1.5" id="sourceList"></div>
+          </details>
+        </div>
+      </section>
+
+      <!-- ===== Section 2: Inventory ===== -->
+      <section id="inventory" class="mb-14 scroll-mt-20">
+        <div class="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <h3 class="flex items-center gap-2 text-lg font-semibold">
+              <span
+                class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+                >2</span
+              >
+              Current data-structure inventory
+            </h3>
+            <p class="text-sm text-muted-foreground">
+              Click a row to highlight it. Type to filter by file, structure, or role.
+            </p>
+          </div>
+          <div class="relative w-full sm:w-72">
+            <svg
+              class="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              viewBox="0 0 24 24"
+            >
+              <circle cx="11" cy="11" r="8" />
+              <path d="m21 21-4.3-4.3" />
+            </svg>
+            <input
+              id="invSearch"
+              type="text"
+              placeholder="Filter inventory…"
+              class="h-9 w-full rounded-md border border-input bg-transparent pl-8 pr-3 text-sm outline-none ring-ring placeholder:text-muted-foreground focus:ring-2"
+            />
+          </div>
+        </div>
+        <div class="overflow-x-auto rounded-lg border border-border">
+          <table class="w-full text-sm">
+            <thead
+              class="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground"
+            >
+              <tr>
+                <th class="px-4 py-3">Location</th>
+                <th class="px-4 py-3">Current structure</th>
+                <th class="px-4 py-3">Role</th>
+              </tr>
+            </thead>
+            <tbody id="invBody" class="divide-y divide-border"></tbody>
+          </table>
+          <div id="invEmpty" class="hidden px-4 py-8 text-center text-sm text-muted-foreground">
+            No rows match your filter.
+          </div>
+        </div>
+      </section>
+
+      <!-- ===== Section 3: Patterns ===== -->
+      <section id="patterns" class="mb-14 scroll-mt-20">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <span
+            class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+            >3</span
+          >
+          Pattern-mapped opportunities
+        </h3>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Findings grouped by the refactoring.guru catalog. Expand any card for location, finding,
+          before/after code, and estimated real-world advantage.
+        </p>
+        <div
+          class="mt-4 flex items-start gap-2 rounded-lg border border-amber-500/30 bg-amber-500/5 px-4 py-3"
+        >
+          <svg
+            class="mt-0.5 h-4 w-4 shrink-0 text-amber-500"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2"
+            viewBox="0 0 24 24"
+          >
+            <circle cx="12" cy="12" r="10" />
+            <path d="M12 8v4m0 4h.01" />
+          </svg>
+          <p class="text-xs text-muted-foreground">
+            <strong class="text-foreground">Note:</strong> code snippets are illustrative for this
+            report only — no source files have been changed. Impact figures are order-of-magnitude
+            estimates derived from the cited code paths, not benchmarks.
+          </p>
+        </div>
+
+        <div
+          role="tablist"
+          class="mt-6 inline-flex h-10 items-center justify-center rounded-lg bg-muted p-1 text-muted-foreground"
+          id="ptabs"
+        >
+          <button
+            role="tab"
+            aria-selected="true"
+            data-tab="creational"
+            class="tabbtn rounded-md px-4 py-1.5 text-sm font-medium transition-all"
+          >
+            Creational <span class="ml-1 rounded-full bg-background/40 px-1.5 text-xs">3</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-tab="structural"
+            class="tabbtn rounded-md px-4 py-1.5 text-sm font-medium transition-all"
+          >
+            Structural <span class="ml-1 rounded-full bg-background/40 px-1.5 text-xs">5</span>
+          </button>
+          <button
+            role="tab"
+            aria-selected="false"
+            data-tab="behavioral"
+            class="tabbtn rounded-md px-4 py-1.5 text-sm font-medium transition-all"
+          >
+            Behavioral <span class="ml-1 rounded-full bg-background/40 px-1.5 text-xs">6</span>
+          </button>
+        </div>
+
+        <div id="tabPanels" class="mt-6"></div>
+      </section>
+
+      <!-- ===== Section 4: Efficiency ===== -->
+      <section id="efficiency" class="mb-14 scroll-mt-20">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <span
+            class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+            >4</span
+          >
+          Efficiency summary
+        </h3>
+        <div class="mt-4 overflow-x-auto rounded-lg border border-border">
+          <table class="w-full text-sm">
+            <thead
+              class="bg-muted/50 text-left text-xs uppercase tracking-wider text-muted-foreground"
+            >
+              <tr>
+                <th class="px-4 py-3">Change</th>
+                <th class="px-4 py-3">Gain</th>
+                <th class="px-4 py-3">Cost if skipped</th>
+                <th class="px-4 py-3">Est. impact</th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-border" id="effBody"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ===== Section 5: Roadmap ===== -->
+      <section id="roadmap" class="mb-14 scroll-mt-20">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <span
+            class="flex h-6 w-6 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary"
+            >5</span
+          >
+          Recommended order
+        </h3>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Click a phase to see what it covers. Phases 1–4 change runtime behavior; 5–6 are
+          maintainability-only.
+        </p>
+        <ol class="relative mt-6 space-y-2 border-l border-border pl-6" id="roadmapList"></ol>
+      </section>
+
+      <!-- ===== Section 6: Risks ===== -->
+      <section id="risks" class="mb-10 scroll-mt-20">
+        <h3 class="flex items-center gap-2 text-lg font-semibold">
+          <span
+            class="flex h-6 w-6 items-center justify-center rounded-md bg-destructive/15 text-xs font-bold text-destructive"
+            >6</span
+          >
+          Non-goals &amp; risks
+        </h3>
+        <div class="mt-4 grid gap-3 md:grid-cols-2" id="riskGrid"></div>
+      </section>
+
+      <footer class="border-t border-border pt-6 pb-4 text-center text-xs text-muted-foreground">
+        DATA_PATTERN.md (interactive edition) · Generated from static analysis of
+        <code class="font-mono">packages/platform/</code> · Before/after snippets are illustrative
+        proposals, not committed changes · Claims bounded to files read;
+        <code class="font-mono">workflows/engine.ts</code>, RPC
+        <code class="font-mono">base.ts</code>/<code class="font-mono">index.ts</code>, and client
+        units were not re-verified.
+      </footer>
+    </main>
+
+    <script>
+      /* ---------------- data ---------------- */
+      const sources = [
+        "platform.ts",
+        "types.ts",
+        "utils.ts",
+        "db/unit.ts",
+        "kv-store/unit.ts",
+        "log/unit.ts",
+        "log/utils.ts",
+        "pubsub/unit.ts",
+        "storage/unit.ts",
+        "auth/unit.ts",
+        "rpc/router.ts",
+      ];
+
+      const inventory = [
+        [
+          "platform.ts:162",
+          "Map&lt;string, Module&gt; #moduleByName",
+          "O(1) module lookup by $name",
+        ],
+        ["platform.ts:170", "Proxy over TenantPlatform", "Unit-first, module-second dispatch"],
+        [
+          "platform.ts:106,223",
+          "Map&lt;string, Set&gt; + Set",
+          "ACL dedupe in collectModuleInfra, dependency validation",
+        ],
+        [
+          "platform.ts:87,13",
+          "Record SchemaMap, JsonValue (types.ts:13,18)",
+          "Schema merge, KV payloads",
+        ],
+        [
+          "db/unit.ts:49",
+          "Map&lt;string, {db, pool}&gt; tenantPools",
+          "Per-tenant pool cache, manual LRU",
+        ],
+        ["db/unit.ts:267", "Proxy dbWrapper", "AsyncLocalStorage-resolved tenant DB"],
+        [
+          "db/unit.ts:46-47",
+          "Record storedControlPlane/TenantSchemas",
+          "Eager schema store for provisionTenant",
+        ],
+        [
+          "kv-store/unit.ts:29-30",
+          "Postgres table + LIKE scan",
+          "get/set/del/exists/increment/clear/scan",
+        ],
+        [
+          "log/utils.ts:29",
+          "LogEntry[] + splice + flushing flag",
+          "100-entry write buffer, 5s flush (log/unit.ts:56)",
+        ],
+        [
+          "pubsub/unit.ts:29-30",
+          "Map subscriptions, Map&lt;string, number&gt; producedTopics",
+          "Consumer registry, unsubscribed-topic health check",
+        ],
+        [
+          "storage/unit.ts:27-46",
+          "Facade over S3Adapter + FileMetadataService, closure getKey",
+          "Logical→physical <prefix>/<tenant>/<logical> mapping",
+        ],
+        [
+          "auth/unit.ts:112,150",
+          "Rebuilt AuthRestApi object, rebuilt betterAuth service",
+          "buildRest(), createBetterAuthService()",
+        ],
+        [
+          "utils.ts:29",
+          "AsyncLocalStorage&lt;Context&gt; singleton",
+          "Ambient {db, audit, auth, pubsub, log, tenantId…}",
+        ],
+        ["rpc/router.ts:6", "Nested object router = {echo, health: {check}}", "Composite router"],
+      ];
+
+      const patterns = {
+        creational: [
+          {
+            n: 1,
+            title: "Factory Method / Abstract Factory",
+            badge: "Consolidate",
+            refs: ["db/unit.ts:24,129,187", "log/utils.ts:65", "auth/unit.ts:150"],
+            finding:
+              "Three tenant-DB creation sites duplicate pool + drizzle wiring. A single tenant-DB factory removes drift and centralizes maxConnections, SSL, and eviction policy.",
+            gain: "Fewer misconfigured pools; one place to add metrics/limits.",
+            before: `// Today — four independent creation sites (db/unit.ts)
+this.controlPlanePool = postgres(toPostgresOptions(cfg));     // :59
+const pool  = postgres(toPostgresOptions(connection));        // :129 getTenantDb
+const pool2 = postgres(toPostgresOptions(dbConfig));          // :187 provisionTenant
+const admin = postgres(toPostgresOptions({ ...adminCfg }));   // :243 createTenantDatabase`,
+            after: `// Proposed — one factory owns every pool lifecycle
+const handle = this.poolFactory.create(database, {
+  max: cfg.maxConnections,
+  ssl: cfg.ssl,
+  role: "tenant" | "control" | "admin",
+});
+// metrics, eviction and error mapping added once — all callers inherit`,
+            impact: [
+              "4 duplicated wiring sites → 1",
+              "Config drift between paths becomes impossible",
+              "Pool metrics added once, inherited everywhere",
+            ],
+          },
+          {
+            n: 2,
+            title: "Builder",
+            badge: "Explicit wiring",
+            refs: ["platform.ts:207 createCore", "auth/unit.ts:157 plugin list"],
+            finding:
+              "8-unit wiring order and 8-plugin auth list are positional literals. A builder makes ordering, conditional plugins (e.g. captcha), and per-env overrides explicit.",
+            gain: "Safer construction, self-documenting composition.",
+            before: `// Today — platform.ts:207, order is implicit and hand-maintained
+const logs   = new LogUnit(config.logs, { db });
+const audit  = new AuditUnit({ db });
+const pubsub = new PubSubUnit(config.pubsub, { audit, db, log: logs });
+const auth   = new AuthUnit(config.auth, { db, pubsub });
+pubsub.setAuth(auth);                  // cross-wired after the fact
+const rpc    = new RpcUnit({ auth, db, logs, pubsub }, config.rpc);`,
+            after: `// Proposed — builder encodes dependency order once
+const core = Platform.units(db)
+  .add(LogUnit).add(AuditUnit).add(PubSubUnit)
+  .add(AuthUnit).add(StorageUnit).add(KvStoreUnit)
+  .add(RpcUnit)
+  .build(config);        // missing dependency fails here, loudly`,
+            impact: [
+              "New unit = 1 line, not a re-derived wiring order",
+              "Missing deps fail at build(), not on first request",
+            ],
+          },
+          {
+            n: 3,
+            title: "Prototype / Singleton",
+            badge: "Document & keep",
+            refs: [
+              "utils.ts:29 context",
+              "pubsub/unit.ts:40 single PgBoss",
+              "log/utils.ts:107 pino logger",
+            ],
+            finding:
+              "Already effectively singletons. Document them as such; avoid a second boss/ALS instance. Prototype-clone hot LogEntry shapes instead of rebuilding metadata objects per child() call (log/unit.ts:95).",
+            gain: "Predictable identity; less per-call allocation.",
+            before: `// Today — log/unit.ts:95, every child() call rebuilds a full logger
+child(ctx) {
+  const mergeMeta = (meta) => ({ ...ctx, ...meta });
+  return { debug: ..., error: ..., fatal: ..., info: ...,
+           log: ..., warn: ... };              // 6 fresh closures
+}`,
+            after: `// Proposed — cache children by context key
+#children = new Map();   // serialized ctx -> ChildLogger
+child(ctx) {
+  const k = stableKey(ctx);
+  return this.#children.get(k) ?? this.#children.set(k, this.makeChild(ctx)).get(k);
+}`,
+            impact: [
+              "1 cached object per distinct context instead of 6 closures per call",
+              "Less allocation on hot per-request logging paths",
+            ],
+          },
+        ],
+        structural: [
+          {
+            n: 4,
+            title: "Proxy",
+            badge: "Keep",
+            refs: ["platform.ts:170", "db/unit.ts:267"],
+            finding:
+              "Correct structure for a stable platform.db.db across tenants. Do not replace with conditional branches in workflows. One upgrade fits the same pattern: make getOrSet a true virtual proxy (single-flight).",
+            gain: "Zero workflow-code churn when tenant routing changes.",
+            before: `// Today — kv-store/unit.ts:128, concurrent misses each run the factory
+const cached = await this.get(key);
+if (cached !== null) return cached;
+const value = await factory();       // k concurrent callers -> k executions
+await this.set(key, value, ttl);
+return value;`,
+            after: `// Proposed — virtual proxy: in-flight promise map
+const pending = this.#inflight.get(fullKey);
+if (pending) return pending;         // k misses -> exactly 1 execution
+const job = factory().finally(() => this.#inflight.delete(fullKey));
+this.#inflight.set(fullKey, job);
+return job;`,
+            impact: [
+              "k concurrent cold misses → 1 factory run",
+              "Protects expensive factories: RPC fan-outs, report builds",
+              "No second write racing the first",
+            ],
+          },
+          {
+            n: 5,
+            title: "Adapter / Bridge",
+            badge: "Narrow surface",
+            refs: [
+              "db/unit.ts:223 pushSchema adapter",
+              "auth/unit.ts:159 drizzleAdapter",
+              "storage/unit.ts S3Adapter",
+            ],
+            finding:
+              "Correct use. Gap: DatabaseUnit exposes db, controlPlaneDb, and pool. A narrower Bridge (control-plane handle vs tenant handle) reduces accidental cross-tenant writes.",
+            gain: "Harder to misroute writes; smaller blast radius.",
+            before: `// Today — db/unit.ts exposes three surfaces of unequal safety
+platform.db.db              // tenant-resolving proxy (safe)
+platform.db.controlPlaneDb  // control-plane handle (bypasses tenant)
+platform.db.pool            // raw driver pool (bypasses everything)`,
+            after: `// Proposed — two typed handles; raw pool stays internal
+platform.db.tenant    // TenantHandle   — only per-tenant operations
+platform.db.control   // ControlHandle  — only control-plane operations
+// pool is private; provisioning goes through the unit API`,
+            impact: [
+              "Cross-tenant writes become a compile error, not a code-review catch",
+              "Smaller API surface to document and test",
+            ],
+          },
+          {
+            n: 6,
+            title: "Composite",
+            badge: "Encapsulate",
+            refs: ["rpc/router.ts:6", "platform.ts:103 schema merge", "types.ts:33 ModuleInfra"],
+            finding:
+              "Schema merge via object spread + mergeSchemas collision check (platform.ts:87) is O(n) and correct, but Record allows silent key typos. An encapsulated SchemaRegistry (Composite + Encapsulate Collection) preserves behavior while giving one collision/ownership site.",
+            gain: "Errors surface at registration, not at push time.",
+            before: `// Today — platform.ts:87 + db/unit.ts:106, Record + spread
+const controlPlaneSchemas: SchemaMap = {};
+mergeSchemas(controlPlaneSchemas, infra.db.control_plane_schemas, origin);
+...
+const schemas = { ...this.getSchemas(), ...controlPlaneSchemas };`,
+            after: `// Proposed — registry owns collision + ownership policy
+const registry = new SchemaRegistry();
+registry.addAll(mod.infra.db.tenant_schemas, { owner: mod.$name });
+// throws at registration: schema "tasks" owned by "tasks", given by "calendar"
+db.useRegistry(registry);  // provisionTenant reads the same object — no copies`,
+            impact: [
+              "Collision errors surface at module registration (dev), not schema push (deploy)",
+              "3 spread-copies replaced by one shared object",
+            ],
+          },
+          {
+            n: 7,
+            title: "Facade",
+            badge: "Add idempotency",
+            refs: ["storage/unit.ts:27", "log/unit.ts:16", "platform.ts:147"],
+            finding:
+              "StorageUnit correctly hides S3 + Postgres metadata. move (storage/unit.ts:101) and archive (storage/unit.ts:51) are copy-then-delete sequences; the facade is the right place to add idempotency keys without leaking partial-copy state to callers.",
+            gain: "Safe retries on multi-step storage operations.",
+            before: `// Today — storage/unit.ts:51, copy-then-delete with no recovery token
+await this.ops.copy(key, destKey);
+await this.metadata.markArchived(key, destKey);
+await this.ops.remove(key);   // crash here = data in two places, or gone`,
+            after: `// Proposed — durable operation record before first mutation
+await ops.begin("archive", { key, destKey });   // record intent
+await ops.copy(...);
+await ops.remove(...);
+await ops.commit("archive");   // a retry resumes, never duplicates`,
+            impact: [
+              "Retries resume instead of duplicating objects",
+              "No orphaned copies after partial failure",
+            ],
+          },
+          {
+            n: 8,
+            title: "Flyweight / Encapsulate Collection",
+            badge: "Refactor LRU",
+            refs: [
+              "platform.ts:106 ACL Set",
+              "db/unit.ts:49 pool cache",
+              "log/unit.ts:9 LEVEL_PRIORITY",
+            ],
+            finding:
+              "ACL dedupe already uses Set — keep it, converting to arrays only at the boundary (platform.ts:130). Tenant pools reuse connections correctly, but LRU is hand-rolled (db/unit.ts:122-139: delete+re-set, keys().next() eviction). Encapsulate the Map as an LruCache and lift the magic MAX_TENANT_POOLS = 50 (db/unit.ts:22) into config.",
+            gain: "Testable eviction, predictable memory bound.",
+            before: `// Today — db/unit.ts:122-139, inline hand-rolled LRU + magic constant
+const cached = this.tenantPools.get(db);
+if (cached) { this.tenantPools.delete(db); this.tenantPools.set(db, cached); }
+if (this.tenantPools.size >= 50) {           // MAX_TENANT_POOLS, db/unit.ts:22
+  const oldest = this.tenantPools.keys().next().value;
+  await this.tenantPools.get(oldest)?.pool.end();
+}`,
+            after: `// Proposed — encapsulated, configurable cache
+this.tenantPools = new LruCache<DbHandle>({ max: config.maxTenantPools });
+const { value, evicted } = await this.tenantPools.acquire(db, load);
+if (evicted) await evicted.pool.end();       // unit-testable, observable`,
+            impact: [
+              "Cap becomes configuration (was hard-coded 50)",
+              "Eviction order + hit/miss ratios become testable metrics",
+              "Same O(1) Map operations — zero perf regression",
+            ],
+          },
+        ],
+        behavioral: [
+          {
+            n: 9,
+            title: "Iterator",
+            badge: "Highest I/O impact",
+            refs: ["kv-store/unit.ts:168 scan()", "pubsub/unit.ts:228 job loop"],
+            hot: true,
+            finding:
+              "scan emulates Redis SCAN with LIMIT/OFFSET (kv-store/unit.ts:178). Offset scans degrade on large kv_store tables, and clear() (kv-store/unit.ts:138) then issues N individual deletes via Promise.all. A keyset iterator (WHERE key > lastKey ORDER BY key LIMIT n) + one DELETE WHERE key IN (…) or DELETE WHERE key LIKE … removes N+1 round trips. Also: wrapHandler awaits each job sequentially (pubsub/unit.ts:230) — preserve per-topic ordering but allow bounded concurrency for independent tenants.",
+            gain: "Linear scan without offset penalty; one delete instead of N.",
+            before: `// Today — kv-store/unit.ts:168 + :138
+const rows = await query.limit(count).offset(offset);  // OFFSET scan
+...
+await Promise.all(keys.map(k =>                        // one DELETE per key
+  this.db.delete(kvStore).where(eq(kvStore.key, k))));`,
+            after: `// Proposed — keyset pagination + one batched statement
+let last = "";
+for (;;) {
+  const rows = await db.select().from(kvStore)
+    .where(and(like(key, pgPattern), gt(key, last)))   // index seek
+    .orderBy(key).limit(500);                          // no OFFSET
+  if (rows.length === 0) break;
+  last = rows[rows.length - 1].key;
+}
+await db.delete(kvStore).where(like(kvStore.key, pgPattern)); // 1 stmt`,
+            impact: [
+              "clear() of 100 keys: ~101 round trips → 2 (−98%)",
+              "Constant cost vs O(offset) decay on million-row tables",
+              "1 connection busy instead of N concurrent deletes",
+            ],
+          },
+          {
+            n: 10,
+            title: "Observer / Mediator",
+            badge: "Keep, bound it",
+            refs: [
+              "pubsub/unit.ts:73,121 publish/subscribe",
+              "pubsub/unit.ts:265,274 producedTopics",
+            ],
+            finding:
+              "producedTopics: Map<string, number> + getUnsubscribedProducedTopics() is a sound Mediator health signal. Keep it in memory; do not persist. Add bounded size to avoid unbounded growth when topics are dynamic.",
+            gain: "Early missing-subscriber detection without memory creep.",
+            before: `// Today — pubsub/unit.ts:266, unbounded growth on dynamic topic names
+this.producedTopics.set(
+  topic,
+  (this.producedTopics.get(topic) ?? 0) + count,
+);`,
+            after: `// Proposed — bounded registry with eviction hook
+this.produced = new BoundedMap({ max: 1000, onEvict: (t) => log.warn("topic tracking evicted", { topic: t }) });`,
+            impact: [
+              "Memory bounded under dynamic/generated topic names",
+              "Health check stays O(topics) — unchanged",
+            ],
+          },
+          {
+            n: 11,
+            title: "State / Strategy",
+            badge: "Replace type codes",
+            refs: [
+              "pubsub/unit.ts:31 bossStarted",
+              "log/utils.ts:30 flushing",
+              "db/unit.ts:155 resolveDatabaseName",
+            ],
+            hot: true,
+            finding:
+              "Lazy boss start and resolver-fallback are implicit state machines with stringly-typed flags (cursor: string in kv-store/unit.ts:143, tenantId in utils.ts:94). Replace Type Code with State/Strategy: explicit BossState, TenantResolutionStrategy, numeric cursor object. Fixes Primitive Obsession and makes fallback logging testable.",
+            gain: "Explicit states, testable fallback paths.",
+            before: `// Today — implicit state machines via nulls and string parsing
+private bossStarted: Promise<void> | null = null;      // pubsub/unit.ts:31
+let cursor = "0";                                      // kv-store/unit.ts:143
+if (error.message.includes("already exists")) return;  // db/unit.ts:258`,
+            after: `// Proposed — explicit states and injected strategies
+type BossState = "idle" | "starting" | "ready" | "stopped";
+const cursor = new KeysetCursor({ column: "key", batch: 500 });
+await tenantStrategy.resolve(tenantId);  // injected, mockable in tests`,
+            impact: [
+              "Control flow no longer depends on error-message text",
+              "Fallback paths testable without a live Postgres",
+              "Primitive Obsession smell removed",
+            ],
+          },
+          {
+            n: 12,
+            title: "Command / Chain of Responsibility",
+            badge: "Add metrics",
+            refs: ["pubsub publish/publishBatch/schedule", "platform.ts:243 prepare chain"],
+            finding:
+              "toBossOptions (pubsub/unit.ts:278) correctly strips undefined keys. withQueueEnsured (pubsub/unit.ts:175) is a retry Command — keep it but record queue-creation metrics so fire-and-forget publishes do not hide missing consumers.",
+            gain: "Visibility into auto-created queues.",
+            before: `// Today — pubsub/unit.ts:175, auto-create is invisible
+await this.boss.createQueue(topic);   // no record, no metric
+return await operation();`,
+            after: `// Proposed — the retry command reports itself
+metrics.count("pubsub.queue.autocreate", { topic });
+this.log.warn("auto-created missing queue", { topic });
+return await operation();`,
+            impact: [
+              "Missing consumers surface in dashboards, not only health.check",
+              "Auto-create rate becomes an alertable signal",
+            ],
+          },
+          {
+            n: 13,
+            title: "Memento / Template Method",
+            badge: "Fix drain",
+            refs: [
+              "log/utils.ts:25 buffer",
+              "db/unit.ts:93 setStoredSchemas",
+              "types.ts:44 Unit lifecycle",
+            ],
+            hot: true,
+            finding:
+              "drain() (log/utils.ts:54) flushes only one 100-entry window — if the buffer overflowed, entries remain after $cleanup. A loop-until-empty drain (Memento) guarantees no loss on shutdown. The buffer itself should be a ring queue, not push/splice(0,n) (log/utils.ts:32,44), which shifts the array on every flush.",
+            gain: "O(1) enqueue; zero lost logs at shutdown.",
+            before: `// Today — log/utils.ts:29-56, array + splice, single-window drain
+const buffer: LogEntry[] = [];
+push(entry) { buffer.push(entry); if (full) void flush(); }
+flush() { const batch = buffer.splice(0, size); ... }  // shifts the array
+drain() { await flush(); }   // only ONE 100-entry window survives $cleanup`,
+            after: `// Proposed — ring buffer + drain-until-empty
+const ring = new RingBuffer(capacity);     // O(1) push, no shifting
+async drain() {
+  while (ring.size() > 0) {
+    await flushFn(ring.takeBatch());
+  }
+}                                          // $cleanup loses nothing`,
+            impact: [
+              "O(1) enqueue (was array shift at the flush boundary)",
+              "0 lost logs at shutdown (drain previously covered one window)",
+              "No reallocation per flush → less GC pressure",
+            ],
+          },
+          {
+            n: 14,
+            title: "Visitor",
+            badge: "Keep separate",
+            refs: ["log/query-service.ts (log/unit.ts:33)", "pubsub/unit.ts:274 health visitor"],
+            finding:
+              "Keep query/stats visitors separate from the write buffer. Do not merge read and write paths into one class (avoids the Large Class smell).",
+            gain: "Independent scaling and testing of read/write paths.",
+          },
+        ],
+      };
+
+      const efficiency = [
+        [
+          "Keyset iterator + batched clear in KV",
+          "Linear scan without offset penalty; 1 delete vs N",
+          "Full-table slowdown, connection churn under cleanup",
+          "100-key clear: ~101 → 2 queries (−98%); constant-time scans on large tables",
+        ],
+        [
+          "Ring buffer + loop drain in logs",
+          "O(1) enqueue, no lost logs on shutdown",
+          "Array shifts, dropped tail on bursty shutdown",
+          "O(1) enqueue; 0 lost logs at $cleanup (was up to one 100-entry window)",
+        ],
+        [
+          "Encapsulated LRU for tenant pools",
+          "Predictable memory bound, testable eviction",
+          "Pool leak or premature evict under >50 tenants",
+          "Bounded pool memory at a configurable cap; eviction becomes a tested unit",
+        ],
+        [
+          "Atomic getOrSet / single-flight in KV (kv-store/unit.ts:128)",
+          "No thundering-herd factory calls",
+          "Duplicate expensive factory() work, race overwrites",
+          "k concurrent cold misses collapse to exactly 1 factory execution",
+        ],
+        [
+          "Bounded producedTopics, queue-creation metric",
+          "Early missing-subscriber detection",
+          "Silent durable queue growth",
+          "Bounded memory; missing consumers visible in dashboards, not just health.check",
+        ],
+        [
+          "Schema/ACL registry objects",
+          "One collision site, fewer string-key errors",
+          "Schema collision only at push time",
+          "Collisions surface at registration (dev), not at schema push (deploy)",
+        ],
+      ];
+
+      const roadmap = [
+        [
+          "KV scan/clear batching",
+          "Largest DB efficiency win. Replace offset SCAN with keyset iteration; batch deletes. Estimated: a 100-key clear drops from ~101 queries to 2 (−98% round trips); scans stay constant-time on million-row tables.",
+        ],
+        [
+          "Log buffer ring + drain loop",
+          "Correctness (no lost logs) + CPU. Ring queue for O(1) enqueue; drain until empty. Estimated: 0 lost logs at $cleanup (previously one 100-entry window could survive) and no array reallocation per flush.",
+        ],
+        [
+          "LRU encapsulation + configurable cap",
+          "Memory predictability. Extract LruCache; lift MAX_TENANT_POOLS into config. Estimated: bounded pool memory at an operator-chosen cap; eviction becomes a tested, observable unit.",
+        ],
+        [
+          "getOrSet single-flight / DB upsert guard",
+          "Correctness under concurrency. Prevent duplicate factory calls and race overwrites. Estimated: k concurrent cold misses collapse to exactly 1 factory execution.",
+        ],
+        [
+          "Registry/Builder cleanups",
+          "Maintainability only, no runtime change: schemas, ACL, platform core, auth plugins. Estimated: schema collisions surface at module registration (dev) instead of schema push (deploy).",
+        ],
+        [
+          "Explicit State/Strategy",
+          "Debuggability: boss lifecycle and tenant resolution become explicit, testable states. Estimated: fallback/resume paths become unit-testable without a live Postgres instance.",
+        ],
+      ];
+
+      const risks = [
+        [
+          "Do not swap Map/Set for plain objects",
+          "Record (types.ts:13) is for static schemas, not dynamic lookup. Registries must stay Map/Set.",
+        ],
+        [
+          "Do not persist in-memory structures",
+          "producedTopics and log buffers are intentionally in-memory; syncing them to Postgres adds latency for no benefit.",
+        ],
+        [
+          "Preserve per-tenant isolation in batching",
+          "Any batching must respect tenantPrefix (kv-store/unit.ts:159) and the S3 getKey mapping (storage/unit.ts:37).",
+        ],
+        [
+          "Coverage caveat",
+          "This catalog is about object collaboration, not asymptotic data structures. Claims are bounded to files read.",
+        ],
+      ];
+
+      /* ---------------- render ---------------- */
+      const $ = (s) => document.querySelector(s);
+
+      // sources
+      $("#sourceList").innerHTML = sources
+        .map(
+          (s) =>
+            `<code class="rounded-md border border-border bg-muted px-2 py-1 font-mono text-xs">src/server/${s}</code>`,
+        )
+        .join("");
+
+      // inventory
+      $("#invBody").innerHTML = inventory
+        .map(
+          ([loc, struct, role]) => `
+  <tr class="cursor-pointer transition-colors hover:bg-muted/50">
+    <td class="px-4 py-3 font-mono text-xs whitespace-nowrap text-foreground">${loc}</td>
+    <td class="px-4 py-3 text-muted-foreground">${struct}</td>
+    <td class="px-4 py-3 text-muted-foreground">${role}</td>
+  </tr>`,
+        )
+        .join("");
+      $("#invBody").addEventListener("click", (e) => {
+        const tr = e.target.closest("tr");
+        document.querySelectorAll("#invBody tr").forEach((r) => r.classList.remove("bg-accent"));
+        if (tr) tr.classList.add("bg-accent");
+      });
+      $("#invSearch").addEventListener("input", (e) => {
+        const q = e.target.value.toLowerCase();
+        let visible = 0;
+        document.querySelectorAll("#invBody tr").forEach((tr) => {
+          const hit = tr.textContent.toLowerCase().includes(q);
+          tr.classList.toggle("row-hidden", !hit);
+          if (hit) visible++;
+        });
+        $("#invEmpty").classList.toggle("hidden", visible > 0);
+      });
+
+      // pattern tabs
+      function impactBadge(t) {
+        return (
+          '<span class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">' +
+          t +
+          "</span>"
+        );
+      }
+
+      function codeCompare(p) {
+        return `
+    <div class="mt-4 grid gap-3 lg:grid-cols-2">
+      <div class="overflow-hidden rounded-md border border-border">
+        <div class="border-b border-border bg-muted/60 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Before — today's code</div>
+        <pre class="overflow-x-auto p-3 font-mono text-[11px] leading-relaxed text-muted-foreground">${p.before}</pre>
+      </div>
+      <div class="overflow-hidden rounded-md border border-emerald-500/30">
+        <div class="border-b border-emerald-500/20 bg-emerald-500/5 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">After — proposed</div>
+        <pre class="overflow-x-auto p-3 font-mono text-[11px] leading-relaxed text-foreground">${p.after}</pre>
+      </div>
+    </div>
+    <div class="mt-3 rounded-md border border-emerald-500/25 bg-emerald-500/5 px-3 py-2.5">
+      <div class="mb-2 text-[11px] font-semibold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Estimated real-world advantage</div>
+      <div class="flex flex-wrap gap-1.5">${p.impact.map(impactBadge).join("")}</div>
+      <p class="mt-2 text-[11px] text-muted-foreground">Estimates are order-of-magnitude, derived from the cited code paths — not benchmarks.</p>
+    </div>`;
+      }
+
+      function renderPanels(tab) {
+        $("#tabPanels").innerHTML = patterns[tab]
+          .map(
+            (p) => `
+    <div class="acc mb-3 overflow-hidden rounded-lg border border-border bg-card" data-open="false">
+      <button class="acc-head flex w-full items-center gap-3 px-5 py-4 text-left hover:bg-muted/50">
+        <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-primary/10 text-xs font-bold text-primary">${p.n}</span>
+        <span class="font-semibold">${p.title}</span>
+        <span class="${p.hot ? "inline-flex items-center rounded-full bg-amber-500/15 px-2.5 py-0.5 text-xs font-medium text-amber-500 border border-amber-500/30" : "inline-flex items-center rounded-full bg-secondary px-2.5 py-0.5 text-xs font-medium text-secondary-foreground border border-border"}">${p.badge}</span>
+        <svg class="acc-chev ml-auto h-4 w-4 shrink-0 text-muted-foreground transition-transform" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div class="acc-body border-t border-border px-5 py-4">
+        <div class="mb-3 flex flex-wrap gap-1.5">
+          ${p.refs.map((r) => `<code class="rounded border border-border bg-muted px-1.5 py-0.5 font-mono text-[11px] text-muted-foreground">${r}</code>`).join("")}
+        </div>
+        <p class="text-sm leading-relaxed text-foreground"><span class="font-semibold text-muted-foreground">Finding — </span>${p.finding}</p>
+        <p class="mt-2 text-sm leading-relaxed"><span class="font-semibold text-emerald-500">Efficiency — </span><span class="text-muted-foreground">${p.gain}</span></p>
+        ${p.before ? codeCompare(p) : ""}
+      </div>
+    </div>`,
+          )
+          .join("");
+        document.querySelectorAll(".acc-head").forEach((h) =>
+          h.addEventListener("click", () => {
+            const acc = h.closest(".acc");
+            acc.dataset.open = acc.dataset.open === "true" ? "false" : "true";
+          }),
+        );
+      }
+      renderPanels("creational");
+      document.querySelectorAll(".tabbtn").forEach((btn) =>
+        btn.addEventListener("click", () => {
+          document
+            .querySelectorAll(".tabbtn")
+            .forEach((b) => b.setAttribute("aria-selected", "false"));
+          btn.setAttribute("aria-selected", "true");
+          renderPanels(btn.dataset.tab);
+        }),
+      );
+
+      // efficiency
+      $("#effBody").innerHTML = efficiency
+        .map(
+          ([c, g, cost, est]) => `
+  <tr class="hover:bg-muted/50">
+    <td class="px-4 py-3 font-medium">${c}</td>
+    <td class="px-4 py-3 text-emerald-600 dark:text-emerald-400">${g}</td>
+    <td class="px-4 py-3 text-amber-600 dark:text-amber-400">${cost}</td>
+    <td class="px-4 py-3"><span class="rounded-full bg-emerald-500/10 px-2 py-0.5 text-[11px] font-medium text-emerald-600 dark:text-emerald-400">${est}</span></td>
+  </tr>`,
+        )
+        .join("");
+
+      // roadmap
+      $("#roadmapList").innerHTML = roadmap
+        .map(
+          ([t, d], i) => `
+  <li class="relative">
+    <button class="rm-item w-full rounded-lg border border-border bg-card px-4 py-3 text-left transition-all hover:border-primary/40 hover:bg-muted/50" data-open="false">
+      <div class="flex items-center gap-3">
+        <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-bold ${i < 4 ? "bg-amber-500/15 text-amber-500" : "bg-secondary text-muted-foreground"}">${i + 1}</span>
+        <span class="font-medium">${t}</span>
+        <span class="ml-auto text-xs text-muted-foreground">${i < 4 ? "runtime change" : "no runtime change"}</span>
+      </div>
+      <p class="rm-body mt-2 hidden pl-9 text-sm text-muted-foreground">${d}</p>
+    </button>
+  </li>`,
+        )
+        .join("");
+      document
+        .querySelectorAll(".rm-item")
+        .forEach((btn) =>
+          btn.addEventListener("click", () =>
+            btn.querySelector(".rm-body").classList.toggle("hidden"),
+          ),
+        );
+
+      // risks
+      $("#riskGrid").innerHTML = risks
+        .map(
+          ([t, d]) => `
+  <div class="rounded-lg border border-border bg-card p-4">
+    <div class="flex items-start gap-2">
+      <svg class="mt-0.5 h-4 w-4 shrink-0 text-destructive" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4m0 4h.01"/></svg>
+      <div><h4 class="text-sm font-semibold">${t}</h4><p class="mt-1 text-sm text-muted-foreground">${d}</p></div>
+    </div>
+  </div>`,
+        )
+        .join("");
+
+      // theme toggle
+      $("#themeBtn").addEventListener("click", () => {
+        const dark = document.documentElement.classList.toggle("dark");
+        $("#icon-moon").classList.toggle("hidden", !dark);
+        $("#icon-sun").classList.toggle("hidden", dark);
+      });
+
+      // count-up stats
+      document.querySelectorAll("[data-count]").forEach((el) => {
+        const target = +el.dataset.count;
+        let cur = 0;
+        const step = Math.max(1, Math.ceil(target / 20));
+        const tick = () => {
+          cur = Math.min(target, cur + step);
+          el.textContent = cur;
+          if (cur < target) requestAnimationFrame(tick);
+        };
+        requestAnimationFrame(tick);
+      });
+    </script>
+  </body>
+</html>

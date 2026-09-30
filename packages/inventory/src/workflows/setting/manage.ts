@@ -37,23 +37,14 @@ export const updateSetting = Workflow.name("inventory.setting.update")
     if (parsed.allowNegativeStock !== undefined) {
       values.allow_negative_stock = parsed.allowNegativeStock;
     }
-    if (parsed.autoInsertPriceIfMissing !== undefined) {
-      values.auto_insert_price_if_missing = parsed.autoInsertPriceIfMissing;
-    }
     if (parsed.autoReserveOnPurchase !== undefined) {
       values.auto_reserve_on_purchase = parsed.autoReserveOnPurchase;
     }
     if (parsed.batchNamingSeries !== undefined) {
       values.batch_naming_series = parsed.batchNamingSeries;
     }
-    if (parsed.cleanDescriptionHtml !== undefined) {
-      values.clean_description_html = parsed.cleanDescriptionHtml;
-    }
     if (parsed.defaultValuationMethod !== undefined) {
       values.default_valuation_method = parsed.defaultValuationMethod;
-    }
-    if (parsed.defaultWarehouseId !== undefined) {
-      values.default_warehouse_id = parsed.defaultWarehouseId;
     }
     if (parsed.enableSerialBatch !== undefined) {
       values.enable_serial_batch = parsed.enableSerialBatch;
@@ -70,20 +61,8 @@ export const updateSetting = Workflow.name("inventory.setting.update")
     if (parsed.freezeUptoDate !== undefined) {
       values.freeze_upto_date = parsed.freezeUptoDate ? toDateOnly(parsed.freezeUptoDate) : null;
     }
-    if (parsed.limitPercent !== undefined) {
-      values.limit_percent = parsed.limitPercent;
-    }
-    if (parsed.overDeliverReceiveRole !== undefined) {
-      values.over_deliver_receive_role = parsed.overDeliverReceiveRole;
-    }
     if (parsed.sampleRetentionWarehouseId !== undefined) {
       values.sample_retention_warehouse_id = parsed.sampleRetentionWarehouseId;
-    }
-    if (parsed.showBarcodeField !== undefined) {
-      values.show_barcode_field = parsed.showBarcodeField;
-    }
-    if (parsed.stockUomDefault !== undefined) {
-      values.stock_uom_default = parsed.stockUomDefault;
     }
     if (parsed.uomRestrictToItemConversions !== undefined) {
       values.uom_restrict_to_item_conversions = parsed.uomRestrictToItemConversions;

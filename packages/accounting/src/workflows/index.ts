@@ -63,7 +63,6 @@ import { createPurchaseOrder } from "#/workflows/purchase-order/create";
 import { getPurchaseOrder } from "#/workflows/purchase-order/get";
 import { holdPurchaseOrder } from "#/workflows/purchase-order/hold";
 import { listPurchaseOrders } from "#/workflows/purchase-order/list";
-import { reorderSignal } from "#/workflows/purchase-order/reorder-signal";
 import { resumePurchaseOrder } from "#/workflows/purchase-order/resume";
 import { submitPurchaseOrder } from "#/workflows/purchase-order/submit";
 import { updateRateFromLastPurchase } from "#/workflows/purchase-order/update-rate";
@@ -254,7 +253,6 @@ export const purchaseOrders = {
   get: getPurchaseOrder,
   hold: holdPurchaseOrder,
   list: listPurchaseOrders,
-  reorderSignal,
   resume: resumePurchaseOrder,
   submit: submitPurchaseOrder,
   updateRate: updateRateFromLastPurchase,

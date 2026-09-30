@@ -26,6 +26,12 @@ export const productsValuationMethodEnum = pgEnum("products_valuation_method", [
   VALUATION_METHOD.FIFO,
   VALUATION_METHOD.MOVING_AVERAGE,
 ]);
+// Single owner of the method declaration: products declares the per-item
+// valuation_method (products_item.valuation_method, nullable → inventory
+// fallback). Inventory owns the engine (posting/pricing.ts, stock-math.ts)
+// and the global default (inventory_setting.default_valuation_method).
+// Keep values in sync with inventory VALUATION_METHOD; PG types stay
+// separate because packages cannot share DB enums.
 
 export const productsMaterialRequestTypeEnum = pgEnum("products_material_request_type", [
   MATERIAL_REQUEST_TYPE.MANUFACTURE,

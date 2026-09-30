@@ -82,9 +82,9 @@
 
 ### Order-to-Cash / Procure-to-Pay documents
 
-Headers (`status`: draft/submitted/cancelled/closed/hold) + item rows. All follow `create/list/get/submit/cancel` plus stage extras (`convert`, `close/hold/resume`, `creditNote/debitNote`, `markOverdue/writeOff`, `compare`, `reorderSignal/updateRate`).
+Headers (`status`: draft/submitted/cancelled/closed/hold) + item rows. All follow `create/list/get/submit/cancel` plus stage extras (`convert`, `close/hold/resume`, `creditNote/debitNote`, `markOverdue/writeOff`, `compare`, `updateRate`). Reorder detection is singly owned by `inventory.reorder.breaches` — accounting holds no `reorderSignal` duplicate.
 
-**Groups**: `quotations` (7), `salesOrders` (9), `deliveries` (4), `salesInvoices` (9), `materialRequests` (3), `rfqs` (3), `supplierQuotations` (5), `purchaseOrders` (10), `receipts` (4), `purchaseInvoices` (11), `payments` (4).
+**Groups**: `quotations` (7), `salesOrders` (9), `deliveries` (4), `salesInvoices` (9), `materialRequests` (3), `rfqs` (3), `supplierQuotations` (5), `purchaseOrders` (9), `receipts` (4), `purchaseInvoices` (11), `payments` (4).
 
 ### Reconciliation + Reports
 

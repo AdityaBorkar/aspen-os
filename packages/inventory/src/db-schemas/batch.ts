@@ -3,6 +3,9 @@ import { inventoryBatchStatusEnum } from "#/db-schemas/enums";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+// Single owner: inventory owns batch rows. Products owns the flags
+// (has_batch_no/auto_create_batch/batch_number_series on products_item) —
+// validate flags via products.items.get before creating batch rows.
 export const inventoryBatch = pgTable(
   "inventory_batch",
   {

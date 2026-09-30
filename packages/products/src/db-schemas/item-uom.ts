@@ -1,6 +1,9 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single owner: products owns canonical UOM conversions. Inventory legs and
+// accounting lines store uom + factor snapshots only — resolve via
+// products.itemUoms / priceFetch.getRate, never a second master.
 export const productsItemUom = pgTable(
   "products_item_uom",
   {

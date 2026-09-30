@@ -8,6 +8,11 @@ import {
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, date, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single-owner snapshots: products owns items/UOMs/prices/tax pointers,
+// inventory owns warehouses/stock. Accounting lines store snapshots only
+// (item_id/item_name, uom/uom_factor, rate/amount, warehouse_id,
+// item_tax_template_id) — resolve via products.lookups/priceFetch and
+// inventory.warehouses at create time; accounting owns GL/tax computation.
 export const accountingQuotation = pgTable(
   "accounting_quotation",
   {

@@ -77,6 +77,11 @@ export const inventoryValuationMethodEnum = pgEnum("inventory_valuation_method",
   VALUATION_METHOD.FIFO,
   VALUATION_METHOD.MOVING_AVERAGE,
 ]);
+// Single owner of the engine: inventory computes valuation (posting/pricing,
+// stock-math) and owns the global default
+// (inventory_setting.default_valuation_method). Products owns the per-item
+// declaration (products_item.valuation_method). Keep values in sync with
+// products VALUATION_METHOD; PG types stay separate by package isolation.
 
 export const inventoryReconcileModeEnum = pgEnum("inventory_reconcile_mode", [
   RECONCILE_MODE.ALL,

@@ -1,6 +1,10 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { date, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single owner: inventory owns all stock movements via the append-only
+// ledger. Accounting delivery/receipt/invoice docs are fulfilment records —
+// they must delegate to inventory.stockEntries (or rich events), never write
+// ledger rows directly.
 export const inventoryStockLedger = pgTable(
   "inventory_stock_ledger",
   {

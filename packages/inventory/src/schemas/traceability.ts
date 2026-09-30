@@ -106,22 +106,15 @@ export type ExpiringBatchesInput = InferOutput<typeof ExpiringBatchesSchema>;
 export const UpdateSettingSchema = object({
   allowEditStockUomQty: optional(boolean()),
   allowNegativeStock: optional(boolean()),
-  autoInsertPriceIfMissing: optional(boolean()),
   autoReserveOnPurchase: optional(boolean()),
   batchNamingSeries: optional(nullable(string())),
-  cleanDescriptionHtml: optional(boolean()),
   defaultValuationMethod: optional(ValuationMethodSchema),
-  defaultWarehouseId: optional(nullable(IdSchema)),
   enableSerialBatch: optional(boolean()),
   enableStockReservation: optional(boolean()),
   freezeAllowedRole: optional(nullable(string())),
   freezeOlderThanDays: optional(nullable(PositiveQuantitySchema)),
   freezeUptoDate: optional(nullable(DateStringSchema)),
-  limitPercent: optional(nullable(number())),
-  overDeliverReceiveRole: optional(nullable(string())),
   sampleRetentionWarehouseId: optional(nullable(IdSchema)),
-  showBarcodeField: optional(boolean()),
-  stockUomDefault: optional(nullable(string())),
   uomRestrictToItemConversions: optional(boolean()),
 });
 

@@ -17,6 +17,9 @@ export const VALUATION_METHOD = {
   FIFO: "fifo",
   MOVING_AVERAGE: "moving_average",
 } as const;
+// Single owner note: products owns the method declaration
+// (products_item.valuation_method); inventory owns the engine and default.
+// Mirror in inventory utils/constants — keep values in sync.
 
 export type ValuationMethod = (typeof VALUATION_METHOD)[keyof typeof VALUATION_METHOD];
 

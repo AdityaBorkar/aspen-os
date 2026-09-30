@@ -79,6 +79,9 @@ export const VALUATION_METHOD = {
   FIFO: "fifo",
   MOVING_AVERAGE: "moving_average",
 } as const;
+// Single owner note: products declares the valuation method per item;
+// inventory owns the valuation engine and global default. This constant
+// mirrors products VALUATION_METHOD — keep values in sync; do not diverge.
 
 export type ValuationMethod = (typeof VALUATION_METHOD)[keyof typeof VALUATION_METHOD];
 

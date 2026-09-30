@@ -3,6 +3,9 @@ import { productsPriceListApplicabilityEnum } from "#/db-schemas/enums";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp, uniqueIndex } from "drizzle-orm/pg-core";
 
+// Single owner: products owns price lists and item prices. Inventory stores
+// valuation_rate snapshots (cost + landed-cost allocation); accounting stores
+// agreed transaction rates. Resolve list prices via priceFetch.getRate.
 export const productsPriceList = pgTable(
   "products_price_list",
   {

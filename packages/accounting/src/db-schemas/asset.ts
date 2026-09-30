@@ -74,6 +74,9 @@ export const accountingAsset = pgTable(
     gross_value: numeric().notNull().default("0"),
     id: uuidv7().primaryKey(),
     insurance: jsonb().$type<Record<string, JsonValue>>().notNull().default({}),
+    // Soft FK to products_item. Single owner: products owns the
+    // is_fixed_asset/auto_create_assets_on_purchase flags; accounting owns
+    // the asset register. Auto-create off receipt/invoice for flagged items.
     item_id: text(),
     location_id: text(),
     purchase_date: date(),

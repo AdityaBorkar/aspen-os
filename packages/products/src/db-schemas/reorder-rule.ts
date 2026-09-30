@@ -3,6 +3,9 @@ import { productsMaterialRequestTypeEnum } from "#/db-schemas/enums";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single owner: products owns reorder policy. Inventory owns the scan
+// (reorder-scanner reads via ReorderRuleProvider) and breaches; accounting
+// owns material-request creation off inventory.reorder_triggered.
 export const productsReorderRule = pgTable(
   "products_reorder_rule",
   {

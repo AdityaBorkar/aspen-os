@@ -16,18 +16,14 @@ export const updateSettings = Workflow.name("products.settings.update")
   .handler(async ({ patch }, ctx) => {
     const existing = await getOrCreateSingleton(ctx.db, productsSetting, "products settings");
     const updates = stripUndefined({
-      allow_negative_stock: patch.allowNegativeStock,
       auto_insert_price_if_missing: patch.autoInsertPriceIfMissing,
-      batch_naming_series: patch.batchNamingSeries,
       clean_description_html: patch.cleanDescriptionHtml,
       default_item_group_id: patch.defaultItemGroupId,
       default_stock_uom: patch.defaultStockUom,
-      default_valuation_method: patch.defaultValuationMethod,
       default_warehouse_id: patch.defaultWarehouseId,
       item_naming_by: patch.itemNamingBy,
       limit_percent: patch.limitPercent,
       over_deliver_receive_role: patch.overDeliverReceiveRole,
-      sample_retention_warehouse_id: patch.sampleRetentionWarehouseId,
       serial_batch_enabled: patch.serialBatchEnabled,
       show_barcode_field: patch.showBarcodeField,
     });

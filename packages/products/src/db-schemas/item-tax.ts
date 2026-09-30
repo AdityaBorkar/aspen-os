@@ -1,6 +1,9 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single owner note: products stores item→template pointers only
+// (tax_category/tax_template shared key). Accounting owns tax computation
+// (accounting_tax_template/rule + totals-service); products never computes tax.
 export const productsItemTax = pgTable(
   "products_item_tax",
   {

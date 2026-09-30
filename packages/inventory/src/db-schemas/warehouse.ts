@@ -3,6 +3,9 @@ import { inventoryWarehouseTypeEnum } from "#/db-schemas/enums";
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single owner: inventory owns the warehouse master. Products
+// (item/group/setting/reorder) and accounting (all fulfilment docs) hold
+// soft text FKs only — validate via inventory.warehouses at create time.
 export const inventoryWarehouse = pgTable(
   "inventory_warehouse",
   {

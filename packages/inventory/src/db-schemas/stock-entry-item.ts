@@ -1,6 +1,9 @@
 import { uuidv7 } from "@aspen-os/platform/server";
 import { boolean, index, numeric, pgTable, text, timestamp } from "drizzle-orm/pg-core";
 
+// Single-owner snapshots: products owns UOM conversions and price lists;
+// inventory owns valuation (basic_rate input → valuation_rate computed +
+// additional-cost spread). Legs store uom/factor/rate snapshots only.
 export const inventoryStockEntryItem = pgTable(
   "inventory_stock_entry_item",
   {
@@ -22,6 +25,10 @@ export const inventoryStockEntryItem = pgTable(
     stock_entry_id: text().notNull(),
     target_warehouse_id: text(),
     uom: text().notNull(),
+    // Snapshot of products_item.valuation_method at submit time (row override
+    // ?? inventory default). Products owns the declaration; inventory owns
+    // the engine. Free text for snapshot tolerance — resolved in
+    // posting/legs.ts via resolveValuationMethod.
     valuation_method: text(),
     valuation_rate: numeric({ mode: "number" }),
   },
